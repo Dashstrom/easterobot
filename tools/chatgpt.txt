@@ -1,0 +1,19 @@
+Dans le but de faire des réponses à des actions d'utilisateur dans un jeu,
+Génère moi pleins phrases courte pour dire qu'il n'y a pas d'œufs de Pâque après qu'un utilisateur en ai recherché.
+Parle à la deuxième personne du singulier.
+Utilise un ton humoristique.
+
+Dans le but de faire des réponses à des actions d'utilisateur dans un jeu,
+Génère moi des phrases pour dire qu'un utilisateur à trouvé un œuf de pâque.
+Parle à la deuxième personne du singulier.
+Utilise un ton humoristique.
+
+Dans le but de faire des réponses à des actions d'utilisateur dans un jeu,
+Génère moi des phrases pour dire qu'un utilisateur à trouvé un œuf de pâque mais que les autres joueurs l'on repéré et qu'ils vont essyer de lui voler.
+Parle à la deuxième personne du singulier.
+Utilise un ton humoristique.
+Utilise {user} pour désigner l'utilisateur.
+
+Dans le but de faire des message un jeu de chasse à l'oeuf de paques.
+Génère moi des phrases pour dire qu'un oeuf est apparu/découvert.
+Utiliser la troisième personne et un ton humoristique.

@@ -1,0 +1,8 @@
+include easterobot/*.py
+include easterobot/py.typed
+include easterobot/data/config.yml
+include requirements.txt
+include requirements-tools.txt
+include .gitignore
+include pyproject.toml
+include README.md
