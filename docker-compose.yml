@@ -1,0 +1,8 @@
+version: "3.7"
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./easterobot/data:/app/easterobot/data

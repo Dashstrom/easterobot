@@ -38,3 +38,4 @@ htmlcov
 # data
 *.sqlite
 images/eggs
+easterobot/data/config.yml
