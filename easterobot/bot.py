@@ -297,7 +297,10 @@ async def reset(ctx: ApplicationContext) -> None:
         await ctx.followup.send(
             embed=ctx.bot.embed(
                 title="Réinitialisation",
-                description="L'ensemble des salons, œufs et temps d'attentes ont été réinitialisatié.",
+                description=(
+                    "L'ensemble des salons, œufs "
+                    "et temps d'attentes ont été réinitialisatié."
+                ),
             )
         )
 
