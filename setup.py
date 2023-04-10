@@ -32,7 +32,7 @@ setup(
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
     ],
-    keywords=["discord", "bot", "client", "easter", "eggs"],
+    keywords=["discord", "bot", "easter", "eggs", "hunt"],
     install_requires=read("requirements.txt").split("\n"),
     platforms="any",
     include_package_data=True,
