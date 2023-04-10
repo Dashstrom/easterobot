@@ -12,8 +12,8 @@ cd easterobot
 ## Edit configuration
 
 ```bash
-cp easterobot.yml.exemple easterobot.yml
-vim easterobot.yml
+cp easterobot/data/easterobot.yml.exemple easterobot/data/easterobot.yml
+vim easterobot/data/easterobot.yml
 ```
 
 ## How to install docker
