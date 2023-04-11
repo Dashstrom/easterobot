@@ -349,6 +349,7 @@ async def reset(ctx: ApplicationContext) -> None:
         done = True
         view.disable_all_items()
         view.stop()
+        await interaction.response.defer(ephemeral=True)
         await message.edit_original_response(view=view)
         with Session(ctx.bot.engine) as session:
             session.execute(delete(Hunt).where(Hunt.guild_id == ctx.guild_id))
@@ -357,7 +358,7 @@ async def reset(ctx: ApplicationContext) -> None:
                 delete(Hunter).where(Hunter.guild_id == ctx.guild_id)
             )
             session.commit()
-        await interaction.response.send_message(
+        await interaction.followup.send(
             embed=confirm_embed,
             ephemeral=True,
         )
@@ -393,7 +394,7 @@ async def reset(ctx: ApplicationContext) -> None:
     description="Membre voulant editer",
 )
 @discord.option(  # type: ignore
-    "montant",
+    "oeufs",
     input_type=int,
     required=True,
     description="Nouveau nombre d'œufs",
@@ -401,7 +402,7 @@ async def reset(ctx: ApplicationContext) -> None:
 async def edit(
     ctx: ApplicationContext,
     user: discord.Member,
-    montant: int,
+    oeufs: int,
 ) -> None:
     if (
         ctx.author is None
@@ -412,6 +413,7 @@ async def edit(
             "Vous n'avez pas la permission d'administrateur", ephemeral=True
         )
         return
+    await ctx.defer(ephemeral=True)
     with Session(ctx.bot.engine) as session:
         eggs = session.scalars(
             select(Egg).where(
@@ -421,7 +423,7 @@ async def edit(
                 )
             )
         ).all()
-        diff = len(eggs) - montant
+        diff = len(eggs) - oeufs
         if diff > 0:
             to_delete = []
             for _ in range(diff):
@@ -442,12 +444,12 @@ async def edit(
                     )
                 )
             session.commit()
-    await ctx.respond(
+    await ctx.followup.send(
         embed=ctx.bot.embed(
             title="Edition terminée",
             description=(
-                f"{user.mention} à maintenant "
-                f"{agree('{0} œuf', '{0} œufs', montant)}"
+                f"{user.mention} a maintenant "
+                f"{agree('{0} œuf', '{0} œufs', oeufs)}"
             ),
         ),
         ephemeral=True,
@@ -715,7 +717,7 @@ async def top(ctx: ApplicationContext) -> None:
                     f"➥ {agree('{0} œuf', '{0} œufs', egg_count)}"
                 )
             else:
-                morsels.append("\n:spider_web: Vous n'avez pas encore œuf")
+                morsels.append("\n:spider_web: Vous n'avez aucun œuf")
     text = "\n".join(morsels)
     await ctx.respond(
         embed=ctx.bot.embed(
