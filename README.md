@@ -42,6 +42,7 @@ docker compose stop
 docker compose logs -f --tail 80
 docker compose restart
 docker compose down --volumes --rmi 'all'
+docker compose exec bot bash
 ```
 
 ## Generate images
@@ -61,7 +62,7 @@ sudo rm -rf /var/lib/docker
 ## Update
 
 ```bash
-docker compose down --volumes --rmi 'all'
+docker compose stop
 git pull
 docker compose up -d
 ```

@@ -221,7 +221,7 @@ class Easterbot(discord.Bot):
             if hunters:
                 loser = rand.choice(hunters)
                 loser_name = loser.nick or loser.name
-                if len(hunters) > 0:
+                if len(hunters) == 1:
                     text = f"{loser_name} rate un œuf"
                 else:
                     text = agree(

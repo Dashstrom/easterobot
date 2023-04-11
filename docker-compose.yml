@@ -5,4 +5,4 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ./easterobot/data:/app/easterobot/data
+      - ./:/app/
