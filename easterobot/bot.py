@@ -303,7 +303,7 @@ async def reset(ctx: ApplicationContext) -> None:
             "Vous n'avez pas la permission d'administrateur", ephemeral=True
         )
         return
-    view = discord.ui.View(timeout=30)
+    view = discord.ui.View(timeout=None)
     cancel = discord.ui.Button(  # type: ignore
         label="Annuler", style=discord.ButtonStyle.danger
     )
@@ -312,25 +312,40 @@ async def reset(ctx: ApplicationContext) -> None:
         label="Confirmer", style=discord.ButtonStyle.success
     )
     view.add_item(confirm)
+    done = False
+    cancel_embed = ctx.bot.embed(
+        title="Réinitialisation annulée",
+        description="Vous avez annulé la demande de réinitialisation.",
+    )
+    confirm_embed = ctx.bot.embed(
+        title="Réinitialisation",
+        description=(
+            "L'ensemble des salons, œufs "
+            "et temps d'attentes ont été réinitialisatié."
+        ),
+    )
 
     async def cancel_callback(
         interaction: discord.Interaction,
     ) -> None:
+        nonlocal done
+        done = True
         view.disable_all_items()
         view.stop()
+        await message.edit_original_response(view=view)
         await interaction.response.send_message(
-            embed=ctx.bot.embed(
-                title="Réinitialisation annulée",
-                description="Vous avez annulé la demande de réinitialisation.",
-            ),
+            embed=cancel_embed,
             ephemeral=True,
         )
 
     async def confirm_callback(
         interaction: discord.Interaction,
     ) -> None:
+        nonlocal done
+        done = True
         view.disable_all_items()
         view.stop()
+        await message.edit_original_response(view=view)
         with Session(ctx.bot.engine) as session:
             session.execute(delete(Hunt).where(Hunt.guild_id == ctx.guild_id))
             session.execute(delete(Egg).where(Egg.guild_id == ctx.guild_id))
@@ -339,13 +354,7 @@ async def reset(ctx: ApplicationContext) -> None:
             )
             session.commit()
         await interaction.response.send_message(
-            embed=ctx.bot.embed(
-                title="Réinitialisation",
-                description=(
-                    "L'ensemble des salons, œufs "
-                    "et temps d'attentes ont été réinitialisatié."
-                ),
-            ),
+            embed=confirm_embed,
             ephemeral=True,
         )
 
@@ -363,8 +372,12 @@ async def reset(ctx: ApplicationContext) -> None:
         ephemeral=True,
         view=view,
     )
-    if await view.wait():
-        await cancel_callback(cast(discord.Interaction, message))
+    await asyncio.sleep(30.0)
+    if not done:
+        view.disable_all_items()
+        view.stop()
+        await message.edit_original_response(view=view)
+        await ctx.followup.send(embed=cancel_embed, ephemeral=True)
 
 
 @egg_command_group.command(description="Editer le nombre d'œufs d'un membre.")
@@ -686,7 +699,7 @@ async def top(ctx: ApplicationContext) -> None:
                     f"➥ {agree('{0} œuf', '{0} œufs', egg_count)}"
                 )
             else:
-                morsels.append("\nVous n'avez pas encore œuf")
+                morsels.append("\n:spider_web: Vous n'avez pas encore œuf")
     text = "\n".join(morsels)
     await ctx.respond(
         embed=ctx.bot.embed(
