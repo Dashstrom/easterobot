@@ -1,15 +1,16 @@
 guild: YOUR_GUILD_ID
 token: YOUR_TOKEN
 database: sqlite:///easterobot/data/easterobot.sqlite
+group: egg
 hunt:
-  timeout: 60.0
+  timeout: 300.0
   cooldown:
     min: 600.0
-    max: 1800.0
+    max: 1200.0
 search:
   rate:
-    discovered: 0.5
-    spotted: 0.333
+    discovered: 0.6
+    spotted: 0.4
   cooldown: 600.0
 conjugate:
   e:
@@ -52,7 +53,7 @@ hidden:
 - "Tu as découvert un œuf ! Tu devrais peut-être envisager de t'inscrire aux Jeux Olympiques de la Chasse aux œufs !"
 - "Tu es un vrai Sherlock Holmes des œufs de Pâques ! Maintenant, si seulement tu pouvais résoudre le mystère de qui a mangé tous les chocolats de Pâques..."
 - "Génial ! Tu as trouvé un œuf caché. Il est maintenant temps de te faire une omelette géante au chocolat pour célébrer ta victoire !"
-- "Félicitations ! Tu as mis la main sur un œuf, tu es un héro ! Maintenant, tu as le droit de t'en vanter auprès de tous tes amis."
+- "Félicitations ! Tu as mis la main sur un œuf, tu es un héros ! Maintenant, tu as le droit de t'en vanter auprès de tous tes amis."
 - "Bien joué, tu as réussi à trouver un œuf ! C'est l'œuf le plus chanceux du monde car il a été trouvé par toi !"
 - "Oh là là, regarde qui est un chasseur d'œufs professionnel maintenant ! Bon boulot, mon ami !"
 - "Quelqu'un a appelé les chasseurs de trésors ? Tu viens de trouver un œuf, félicitations !"
@@ -66,7 +67,7 @@ hidden:
 - "Alors, comment se sent-on d'être le maître de la chasse aux œufs ? Tu vas pouvoir le célébrer avec une bonne dose de chocolat et de joie !"
 - "Wow, c'est incroyable ! Tu as découvert un œuf caché à la perfection. Tu pourrais peut-être envisager de travailler pour la DGSE."
 spotted:
-- "Oh la la, {user} a mis la main sur un œuf très convoité ! Mais attention, les autres joueurs ont l'air de flairer la bonne affaire !"
+- "Oh là là, {user} a mis la main sur un œuf très convoité ! Mais attention, les autres joueurs ont l'air de flairer la bonne affaire !"
 - "Bien joué, {user} ! Mais ne te repose pas sur tes lauriers, car tes adversaires ont l'air de vouloir te piquer ton trésor chocolaté !"
 - "Hé hé, {user} a trouvé un œuf par hasard ! Mais il faut faire attention aux autres joueurs qui ont l'air de vouloir jouer les voleurs !"
 - "Ah, voilà {user} qui a réussi à dénicher un œuf ! Mais il devrait faire attention, car les autres joueurs sont aux aguets et ont repéré sa trouvaille !"
@@ -76,7 +77,7 @@ spotted:
 - "Félicitations, {user}, tu as remporté la chasse à l'œuf ! Mais maintenant, les autres joueurs sont à tes trousses et prêts à tout pour le récupérer. Garde un œil sur tes arrières et montre-leur qui est {le} boss de la chasse aux œufs !"
 - "Félicitations {user} ! Tu as trouvé un œuf tant convoité ! Cependant, tu n'es pas seul dans ce jeu, et tes ennemis t'ont déjà repéré. Attention, ça risque de devenir une chasse aux œufs plutôt agressive !"
 - "Hé {user}, Tu es un{e} vrai Sherlock Holmes ! Tu as réussi à trouver un œuf, mais tes adversaires ont flairé le coup et ils sont en route pour le prendre ! Prépare-toi à défendre ton butin de toutes tes forces !"
-- "Oh la la, {user} ! Tu as réussi à trouver un œuf ! C'est vraiment incroyable ! Malheureusement, tes adversaires sont très jaloux de ta réussite, et ils vont tout faire pour te dépouiller. Sois sur tes gardes et va chercher ton trésor !"
+- "Oh là là, {user} ! Tu as réussi à trouver un œuf ! C'est vraiment incroyable ! Malheureusement, tes adversaires sont très jaloux de ta réussite, et ils vont tout faire pour te dépouiller. Sois sur tes gardes et va chercher ton trésor !"
 - "Bravo {user} ! Tu as trouvé un œuf ! Mais ne te repose pas sur tes lauriers, car les autres joueurs vont tout faire pour le voler ! Si tu veux le garder, il va falloir être plus rapide, plus malin et plus rusé{e} qu'eux !"
 - "Incroyable {user} ! Tu as trouvé un œuf ! Mais attention, tes adversaires sont déjà en train de te traquer ! Prépare-toi à une course-poursuite effrénée et amusante pour défendre ton trophée ! Alors, es-tu prêt{e} à relever le défi ?"
 appear:

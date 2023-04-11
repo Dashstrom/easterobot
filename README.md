@@ -12,17 +12,25 @@ cd easterobot
 ## Edit configuration
 
 ```bash
-cp easterobot/data/easterobot.yml.exemple easterobot/data/easterobot.yml
-vim easterobot/data/easterobot.yml
+cp easterobot/data/config.yml.exemple easterobot/data/config.yml
+nano easterobot/data/config.yml
 ```
 
 ## How to install docker
 
+On rasbian run these command before install docker :
+
 ```bash
-sudo apt-get update && sudo apt-get upgrade
+sudo apt install --reinstall raspberrypi-bootloader raspberrypi-kernel
+sudo reboot
+```
+
+```bash
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
-pip install docker-compose
+sudo usermod -aG docker "${USER}"
+sudo apt remove docker-ce
+pip3 install docker-compose
 ```
 
 ## Some usefull commands
@@ -31,6 +39,8 @@ pip install docker-compose
 docker compose up -d
 docker compose ls
 docker compose stop
+docker compose logs -f --tail 80
+docker compose restart
 docker compose down --volumes --rmi 'all'
 ```
 
@@ -39,4 +49,11 @@ docker compose down --volumes --rmi 'all'
 ```bash
 pip install requirements-tools.txt
 python3 tools/cropping.py images/eggs.png images/eggs -s 13
+```
+
+## Unintsall
+
+```bash
+sudo apt-get purge docker-ce
+sudo rm -rf /var/lib/docker
 ```

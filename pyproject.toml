@@ -60,6 +60,10 @@ module = "setuptools"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+module = "discord.ext.tasks"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 module = "cv2"
 ignore_missing_imports = true
 
@@ -100,5 +104,6 @@ disable = [
     "missing-function-docstring",
     "invalid-name",
     "broad-except",
-    "no-member"
+    "no-member",
+    "not-callable"
 ]

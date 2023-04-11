@@ -39,3 +39,4 @@ htmlcov
 *.sqlite
 images/eggs
 easterobot/data/config.yml
+get-docker.sh

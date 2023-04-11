@@ -9,7 +9,7 @@ def read(path):
 
 setup(
     name="easterobot",
-    version="1.0.0.dev20230409",
+    version="1.0.0",
     author="Dashstrom",
     author_email="dashstrom.pro@gmail.com",
     url="https://github.com/Dashstrom/easterobot",
@@ -37,11 +37,11 @@ setup(
     platforms="any",
     include_package_data=True,
     package_data={
-        "easterobot": ["py.typed", "data/config.yml"],
+        "easterobot": ["py.typed", "data/config.yml.exemple"],
     },
     entry_points={
         "console_scripts": [
-            "easterobot=easterobot.__main__:easterobot",
+            "easterobot=easterobot.bot:Easterobot",
         ]
     },
 )

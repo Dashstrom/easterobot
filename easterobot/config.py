@@ -1,6 +1,6 @@
 """Main program."""
-from pathlib import Path
 import random
+from pathlib import Path
 from typing import Any, List, Optional, cast
 
 import discord
@@ -63,6 +63,10 @@ class Config:
     @property
     def database(self) -> str:
         return cast(str, self._data["database"])
+
+    @property
+    def group(self) -> str:
+        return cast(str, self._data["group"])
 
     def search_rate_discovered(self) -> float:
         return cast(

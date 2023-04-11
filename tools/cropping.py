@@ -1,10 +1,10 @@
 """Script for croping images."""
+import pathlib
 from collections import deque
 from pathlib import Path
-import pathlib
 from typing import Iterator, List
-import click
 
+import click
 import cv2
 import numpy as np
 import numpy.typing as npt

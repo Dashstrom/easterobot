@@ -1,6 +1,6 @@
 include easterobot/*.py
 include easterobot/py.typed
-include easterobot/data/config.yml
+include easterobot/data/config.yml.exemple
 include requirements.txt
 include requirements-tools.txt
 include .gitignore
