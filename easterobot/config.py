@@ -57,6 +57,10 @@ class Config:
         return cast(int, self._data["guild"])
 
     @property
+    def admin_ids(self) -> Tuple[int, ...]:
+        return cast(Tuple[int, ...], tuple(self._data["admins"]))
+
+    @property
     def token(self) -> int:
         return cast(int, self._data["token"])
 

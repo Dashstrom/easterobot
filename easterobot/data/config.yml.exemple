@@ -1,4 +1,6 @@
 guild: YOUR_GUILD_ID
+admins:
+- YOUR_ID
 token: YOUR_TOKEN
 database: sqlite:///easterobot/data/easterobot.sqlite
 group: egg

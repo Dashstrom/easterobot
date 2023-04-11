@@ -298,7 +298,11 @@ class ApplicationContext(discord.ApplicationContext):
 @egg_command_group.command(description="Réinitialiser la chasse aux œufs.")
 @discord.guild_only()
 async def reset(ctx: ApplicationContext) -> None:
-    if ctx.author is None or not ctx.author.guild_permissions.administrator:
+    if (
+        ctx.author is None
+        or not ctx.author.guild_permissions.administrator
+        and ctx.author.id not in ctx.bot.config.admin_ids
+    ):
         await ctx.respond(
             "Vous n'avez pas la permission d'administrateur", ephemeral=True
         )
@@ -399,7 +403,11 @@ async def edit(
     user: discord.Member,
     montant: int,
 ) -> None:
-    if ctx.author is None or not ctx.author.guild_permissions.administrator:
+    if (
+        ctx.author is None
+        or not ctx.author.guild_permissions.administrator
+        and ctx.author.id not in ctx.bot.config.admin_ids
+    ):
         await ctx.respond(
             "Vous n'avez pas la permission d'administrateur", ephemeral=True
         )
@@ -451,7 +459,11 @@ async def edit(
 )
 @discord.guild_only()
 async def enable(ctx: ApplicationContext) -> None:
-    if ctx.author is None or not ctx.author.guild_permissions.manage_channels:
+    if (
+        ctx.author is None
+        or not ctx.author.guild_permissions.manage_channels
+        and ctx.author.id not in ctx.bot.config.admin_ids
+    ):
         await ctx.respond(
             "Vous n'avez pas la permission de gérer les salons", ephemeral=True
         )
@@ -479,7 +491,11 @@ async def enable(ctx: ApplicationContext) -> None:
 )
 @discord.guild_only()
 async def disable(ctx: ApplicationContext) -> None:
-    if ctx.author is None or not ctx.author.guild_permissions.manage_channels:
+    if (
+        ctx.author is None
+        or not ctx.author.guild_permissions.manage_channels
+        and ctx.author.id not in ctx.bot.config.admin_ids
+    ):
         await ctx.respond(
             "Vous n'avez pas la permission de gérer les salons", ephemeral=True
         )
