@@ -17,7 +17,7 @@ class Egg(Base):
     guild_id: Mapped[int] = mapped_column(nullable=False)
     channel_id: Mapped[int] = mapped_column(nullable=False)
     user_id: Mapped[int] = mapped_column(nullable=False)
-    emoji_id: Mapped[int] = mapped_column(nullable=False)
+    emoji_id: Mapped[int] = mapped_column(nullable=True)
     message_id: Mapped[Optional[int]] = mapped_column(
         nullable=True, default=None
     )

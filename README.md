@@ -57,3 +57,11 @@ python3 tools/cropping.py images/eggs.png images/eggs -s 13
 sudo apt-get purge docker-ce
 sudo rm -rf /var/lib/docker
 ```
+
+## Update
+
+```bash
+docker compose down --volumes --rmi 'all'
+git pull
+docker compose up -d
+```

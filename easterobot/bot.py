@@ -3,19 +3,21 @@ import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
 from traceback import print_exc
-from typing import Any, Dict, List, Optional, TypeVar, cast
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    TypeVar,
+    cast,
+)
 
 import discord
 import discord.ext.tasks
 import humanize
-from sqlalchemy import (
-    and_,
-    create_engine,
-    delete,
-    func,
-    select,
-    update,
-)
+from sqlalchemy import and_, create_engine, delete, func, select, update
 from sqlalchemy.orm import Session
 
 from .config import Config, agree, rand
@@ -28,7 +30,7 @@ HERE = Path(__file__).parent
 DEFAULT_CONFIG_PATH = HERE / "data" / "config.yml"
 
 egg_command_group = discord.SlashCommandGroup(
-    "egg", "Commandes en lien avec Pâque."
+    "egg", "Commandes en lien avec Pâque.", guild_only=True
 )
 
 
@@ -86,7 +88,9 @@ class Easterbot(discord.Bot):
         description: str,
         *,
         member_id: Optional[int] = None,
-        send_method: Any = None,
+        send_method: Optional[
+            Callable[..., Awaitable[discord.Message]]
+        ] = None,
     ) -> None:
         channel = cast(discord.TextChannel, self.get_channel(hunt_id))
         if channel is None:
@@ -102,7 +106,7 @@ class Easterbot(discord.Bot):
         print(f"Start hunt in {channel}")
         action = self.config.action()
         guild = channel.guild
-        emoji = await self.config.emoji()
+        emoji = self.config.emoji()
         view = discord.ui.View(timeout=self.config.hunt_timeout())
         button = discord.ui.Button(  # type: ignore
             label=action.text(),
@@ -292,21 +296,137 @@ class ApplicationContext(discord.ApplicationContext):
 
 
 @egg_command_group.command(description="Réinitialiser la chasse aux œufs.")
-@discord.default_permissions(administrator=True)
 @discord.guild_only()
 async def reset(ctx: ApplicationContext) -> None:
-    await ctx.defer()
-    with Session(ctx.bot.engine) as session:
-        session.execute(delete(Hunt).where(Hunt.guild_id == ctx.guild_id))
-        session.execute(delete(Egg).where(Egg.guild_id == ctx.guild_id))
-        session.execute(delete(Hunter).where(Hunter.guild_id == ctx.guild_id))
-        session.commit()
-    await ctx.followup.send(
+    if ctx.author is None or not ctx.author.guild_permissions.administrator:
+        await ctx.respond(
+            "Vous n'avez pas la permission d'administrateur", ephemeral=True
+        )
+        return
+    view = discord.ui.View(timeout=30)
+    cancel = discord.ui.Button(  # type: ignore
+        label="Annuler", style=discord.ButtonStyle.danger
+    )
+    view.add_item(cancel)
+    confirm = discord.ui.Button(  # type: ignore
+        label="Confirmer", style=discord.ButtonStyle.success
+    )
+    view.add_item(confirm)
+
+    async def cancel_callback(
+        interaction: discord.Interaction,
+    ) -> None:
+        view.disable_all_items()
+        view.stop()
+        await interaction.response.send_message(
+            embed=ctx.bot.embed(
+                title="Réinitialisation annulée",
+                description="Vous avez annulé la demande de réinitialisation.",
+            ),
+            ephemeral=True,
+        )
+
+    async def confirm_callback(
+        interaction: discord.Interaction,
+    ) -> None:
+        view.disable_all_items()
+        view.stop()
+        with Session(ctx.bot.engine) as session:
+            session.execute(delete(Hunt).where(Hunt.guild_id == ctx.guild_id))
+            session.execute(delete(Egg).where(Egg.guild_id == ctx.guild_id))
+            session.execute(
+                delete(Hunter).where(Hunter.guild_id == ctx.guild_id)
+            )
+            session.commit()
+        await interaction.response.send_message(
+            embed=ctx.bot.embed(
+                title="Réinitialisation",
+                description=(
+                    "L'ensemble des salons, œufs "
+                    "et temps d'attentes ont été réinitialisatié."
+                ),
+            ),
+            ephemeral=True,
+        )
+
+    cancel.callback = cancel_callback  # type: ignore
+    confirm.callback = confirm_callback  # type: ignore
+    message = await ctx.respond(
         embed=ctx.bot.embed(
-            title="Réinitialisation",
+            title="Demande de réinitialisation",
             description=(
                 "L'ensemble des salons, œufs "
-                "et temps d'attentes ont été réinitialisatié."
+                "et temps d'attentes vont être réinitialisatiés."
+            ),
+            footer="Vous avez 30 secondes pour confirmer",
+        ),
+        ephemeral=True,
+        view=view,
+    )
+    if await view.wait():
+        await cancel_callback(cast(discord.Interaction, message))
+
+
+@egg_command_group.command(description="Editer le nombre d'œufs d'un membre.")
+@discord.guild_only()
+@discord.option(  # type: ignore
+    "user",
+    input_type=discord.Member,
+    required=True,
+    description="Membre voulant editer",
+)
+@discord.option(  # type: ignore
+    "montant",
+    input_type=int,
+    required=True,
+    description="Nouveau nombre d'œufs",
+)
+async def edit(
+    ctx: ApplicationContext,
+    user: discord.Member,
+    montant: int,
+) -> None:
+    if ctx.author is None or not ctx.author.guild_permissions.administrator:
+        await ctx.respond(
+            "Vous n'avez pas la permission d'administrateur", ephemeral=True
+        )
+        return
+    with Session(ctx.bot.engine) as session:
+        eggs = session.scalars(
+            select(Egg).where(
+                and_(
+                    Egg.guild_id == ctx.guild.id,
+                    Egg.user_id == ctx.author.id,
+                )
+            )
+        ).all()
+        diff = len(eggs) - montant
+        if diff > 0:
+            to_delete = []
+            for _ in range(diff):
+                egg = rand.choice(eggs)
+                eggs.remove(egg)
+                to_delete.append(egg.id)
+            session.execute(delete(Egg).where(Egg.id.in_(to_delete)))
+            session.commit()
+        elif diff < 0:
+            for _ in range(-diff):
+                session.add(
+                    Egg(
+                        guild_id=ctx.guild_id,
+                        channel_id=ctx.channel_id,
+                        user_id=user.id,
+                        emoji_id=ctx.bot.config.emoji().id,
+                        message_id=None,
+                    )
+                )
+            session.commit()
+    await ctx.respond(
+        embed=ctx.bot.embed(
+            title="Edition terminée",
+            description=(
+                f"{user.mention} à maintenant "
+                f"{agree('{0} œuf', '{0} œufs', montant)}"
             ),
         ),
         ephemeral=True,
@@ -316,9 +436,13 @@ async def reset(ctx: ApplicationContext) -> None:
 @egg_command_group.command(
     description="Activer la chasse aux œufs dans le salon."
 )
-@discord.default_permissions(manage_channels=True)
 @discord.guild_only()
 async def enable(ctx: ApplicationContext) -> None:
+    if ctx.author is None or not ctx.author.guild_permissions.manage_channels:
+        await ctx.respond(
+            "Vous n'avez pas la permission de gérer les salons", ephemeral=True
+        )
+        return
     with Session(ctx.bot.engine) as session:
         old = session.scalar(
             select(Hunt).where(Hunt.channel_id == ctx.channel.id)
@@ -340,9 +464,13 @@ async def enable(ctx: ApplicationContext) -> None:
 @egg_command_group.command(
     description="Désactiver la chasse aux œufs dans le salon."
 )
-@discord.default_permissions(manage_channels=True)
 @discord.guild_only()
 async def disable(ctx: ApplicationContext) -> None:
+    if ctx.author is None or not ctx.author.guild_permissions.manage_channels:
+        await ctx.respond(
+            "Vous n'avez pas la permission de gérer les salons", ephemeral=True
+        )
+        return
     with Session(ctx.bot.engine) as session:
         old = session.scalar(
             select(Hunt).where(Hunt.channel_id == ctx.channel.id)
@@ -368,17 +496,6 @@ async def disable(ctx: ApplicationContext) -> None:
 )
 async def basket(ctx: ApplicationContext, user: discord.Member) -> None:
     hunter = user or ctx.author
-    with Session(ctx.bot.engine) as session:
-        hunt = session.scalar(
-            select(Hunt).where(Hunt.channel_id == ctx.channel.id)
-        )
-
-    if hunt is None:
-        await ctx.respond(
-            "La chasse aux œufs n'est pas activée dans ce salon",
-            ephemeral=True,
-        )
-        return
     with Session(ctx.bot.engine) as session:
         egg_counts = list(
             session.execute(
@@ -475,8 +592,12 @@ async def search(ctx: ApplicationContext) -> None:
     if ctx.bot.config.search_rate_discovered() < n1:
         if ctx.bot.config.search_rate_spoted() < n2:
 
-            async def send_method(*args, **kwargs):
-                interaction = await ctx.respond(*args, **kwargs)
+            async def send_method(
+                *args: Any, **kwargs: Any
+            ) -> discord.Message:
+                interaction = cast(
+                    discord.Interaction, await ctx.respond(*args, **kwargs)
+                )
                 return await interaction.original_response()
 
             await ctx.bot.start_hunt(
@@ -486,7 +607,7 @@ async def search(ctx: ApplicationContext) -> None:
                 send_method=send_method,
             )
         else:
-            emoji = await ctx.bot.config.emoji()
+            emoji = ctx.bot.config.emoji()
             with Session(ctx.bot.engine) as session:
                 session.add(
                     Egg(
@@ -529,16 +650,6 @@ async def search(ctx: ApplicationContext) -> None:
 @discord.guild_only()
 async def top(ctx: ApplicationContext) -> None:
     with Session(ctx.bot.engine) as session:
-        hunt = session.scalar(
-            select(Hunt).where(Hunt.channel_id == ctx.channel.id)
-        )
-
-        if hunt is None:
-            await ctx.respond(
-                "La chasse aux œufs n'est pas activée dans ce salon",
-                ephemeral=True,
-            )
-            return
         base = (
             select(
                 Egg.user_id,
@@ -589,21 +700,17 @@ async def top(ctx: ApplicationContext) -> None:
 
 @egg_command_group.command(description="Obtenir de l'aide.")
 @discord.guild_only()
-async def help(ctx: ApplicationContext) -> None:  # type: ignore
+async def help(ctx: ApplicationContext) -> None:
     embed: discord.Embed = ctx.bot.embed(
         title="Liste des commandes",
         description=ctx.bot.description,
-        thumbnail=ctx.bot.user.display_avatar.url,
+        thumbnail=ctx.bot.user.display_avatar.url,  # type: ignore
         footer="Crée par Dashstrom#6593",
     )
     for cmd in egg_command_group.subcommands:
-        if (
-            cmd.default_member_permissions is None
-            or cmd.default_member_permissions <= ctx.author.guild_permissions
-        ):
-            embed.add_field(
-                name=f"/{egg_command_group.name} {cmd.name}",
-                value=f"{cmd.description}",
-                inline=False,
-            )
+        embed.add_field(
+            name=f"/{egg_command_group.name} {cmd.name}",
+            value=f"{cmd.description}",
+            inline=False,
+        )
     await ctx.respond(embed=embed, ephemeral=True)

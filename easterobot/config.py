@@ -1,7 +1,7 @@
 """Main program."""
 import random
 from pathlib import Path
-from typing import Any, List, Optional, cast
+from typing import Any, Optional, Tuple, cast
 
 import discord
 import humanize
@@ -46,11 +46,11 @@ class Config:
     def __init__(self, config_path: Path) -> None:
         with config_path.open("r", encoding="utf8") as file:
             self._data = yaml.safe_load(file)
-        self._emojis: List[discord.Emoji] = []
+        self._emojis: Tuple[discord.Emoji, ...] = ()
 
     async def load(self, client: discord.Client) -> None:
         guild = await client.fetch_guild(self.guild_id)
-        self._emojis = await guild.fetch_emojis()
+        self._emojis = tuple(await guild.fetch_emojis())
 
     @property
     def guild_id(self) -> int:
@@ -95,8 +95,11 @@ class Config:
     def woman_id(self) -> int:
         return cast(int, self._data["woman_id"])
 
-    async def emoji(self) -> discord.Emoji:
+    def emoji(self) -> discord.Emoji:
         return rand.choice(self._emojis)
+
+    def emojis(self) -> Tuple[discord.Emoji, ...]:
+        return self._emojis
 
     def action(self) -> Action:
         return Action(rand.choice(self._data["action"]), self)
