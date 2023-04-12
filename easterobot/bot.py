@@ -650,9 +650,7 @@ async def search(ctx: ApplicationContext) -> None:
                     )
                 )
                 egg_count = session.scalar(
-                    select(
-                        func.count(Egg.user_id).label("count"),
-                    ).where(
+                    select(func.count(Egg.user_id).label("count"),).where(
                         and_(
                             Egg.guild_id == ctx.guild.id,
                             Egg.user_id == ctx.author.id,

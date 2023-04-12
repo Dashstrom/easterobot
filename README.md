@@ -48,8 +48,17 @@ docker compose exec bot bash
 ## Generate images
 
 ```bash
-pip install requirements-tools.txt
+pip3 install requirements-tools.txt
 python3 tools/cropping.py images/eggs.png images/eggs -s 13
+```
+
+## Run test
+
+```bash
+pip3 install requirements-dev.txt
+isort .
+black .
+tox .
 ```
 
 ## Unintsall

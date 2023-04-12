@@ -1,7 +1,4 @@
 py-cord>=2.4.0
 SQLAlchemy>=2.0.0
-sqlalchemy-stubs>=0.4
 PyYAML>=6.0.0
-types-PyYAML>=6.0.0
-click
-humanize
+humanize>=4.4.0
