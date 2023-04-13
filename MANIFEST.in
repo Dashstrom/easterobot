@@ -2,7 +2,9 @@ include easterobot/*.py
 include easterobot/py.typed
 include easterobot/data/config.yml.exemple
 include requirements.txt
+include requirements-dev.txt
 include requirements-tools.txt
 include .gitignore
 include pyproject.toml
 include README.md
+include MANIFEST.in

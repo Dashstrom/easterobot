@@ -71,7 +71,7 @@ sudo rm -rf /var/lib/docker
 ## Update
 
 ```bash
-docker compose down --volumes --rmi 'all'
+docker compose stop
 git pull
 docker compose up -d
 ```

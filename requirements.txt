@@ -2,3 +2,4 @@ py-cord[speed]>=2.4.0
 SQLAlchemy>=2.0.0
 PyYAML>=6.0.0
 humanize>=4.4.0
+typing-extensions>=4.2.0

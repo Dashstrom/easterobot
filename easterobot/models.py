@@ -1,10 +1,10 @@
-from typing import Optional
-
 from sqlalchemy.orm import (  # type: ignore
     DeclarativeBase,
     Mapped,
     mapped_column,
 )
+
+DISCORD_URL = "https://discord.com/channels"
 
 
 class Base(DeclarativeBase):  # type: ignore
@@ -18,9 +18,11 @@ class Egg(Base):
     channel_id: Mapped[int] = mapped_column(nullable=False)
     user_id: Mapped[int] = mapped_column(nullable=False)
     emoji_id: Mapped[int] = mapped_column(nullable=True)
-    message_id: Mapped[Optional[int]] = mapped_column(
-        nullable=True, default=None
-    )
+
+    @property
+    def jump_url(self) -> str:
+        guild_id = self.guild_id or "@me"
+        return f"{DISCORD_URL}/{guild_id}/{self.channel_id}/{self.id}"
 
 
 class Hunt(Base):
@@ -29,9 +31,15 @@ class Hunt(Base):
     guild_id: Mapped[int] = mapped_column(nullable=False)
     next_egg: Mapped[float] = mapped_column(default=0.0)
 
+    @property
+    def jump_url(self) -> str:
+        guild_id = self.guild_id or "@me"
+        return f"{DISCORD_URL}/{guild_id}/{self.channel_id}"
 
-class Hunter(Base):
-    __tablename__ = "hunter"
+
+class Cooldown(Base):
+    __tablename__ = "cooldown"
     user_id: Mapped[int] = mapped_column(primary_key=True)
     guild_id: Mapped[int] = mapped_column(primary_key=True)
-    last_search: Mapped[float] = mapped_column(default=0.0)
+    command: Mapped[str] = mapped_column(primary_key=True)
+    timestamp: Mapped[float] = mapped_column(default=0.0)

@@ -38,5 +38,6 @@ htmlcov
 # data
 *.sqlite
 images/eggs
-easterobot/data/config.yml
+easterobot/data
+!easterobot/data/config.yml.exemple
 get-docker.sh

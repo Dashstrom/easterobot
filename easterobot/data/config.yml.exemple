@@ -9,11 +9,23 @@ hunt:
   cooldown:
     min: 600.0
     max: 1200.0
-search:
-  rate:
+commands:
+  search:
     discovered: 0.6
     spotted: 0.4
-  cooldown: 600.0
+    cooldown: 600.0
+  top:
+    cooldown: 5.0
+  basket:
+    cooldown: 5.0
+  reset:
+    cooldown: 120.0
+  enable:
+    cooldown: 5.0
+  disable:
+    cooldown: 5.0
+  help:
+    cooldown: 5.0
 conjugate:
   e:
     woman: "e"

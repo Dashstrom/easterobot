@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.isort]
 src_paths = ["easterobot"]
-skip = ["venv", ".git", ".mypy_cache", ".tox"]
+skip = ["venv", ".git", ".mypy_cache", ".tox", "images"]
 profile = "black"
 multi_line_output = 3
 include_trailing_comma = true
@@ -23,13 +23,13 @@ target-version = ['py36']
 [tool.mypy]
 python_version = 3.6
 exclude = ["venv", ".git", ".mypy_cache", ".tox"]
-plugins = ["sqlmypy", "numpy.typing.mypy_plugin"]
+plugins = ["sqlmypy"]
 
 
 # Disallow dynamic typing
-#disallow_any_unimported = true
-#disallow_any_expr = true
-#disallow_any_decorated = true
+# disallow_any_unimported = true
+# disallow_any_expr = true
+disallow_any_decorated = true
 disallow_any_generics = true
 disallow_subclassing_any = true
 
@@ -46,7 +46,7 @@ no_implicit_optional = true
 # Configuring warnings
 warn_unused_ignores = true
 warn_no_return = true
-warn_return_any = true
+warn_return_any = false  # Edited
 warn_redundant_casts = true
 
 # Misc things
@@ -77,7 +77,7 @@ isolated_build = true
 deps = -r requirements-dev.txt
 commands =
     pylint --fail-under=9.0 --rcfile pyproject.toml easterobot
-    mypy .
+    mypy easterobot
     isort -c --diff .
     black --diff .
 """

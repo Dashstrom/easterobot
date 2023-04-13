@@ -1,8 +1,7 @@
 """Script for croping images."""
 import pathlib
 from collections import deque
-from pathlib import Path
-from typing import Iterator, List
+from typing import Iterator, List, Tuple
 
 import click
 import cv2
@@ -13,9 +12,9 @@ import numpy.typing as npt
 def autocrop(im: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
     """Crop tranparent border."""
     coords = np.column_stack(np.where(im[:, :, 3] > 0))
-    x_min, y_min = coords.min(axis=0)
-    x_max, y_max = coords.max(axis=0)
-    return im[x_min : x_max + 1, y_min : y_max + 1]
+    min_: Tuple[int, int] = coords.min(axis=0)
+    max_: Tuple[int, int] = coords.max(axis=0)
+    return im[min_[0] : max_[0] + 1, min_[1] : max_[1] + 1]
 
 
 def extract(
@@ -54,23 +53,20 @@ def extract(
 
 
 @click.command()
-@click.argument(
-    "source",
-    type=click.Path(exists=True, path_type=pathlib.Path),  # type: ignore
-)
-@click.argument(
-    "destination", type=click.Path(path_type=pathlib.Path)  # type: ignore
-)
+@click.argument("source", type=click.Path(exists=True))
+@click.argument("destination", type=click.Path())
 @click.option("-s", "--skip", multiple=True)
-def cropping(source: Path, destination: Path, skip: List[str]) -> None:
+def cropping(source: str, destination: str, skip: List[str]) -> None:
     """Extract and crop all sub images in a transparent image."""
-    src = cv2.imread(source.as_posix(), cv2.IMREAD_UNCHANGED)
-    destination.mkdir(parents=True, exist_ok=True)
+    src_path = pathlib.Path(source)
+    dst_path = pathlib.Path(destination)
+    src = cv2.imread(src_path.as_posix(), cv2.IMREAD_UNCHANGED)
+    dst_path.mkdir(parents=True, exist_ok=True)
     counter = 0
     for i, im in enumerate(extract(src)):
         if str(i) in skip:
             continue
-        child_path = destination / f"{source.stem}.{counter}{source.suffix}"
+        child_path = dst_path / f"{src_path.stem}.{counter}{src_path.suffix}"
         cv2.imwrite(
             child_path.as_posix(),
             im,

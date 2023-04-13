@@ -1,27 +1,19 @@
 """Main program."""
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from traceback import print_exc
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    TypeVar,
-    cast,
-)
+from typing import Awaitable, Callable, Dict, List, Optional, TypeVar, cast
 
 import discord
 import discord.ext.tasks
 import humanize
-from sqlalchemy import and_, create_engine, delete, func, select, update
+from sqlalchemy import and_, create_engine, func, select
 from sqlalchemy.orm import Session
 
-from .config import Config, agree, rand
-from .models import Base, Egg, Hunt, Hunter
+from .config import RAND, Config, agree
+from .logger import DATE_FORMAT, logger
+from .models import Base, Egg, Hunt
 
 T = TypeVar("T")
 
@@ -29,58 +21,32 @@ T = TypeVar("T")
 HERE = Path(__file__).parent
 DEFAULT_CONFIG_PATH = HERE / "data" / "config.yml"
 
-egg_command_group = discord.SlashCommandGroup(
-    "egg", "Commandes en lien avec Pâque.", guild_only=True
-)
-
 
 class Easterbot(discord.Bot):
     def __init__(self, config_path: Path = DEFAULT_CONFIG_PATH):
         super().__init__(  # type: ignore
-            description="Bot discord pour faire la chasse aux œufs.",
+            description="Bot discord pour faire la chasse aux œufs",
             activity=discord.Game(name="rechercher des œufs"),
         )
         self.config = Config(config_path)
+
         if self.config.token is None:
             raise TypeError("Missing TOKEN in configuration")
-        self.engine = create_engine(self.config.database, echo=True)
+        self.engine = create_engine(self.config.database, echo=False)
         Base.metadata.create_all(self.engine, checkfirst=True)
-        egg_command_group.name = self.config.group
-        self.add_application_command(egg_command_group)
+        self.load_extension(
+            "easterobot.commands", package="easterobot.commands.__init__"
+        )
         self.run(self.config.token)
 
     async def on_ready(self) -> None:
         await self.config.load(client=self)
         self.loop_hunt.start()
-        print(f"Logged on as {self.user}!")
-
-    def embed(
-        self,
-        *,
-        title: str,
-        description: Optional[str] = None,
-        image: Optional[str] = None,
-        thumbnail: Optional[str] = None,
-        egg_count: Optional[int] = None,
-        footer: Optional[str] = None,
-    ) -> discord.Embed:
-        embed = discord.Embed(
-            title=title,
-            description=description,
-            colour=rand.randint(0, 1 << 24),
-            type="gifv" if image else "rich",
+        logger.info(
+            "Logged on as %s (%s) !",
+            self.user,
+            getattr(self.user, "id", "unknow"),
         )
-        if image is not None:
-            embed.set_image(url=image)
-        if thumbnail is not None:
-            embed.set_thumbnail(url=thumbnail)
-        if egg_count is not None:
-            footer = (footer + " - ") if footer else ""
-            footer += "Cela lui fait un total de "
-            footer += agree("{0} œuf", "{0} œufs", egg_count)
-        if footer:
-            embed.set_footer(text=footer)
-        return embed
 
     async def start_hunt(
         self,
@@ -103,7 +69,7 @@ class Easterbot(discord.Bot):
             or not isinstance(channel, discord.TextChannel)
         ):
             return
-        print(f"Start hunt in {channel}")
+        logger.info("Start hunt in %s", channel.jump_url)
         action = self.config.action()
         guild = channel.guild
         emoji = self.config.emoji()
@@ -131,11 +97,11 @@ class Easterbot(discord.Bot):
                 or isinstance(user, discord.User)
             ):
                 return
+            # Don't update if hunters already click
             for hunter in hunters:
                 if hunter.id == user.id:
-                    break
-            else:
-                hunters.append(user)
+                    return
+            hunters.append(user)
             if active and not waiting:
                 waiting = True
                 while active:
@@ -155,7 +121,7 @@ class Easterbot(discord.Bot):
                 button.label += " (1)"  # type: ignore
 
         timeout = humanize.naturaldelta(self.config.hunt_timeout())
-        embed = self.embed(
+        emb = embed(
             title="Un œuf a été découvert !",
             description=description,
             thumbnail=emoji.url,
@@ -163,9 +129,9 @@ class Easterbot(discord.Bot):
         )
 
         if send_method is None:
-            message = await channel.send(embed=embed, view=view)
+            message = await channel.send(embed=emb, view=view)
         else:
-            message = await send_method(embed=embed, view=view)
+            message = await send_method(embed=emb, view=view)
         async with channel.typing():
             await view.wait()
 
@@ -179,9 +145,11 @@ class Easterbot(discord.Bot):
                 )
             )
         pending = []
-        if hunters and has_hunt:
-            winner = None
-            hunters_id = [hunter.id for hunter in hunters]
+        if not hunters or not has_hunt:
+            button.label = "L'œuf n'a pas été ramassé"
+            button.style = discord.ButtonStyle.danger
+            logger.info("No Hunter for %s", message.jump_url)
+        else:
             with Session(self.engine) as session:
                 eggs: Dict[int, int] = dict(
                     session.execute(  # type: ignore
@@ -189,93 +157,121 @@ class Easterbot(discord.Bot):
                         .where(
                             and_(
                                 Egg.guild_id == guild.id,
-                                Egg.user_id.in_(hunters_id),
+                                Egg.user_id.in_(
+                                    hunter.id for hunter in hunters
+                                ),
                             )
                         )
                         .group_by(Egg.user_id)
                     ).all()
                 )
-                egg_total = max(sum(eggs.values()), 1)
-                print("Tirage du gagnant")
-                while not winner:
-                    for hunter in hunters:
-                        percent = max(
-                            1 - eggs.get(hunter.id, 0) / egg_total, 0.1
-                        )
-                        n = rand.random()
-                        print(f"{hunter}: {n} < {percent} = {n < percent}")
-                        if n < percent:
-                            winner = hunter
+                logger.info("Winner draw for %s", message.jump_url)
+                if len(hunters) == 1:
+                    winner = hunters[0]
+                    loser = None
+                    logger.info("100%% - %s (%s)", winner, winner.id)
+                else:
+                    lh = len(eggs)
+                    minh = min(eggs.values())
+                    maxh = max(eggs.values()) - minh
+                    print(eggs, maxh)
+                    weigths = []
+                    for i, h in enumerate(hunters, start=1):
+                        print("==========================")
+                        if maxh != 0:
+                            egg = eggs.get(h.id, 0) - minh
+                            p_egg = (1 - egg / maxh) * 0.4 + 0.6
+                            print(f"(1 - {egg} / {maxh}) * 0.6 + 0.4")
+                        else:
+                            p_egg = 1.0
+                        p_speed = (1 - i / lh) * 0.3 + 0.7
+                        print(f"(1 - {i} / {lh}) * 0.5 + 0.5")
+                        print(p_egg, p_speed, p_egg * p_speed)
+                        weigths.append(p_egg * p_speed)
+                    r = sum(weigths)
+                    chances = [(h, p / r) for h, p in zip(hunters, weigths)]
+                    for h, c in chances:
+                        logger.info("%.2f%% - %s (%s)", c * 100, h, h.id)
+                    n = RAND.random()
+                    for h, p in chances:
+                        if n < p:
+                            winner = h
                             break
-                hunters.remove(winner)
+                        else:
+                            n -= p
+                    else:
+                        winner = hunters[-1]
+                    loser = max(chances, key=lambda kv: kv[1])[0]
+
                 session.add(
                     Egg(
                         channel_id=channel.id,
-                        message_id=message.id,
                         guild_id=channel.guild.id,
                         user_id=winner.id,
                         emoji_id=emoji.id,
                     )
                 )
                 session.commit()
-            if hunters:
-                loser = rand.choice(hunters)
+            if loser:
                 loser_name = loser.nick or loser.name
-                if len(hunters) == 1:
+                if len(hunters) == 2:
                     text = f"{loser_name} rate un œuf"
                 else:
                     text = agree(
                         "{1} et {0} autre chasseur ratent un œuf",
-                        "{1} et {1} autres chasseurs ratent un œuf",
-                        len(hunters) - 1,
+                        "{1} et {0} autres chasseurs ratent un œuf",
+                        len(hunters) - 2,
                         loser_name,
                     )
-                embed = self.embed(
+                emb = embed(
                     title=text,
                     description=action.fail_text(loser),
                     image=action.fail_gif(),
                 )
-                pending.append(channel.send(embed=embed, reference=message))
+                pending.append(channel.send(embed=emb, reference=message))
 
             winner_name = winner.nick or winner.name
-            embed = self.embed(
+            winner_eggs = eggs.get(winner.id, 0) + 1
+            emb = embed(
                 title=f"{winner_name} récupère un œuf",
                 description=action.success_text(winner),
                 image=action.success_gif(),
                 thumbnail=emoji.url,
-                egg_count=eggs.get(winner.id, 0) + 1,
+                egg_count=winner_eggs,
             )
-            pending.append(channel.send(embed=embed, reference=message))
+            pending.append(channel.send(embed=emb, reference=message))
             button.label = f"L'œuf a été ramassé par {winner_name}"
             button.style = discord.ButtonStyle.success
-        else:
-            button.label = "L'œuf n'a pas été ramassé"
-            button.style = discord.ButtonStyle.danger
+            logger.info(
+                "Winner is %s (%s) with %s for %s",
+                winner,
+                winner.id,
+                agree("{0} egg", "{0} eggs", winner_eggs),
+                message.jump_url,
+            )
         button.emoji = None
         view.disable_all_items()
         view.stop()
         pending.append(message.edit(view=view))
         await asyncio.gather(*pending)
 
-    @discord.ext.tasks.loop(seconds=5.0)  # type: ignore
+    @discord.ext.tasks.loop(seconds=5.0)
     async def loop_hunt(self) -> None:
         with Session(self.engine) as session:
-            now = datetime.utcnow().timestamp()
+            now = datetime.now().timestamp()
             hunts = session.scalars(
                 select(Hunt).where(Hunt.next_egg <= now)
             ).all()
             if hunts:
-                cooldown = self.config.hunt_cooldown()
-                print(f"Next in {cooldown} seconds")
-                session.execute(
-                    update(Hunt)
-                    .where(
-                        Hunt.channel_id.in_(
-                            [hunt.channel_id for hunt in hunts]
-                        )
+                for hunt in hunts:
+                    next_egg = now + self.config.hunt_cooldown()
+                    dt_next = datetime.fromtimestamp(next_egg)
+                    logger.info(
+                        "Next hunt at %s on %s",
+                        hunt.jump_url,
+                        dt_next.strftime(DATE_FORMAT),
                     )
-                    .values(next_egg=now + cooldown)
-                )
+                    hunt.next_egg = next_egg
                 session.commit()
                 try:
                     await asyncio.gather(
@@ -290,456 +286,29 @@ class Easterbot(discord.Bot):
                     print_exc()
 
 
-class ApplicationContext(discord.ApplicationContext):
-    bot: Easterbot
-    author: discord.Member
-
-
-@egg_command_group.command(description="Réinitialiser la chasse aux œufs.")
-@discord.guild_only()
-async def reset(ctx: ApplicationContext) -> None:
-    if (
-        ctx.author is None
-        or not ctx.author.guild_permissions.administrator
-        and ctx.author.id not in ctx.bot.config.admin_ids
-    ):
-        await ctx.respond(
-            "Vous n'avez pas la permission d'administrateur", ephemeral=True
-        )
-        return
-    view = discord.ui.View(timeout=None)
-    cancel = discord.ui.Button(  # type: ignore
-        label="Annuler", style=discord.ButtonStyle.danger
+def embed(
+    *,
+    title: str,
+    description: Optional[str] = None,
+    image: Optional[str] = None,
+    thumbnail: Optional[str] = None,
+    egg_count: Optional[int] = None,
+    footer: Optional[str] = None,
+) -> discord.Embed:
+    new_embed = discord.Embed(
+        title=title,
+        description=description,
+        colour=RAND.randint(0, 1 << 24),
+        type="gifv" if image else "rich",
     )
-    view.add_item(cancel)
-    confirm = discord.ui.Button(  # type: ignore
-        label="Confirmer", style=discord.ButtonStyle.success
-    )
-    view.add_item(confirm)
-    done = False
-    cancel_embed = ctx.bot.embed(
-        title="Réinitialisation annulée",
-        description="Vous avez annulé la demande de réinitialisation.",
-    )
-    confirm_embed = ctx.bot.embed(
-        title="Réinitialisation",
-        description=(
-            "L'ensemble des salons, œufs "
-            "et temps d'attentes ont été réinitialisatié."
-        ),
-    )
-
-    async def cancel_callback(
-        interaction: discord.Interaction,
-    ) -> None:
-        nonlocal done
-        done = True
-        view.disable_all_items()
-        view.stop()
-        await message.edit_original_response(view=view)
-        await interaction.response.send_message(
-            embed=cancel_embed,
-            ephemeral=True,
-        )
-
-    async def confirm_callback(
-        interaction: discord.Interaction,
-    ) -> None:
-        nonlocal done
-        done = True
-        view.disable_all_items()
-        view.stop()
-        await interaction.response.defer(ephemeral=True)
-        await message.edit_original_response(view=view)
-        with Session(ctx.bot.engine) as session:
-            session.execute(delete(Hunt).where(Hunt.guild_id == ctx.guild_id))
-            session.execute(delete(Egg).where(Egg.guild_id == ctx.guild_id))
-            session.execute(
-                delete(Hunter).where(Hunter.guild_id == ctx.guild_id)
-            )
-            session.commit()
-        await interaction.followup.send(
-            embed=confirm_embed,
-            ephemeral=True,
-        )
-
-    cancel.callback = cancel_callback  # type: ignore
-    confirm.callback = confirm_callback  # type: ignore
-    message = await ctx.respond(
-        embed=ctx.bot.embed(
-            title="Demande de réinitialisation",
-            description=(
-                "L'ensemble des salons, œufs "
-                "et temps d'attentes vont être réinitialisatiés."
-            ),
-            footer="Vous avez 30 secondes pour confirmer",
-        ),
-        ephemeral=True,
-        view=view,
-    )
-    await asyncio.sleep(30.0)
-    if not done:
-        view.disable_all_items()
-        view.stop()
-        await message.edit_original_response(view=view)
-        await ctx.followup.send(embed=cancel_embed, ephemeral=True)
-
-
-@egg_command_group.command(description="Editer le nombre d'œufs d'un membre.")
-@discord.guild_only()
-@discord.option(  # type: ignore
-    "user",
-    input_type=discord.Member,
-    required=True,
-    description="Membre voulant editer",
-)
-@discord.option(  # type: ignore
-    "oeufs",
-    input_type=int,
-    required=True,
-    description="Nouveau nombre d'œufs",
-)
-async def edit(
-    ctx: ApplicationContext,
-    user: discord.Member,
-    oeufs: int,
-) -> None:
-    if (
-        ctx.author is None
-        or not ctx.author.guild_permissions.administrator
-        and ctx.author.id not in ctx.bot.config.admin_ids
-    ):
-        await ctx.respond(
-            "Vous n'avez pas la permission d'administrateur", ephemeral=True
-        )
-        return
-    await ctx.defer(ephemeral=True)
-    with Session(ctx.bot.engine) as session:
-        eggs = session.scalars(
-            select(Egg).where(
-                and_(
-                    Egg.guild_id == ctx.guild.id,
-                    Egg.user_id == ctx.author.id,
-                )
-            )
-        ).all()
-        diff = len(eggs) - oeufs
-        if diff > 0:
-            to_delete = []
-            for _ in range(diff):
-                egg = rand.choice(eggs)
-                eggs.remove(egg)
-                to_delete.append(egg.id)
-            session.execute(delete(Egg).where(Egg.id.in_(to_delete)))
-            session.commit()
-        elif diff < 0:
-            for _ in range(-diff):
-                session.add(
-                    Egg(
-                        guild_id=ctx.guild_id,
-                        channel_id=ctx.channel_id,
-                        user_id=user.id,
-                        emoji_id=ctx.bot.config.emoji().id,
-                        message_id=None,
-                    )
-                )
-            session.commit()
-    await ctx.followup.send(
-        embed=ctx.bot.embed(
-            title="Edition terminée",
-            description=(
-                f"{user.mention} a maintenant "
-                f"{agree('{0} œuf', '{0} œufs', oeufs)}"
-            ),
-        ),
-        ephemeral=True,
-    )
-
-
-@egg_command_group.command(
-    description="Activer la chasse aux œufs dans le salon."
-)
-@discord.guild_only()
-async def enable(ctx: ApplicationContext) -> None:
-    if (
-        ctx.author is None
-        or not ctx.author.guild_permissions.manage_channels
-        and ctx.author.id not in ctx.bot.config.admin_ids
-    ):
-        await ctx.respond(
-            "Vous n'avez pas la permission de gérer les salons", ephemeral=True
-        )
-        return
-    with Session(ctx.bot.engine) as session:
-        old = session.scalar(
-            select(Hunt).where(Hunt.channel_id == ctx.channel.id)
-        )
-        if not old:
-            session.add(
-                Hunt(
-                    channel_id=ctx.channel.id,
-                    guild_id=ctx.guild_id,
-                    next_egg=0,
-                )
-            )
-            session.commit()
-    await ctx.respond(
-        f"Chasse aux œufs{' déjà' if old else ''} activée", ephemeral=True
-    )
-
-
-@egg_command_group.command(
-    description="Désactiver la chasse aux œufs dans le salon."
-)
-@discord.guild_only()
-async def disable(ctx: ApplicationContext) -> None:
-    if (
-        ctx.author is None
-        or not ctx.author.guild_permissions.manage_channels
-        and ctx.author.id not in ctx.bot.config.admin_ids
-    ):
-        await ctx.respond(
-            "Vous n'avez pas la permission de gérer les salons", ephemeral=True
-        )
-        return
-    with Session(ctx.bot.engine) as session:
-        old = session.scalar(
-            select(Hunt).where(Hunt.channel_id == ctx.channel.id)
-        )
-        if old:
-            session.execute(
-                delete(Hunt).where(Hunt.channel_id == ctx.channel.id)
-            )
-            session.commit()
-    await ctx.respond(
-        f"Chasse aux œufs{'' if old else ' déjà'} désactivée", ephemeral=True
-    )
-
-
-@egg_command_group.command(description="Regarder le contenu d'un panier.")
-@discord.guild_only()
-@discord.option(  # type: ignore
-    "user",
-    input_type=discord.Member,
-    required=False,
-    default=None,
-    description="Membre possèdant le panier à inspecter",
-)
-async def basket(ctx: ApplicationContext, user: discord.Member) -> None:
-    hunter = user or ctx.author
-    with Session(ctx.bot.engine) as session:
-        egg_counts = list(
-            session.execute(
-                select(
-                    Egg.emoji_id,
-                    func.count().label("count"),
-                )
-                .where(
-                    and_(
-                        Egg.guild_id == ctx.guild.id,
-                        Egg.user_id == hunter.id,
-                    )
-                )
-                .group_by(Egg.emoji_id)
-            ).all()
-        )
-        none_emoji = 0
-        morsels = []
-        for egg in egg_counts:
-            emoji = ctx.bot.get_emoji(egg[0])
-            if emoji is None:
-                none_emoji += egg[1]
-            else:
-                morsels.append(f"{emoji} × {egg[1]}")
-        if none_emoji:
-            morsels.append(f"🥚 × {none_emoji}")
-        if morsels:
-            text = "\n".join(morsels)
-        else:
-            if hunter == ctx.author:
-                text = ":spider_web: Vous n'avez aucun œuf"
-            else:
-                text = ctx.bot.config.conjugate(
-                    ":spider_web: {Iel} n'a aucun œuf", hunter
-                )
-        await ctx.respond(
-            embed=ctx.bot.embed(
-                title=f"Contenu du panier de {hunter.nick or hunter.name}",
-                description=text,
-                egg_count=sum(egg[1] for egg in egg_counts),
-            ),
-            ephemeral=True,
-        )
-
-
-@egg_command_group.command(description="Rechercher un œuf.")
-@discord.guild_only()
-async def search(ctx: ApplicationContext) -> None:
-    with Session(ctx.bot.engine) as session:
-        hunt = session.scalar(
-            select(Hunt).where(Hunt.channel_id == ctx.channel.id)
-        )
-        if hunt is None:
-            await ctx.respond(
-                "La chasse aux œufs n'est pas activée dans ce salon",
-                ephemeral=True,
-            )
-            return
-        hunter = session.scalar(
-            select(Hunter).where(
-                and_(
-                    Hunter.user_id == ctx.author.id,
-                    Hunter.guild_id == ctx.guild_id,
-                )
-            )
-        )
-        if hunter is None:
-            last_search = 0.0
-        else:
-            last_search = hunter.last_search
-
-        dt = datetime.now() - datetime.fromtimestamp(last_search)
-        cd = ctx.bot.config.search_cooldown()
-
-        if dt.total_seconds() < cd:
-            wait = humanize.naturaldelta(timedelta(seconds=cd) - dt)
-            await ctx.respond(
-                f"Vous devez encore attendre {wait}", ephemeral=True
-            )
-            return
-
-        session.merge(
-            Hunter(
-                user_id=ctx.author.id,
-                guild_id=ctx.guild_id,
-                last_search=datetime.now().timestamp(),
-            )
-        )
-        session.commit()
-
-    name = ctx.author.nick or ctx.author.name
-    n1, n2 = rand.random(), rand.random()
-    print(f"Search {ctx.author} : {n1} {n2}")
-    if ctx.bot.config.search_rate_discovered() < n1:
-        if ctx.bot.config.search_rate_spoted() < n2:
-
-            async def send_method(
-                *args: Any, **kwargs: Any
-            ) -> discord.Message:
-                interaction = cast(
-                    discord.Interaction, await ctx.respond(*args, **kwargs)
-                )
-                return await interaction.original_response()
-
-            await ctx.bot.start_hunt(
-                ctx.channel_id,
-                ctx.bot.config.spotted(ctx.author),
-                member_id=ctx.author.id,
-                send_method=send_method,
-            )
-        else:
-            emoji = ctx.bot.config.emoji()
-            with Session(ctx.bot.engine) as session:
-                session.add(
-                    Egg(
-                        channel_id=ctx.channel.id,
-                        message_id=None,
-                        guild_id=ctx.channel.guild.id,
-                        user_id=ctx.author.id,
-                        emoji_id=emoji.id,
-                    )
-                )
-                egg_count = session.scalar(
-                    select(func.count(Egg.user_id).label("count"),).where(
-                        and_(
-                            Egg.guild_id == ctx.guild.id,
-                            Egg.user_id == ctx.author.id,
-                        )
-                    )
-                )
-                session.commit()
-            await ctx.respond(
-                embed=ctx.bot.embed(
-                    title=f"{name} récupère un œuf",
-                    description=ctx.bot.config.hidden(ctx.author),
-                    thumbnail=emoji.url,
-                    egg_count=egg_count,
-                )
-            )
-    else:
-        await ctx.respond(
-            embed=ctx.bot.embed(
-                title=f"{name} repart bredouille",
-                description=ctx.bot.config.failed(ctx.author),
-            )
-        )
-
-
-@egg_command_group.command(description="Classement des chasseurs d'œufs.")
-@discord.guild_only()
-async def top(ctx: ApplicationContext) -> None:
-    with Session(ctx.bot.engine) as session:
-        base = (
-            select(
-                Egg.user_id,
-                func.rank().over(order_by=func.count().desc()).label("row"),
-                func.count().label("count"),
-            )
-            .where(Egg.guild_id == ctx.guild_id)
-            .group_by(Egg.user_id)
-            .order_by(func.count().desc())
-        )
-        egg_counts = session.execute(base.limit(3)).all()
-        morsels = []
-        top_player = False
-        rank_medal = {1: "🥇", 2: "🥈", 3: "🥉"}
-        for user_id, rank, count in egg_counts:
-            if user_id == ctx.author.id:
-                top_player = True
-            morsels.append(
-                f"{rank_medal.get(rank, rank)} <@{user_id}>\n"
-                f"\u2004\u2004\u2004\u2004\u2004"
-                f"➥ {agree('{0} œuf', '{0} œufs', count)}"
-            )
-        if not top_player:
-            subq = base.subquery()
-            user_egg_count = session.execute(
-                select(subq).where(subq.c.user_id == ctx.author.id)
-            ).first()
-            if user_egg_count:
-                user_id, rank, egg_count = user_egg_count
-                morsels.append(
-                    f"\n{rank_medal.get(rank, f'`#{rank}`')} "
-                    f"<@{user_id}>\n"
-                    f"\u2004\u2004\u2004\u2004\u2004"
-                    f"➥ {agree('{0} œuf', '{0} œufs', egg_count)}"
-                )
-            else:
-                morsels.append("\n:spider_web: Vous n'avez aucun œuf")
-    text = "\n".join(morsels)
-    await ctx.respond(
-        embed=ctx.bot.embed(
-            title=f"Chasse aux œufs : {ctx.guild.name}",
-            description=text,
-            thumbnail=ctx.guild.icon.url,
-        ),
-        ephemeral=True,
-    )
-
-
-@egg_command_group.command(description="Obtenir de l'aide.")
-@discord.guild_only()
-async def help(ctx: ApplicationContext) -> None:
-    embed: discord.Embed = ctx.bot.embed(
-        title="Liste des commandes",
-        description=ctx.bot.description,
-        thumbnail=ctx.bot.user.display_avatar.url,  # type: ignore
-        footer="Crée par Dashstrom#6593",
-    )
-    for cmd in egg_command_group.subcommands:
-        embed.add_field(
-            name=f"/{egg_command_group.name} {cmd.name}",
-            value=f"{cmd.description}",
-            inline=False,
-        )
-    await ctx.respond(embed=embed, ephemeral=True)
+    if image is not None:
+        new_embed.set_image(url=image)
+    if thumbnail is not None:
+        new_embed.set_thumbnail(url=thumbnail)
+    if egg_count is not None:
+        footer = (footer + " - ") if footer else ""
+        footer += "Cela lui fait un total de "
+        footer += agree("{0} œuf", "{0} œufs", egg_count)
+    if footer:
+        new_embed.set_footer(text=footer)
+    return new_embed
