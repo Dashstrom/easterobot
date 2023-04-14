@@ -15,7 +15,7 @@ file_handler = logging.handlers.TimedRotatingFileHandler(
     filename=LOG_DIR / "easterobot.log",
     encoding="utf-8",
     when="d",
-    backupCount=0,  # Rotate through 5 files
+    backupCount=10,  # Rotate through 10 files
 )
 stdout_handler = logging.StreamHandler(sys.stdout)
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"

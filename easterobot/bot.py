@@ -88,6 +88,7 @@ class Easterbot(discord.Bot):
             interaction: discord.Interaction,
         ) -> None:
             nonlocal waiting, active
+            await interaction.response.defer()
             logger.info(
                 "Hunt (%d) by %s (%s) on %s",
                 len(hunters),
@@ -95,7 +96,6 @@ class Easterbot(discord.Bot):
                 getattr(interaction.user, "id", "unkown"),
                 getattr(interaction.message, "jump_url", interaction.guild_id),
             )
-            await interaction.response.defer()
             message = interaction.message
             user = interaction.user
             if (

@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, cast
+from typing import Any, Dict
 
 import discord
 from sqlalchemy import and_, func, select
@@ -16,12 +16,14 @@ logger = logging.getLogger("easterobot")
 @egg_command_group.command(name="search", description="Rechercher un œuf")
 @controled_command(cooldown=True)
 async def search_command(ctx: EasterbotContext) -> None:
+    await ctx.defer()
+    config = ctx.bot.config
     with Session(ctx.bot.engine) as session:
         hunt = session.scalar(
             select(Hunt).where(Hunt.channel_id == ctx.channel.id)
         )
         if hunt is None:
-            await ctx.respond(
+            await ctx.followup.send(
                 "La chasse aux œufs n'est pas activée dans ce salon",
                 ephemeral=True,
             )
@@ -52,41 +54,32 @@ async def search_command(ctx: EasterbotContext) -> None:
         )
     ratio = egg_count / egg_max
 
-    conf_d: Dict[str, float] = ctx.bot.config.command_attr(
-        "search", "discovered"
-    )
+    conf_d: Dict[str, float] = config.command_attr("search", "discovered")
     prob_d = (conf_d["max"] - conf_d["min"]) * (1 - ratio) + conf_d["min"]
 
-    conf_s: Dict[str, float] = ctx.bot.config.command_attr("search", "spotted")
-    prob_s = (conf_s["max"] - conf_s["min"]) * ratio + conf_s["min"]
-
-    sample_d, sample_s = RAND.random(), RAND.random()
-    logger.info(
-        "discovered: %.2f > %.2f - spotted: %.2f > %.2f",
-        prob_d,
-        sample_d,
-        prob_s,
-        sample_s,
-    )
+    sample_d = RAND.random()
     if prob_d > sample_d:
+        sample_s = RAND.random()
+        conf_s: Dict[str, float] = config.command_attr("search", "spotted")
+        prob_s = (conf_s["max"] - conf_s["min"]) * ratio + conf_s["min"]
+        logger.info("discovered: %.2f > %.2f", prob_d, sample_d)
         if prob_s > sample_s:
+            logger.info("spotted: %.2f > %.2f", prob_s, sample_s)
 
             async def send_method(
                 *args: Any, **kwargs: Any
             ) -> discord.Message:
-                interaction = cast(
-                    discord.Interaction, await ctx.respond(*args, **kwargs)
-                )
-                return await interaction.original_response()
+                return await ctx.followup.send(*args, **kwargs)
 
             await ctx.bot.start_hunt(
                 ctx.channel_id,
-                ctx.bot.config.spotted(ctx.user),
+                config.spotted(ctx.user),
                 member_id=ctx.user.id,
                 send_method=send_method,
             )
         else:
-            emoji = ctx.bot.config.emoji()
+            logger.info("finded: %.2f > %.2f", prob_s, sample_s)
+            emoji = config.emoji()
             with Session(ctx.bot.engine) as session:
                 session.add(
                     Egg(
@@ -105,19 +98,20 @@ async def search_command(ctx: EasterbotContext) -> None:
                 agree("{0} egg", "{0} eggs", egg_count),
                 ctx.channel.jump_url,
             )
-            await ctx.respond(
+            await ctx.followup.send(
                 embed=embed(
                     title=f"{name} récupère un œuf",
-                    description=ctx.bot.config.hidden(ctx.user),
+                    description=config.hidden(ctx.user),
                     thumbnail=emoji.url,
                     egg_count=egg_count + 1,
                 )
             )
     else:
-        await ctx.respond(
+        logger.info("failed: %.2f > %.2f", prob_d, sample_d)
+        await ctx.followup.send(
             embed=embed(
                 title=f"{name} repart bredouille",
-                description=ctx.bot.config.failed(ctx.user),
+                description=config.failed(ctx.user),
                 egg_count=egg_count,
             )
         )
