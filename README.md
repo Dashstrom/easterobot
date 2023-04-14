@@ -72,6 +72,8 @@ sudo rm -rf /var/lib/docker
 
 ```bash
 docker compose stop
+cp easterobot/data/easterobot.sqlite easterobot/data/easterobot.bkp.sqlite
 git pull
-docker compose up -d
+nano easterobot/data/config.yml
+docker compose up -d --build
 ```

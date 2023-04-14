@@ -92,6 +92,12 @@ class Config:
     def hunt_timeout(self) -> float:
         return cast(float, self._data["hunt"]["timeout"])
 
+    def hunt_weight_egg(self) -> float:
+        return cast(float, self._data["hunt"]["weights"]["egg"])
+
+    def hunt_weight_speed(self) -> float:
+        return cast(float, self._data["hunt"]["weights"]["speed"])
+
     @property
     def woman_id(self) -> int:
         return cast(int, self._data["woman_id"])

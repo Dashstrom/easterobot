@@ -69,10 +69,10 @@ class Easterbot(discord.Bot):
             or not isinstance(channel, discord.TextChannel)
         ):
             return
-        logger.info("Start hunt in %s", channel.jump_url)
         action = self.config.action()
         guild = channel.guild
         emoji = self.config.emoji()
+        logger.info("Start hunt in %s", channel.jump_url)
         view = discord.ui.View(timeout=self.config.hunt_timeout())
         button = discord.ui.Button(  # type: ignore
             label=action.text(),
@@ -88,6 +88,13 @@ class Easterbot(discord.Bot):
             interaction: discord.Interaction,
         ) -> None:
             nonlocal waiting, active
+            logger.info(
+                "Hunt (%d) by %s (%s) on %s",
+                len(hunters),
+                interaction.user,
+                getattr(interaction.user, "id", "unkown"),
+                getattr(interaction.message, "jump_url", interaction.guild_id),
+            )
             await interaction.response.defer()
             message = interaction.message
             user = interaction.user
@@ -133,7 +140,12 @@ class Easterbot(discord.Bot):
         else:
             message = await send_method(embed=emb, view=view)
         async with channel.typing():
-            await view.wait()
+            try:
+                await asyncio.wait_for(
+                    view.wait(), timeout=self.config.hunt_timeout() + 3
+                )
+            except asyncio.TimeoutError:
+                logger.warning("timeout for %s", message.jump_url)
 
         with Session(self.engine) as session:
             has_hunt = session.scalar(
@@ -174,19 +186,16 @@ class Easterbot(discord.Bot):
                     lh = len(eggs)
                     minh = min(eggs.values())
                     maxh = max(eggs.values()) - minh
-                    print(eggs, maxh)
+                    w_egg = self.config.hunt_weight_egg()
+                    w_speed = self.config.hunt_weight_speed()
                     weigths = []
                     for i, h in enumerate(hunters, start=1):
-                        print("==========================")
                         if maxh != 0:
                             egg = eggs.get(h.id, 0) - minh
-                            p_egg = (1 - egg / maxh) * 0.4 + 0.6
-                            print(f"(1 - {egg} / {maxh}) * 0.6 + 0.4")
+                            p_egg = (1 - egg / maxh) * w_egg + 1 - w_egg
                         else:
                             p_egg = 1.0
-                        p_speed = (1 - i / lh) * 0.3 + 0.7
-                        print(f"(1 - {i} / {lh}) * 0.5 + 0.5")
-                        print(p_egg, p_speed, p_egg * p_speed)
+                        p_speed = (1 - i / lh) * w_speed + 1 - w_speed
                         weigths.append(p_egg * p_speed)
                     r = sum(weigths)
                     chances = [(h, p / r) for h, p in zip(hunters, weigths)]
@@ -201,7 +210,8 @@ class Easterbot(discord.Bot):
                             n -= p
                     else:
                         winner = hunters[-1]
-                    loser = max(chances, key=lambda kv: kv[1])[0]
+                    hunters.remove(winner)
+                    loser = RAND.choice(hunters)
 
                 session.add(
                     Egg(
@@ -214,7 +224,7 @@ class Easterbot(discord.Bot):
                 session.commit()
             if loser:
                 loser_name = loser.nick or loser.name
-                if len(hunters) == 2:
+                if len(hunters) == 1:
                     text = f"{loser_name} rate un œuf"
                 else:
                     text = agree(
@@ -243,11 +253,10 @@ class Easterbot(discord.Bot):
             button.label = f"L'œuf a été ramassé par {winner_name}"
             button.style = discord.ButtonStyle.success
             logger.info(
-                "Winner is %s (%s) with %s for %s",
+                "Winner is %s (%s) with %s",
                 winner,
                 winner.id,
                 agree("{0} egg", "{0} eggs", winner_eggs),
-                message.jump_url,
             )
         button.emoji = None
         view.disable_all_items()

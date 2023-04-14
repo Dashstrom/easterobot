@@ -9,11 +9,17 @@ hunt:
   cooldown:
     min: 600.0
     max: 1200.0
+  weights:
+    egg: 0.6
+    speed: 0.7
 commands:
   search:
-    discovered: 0.6
-    spotted: 0.4
-    cooldown: 600.0
+    discovered:
+      min: 0.6
+      max: 0.8
+    spotted:
+      min: 0.4
+      max: 0.6
   top:
     cooldown: 5.0
   basket:

@@ -1,5 +1,5 @@
 import logging
-from typing import Any, cast
+from typing import Any, Dict, cast
 
 import discord
 from sqlalchemy import and_, func, select
@@ -28,11 +28,46 @@ async def search_command(ctx: EasterbotContext) -> None:
             return
 
     name = ctx.user.nick or ctx.user.name
-    discovered: float = ctx.bot.config.command_attr("search", "discovered")
-    spotted: float = ctx.bot.config.command_attr("search", "spotted")
-    n1, n2 = RAND.random(), RAND.random()
-    if discovered > n1:
-        if spotted > n2:
+
+    with Session(ctx.bot.engine) as session:
+        egg_max = session.scalar(
+            select(
+                func.count().label("max"),
+            )
+            .where(Egg.guild_id == ctx.guild_id)
+            .group_by(Egg.user_id)
+            .order_by(func.count().label("max").desc())
+            .limit(1)
+        )
+        egg_max = egg_max or 0
+        egg_count = session.scalar(
+            select(func.count().label("count"),).where(
+                and_(
+                    Egg.guild_id == ctx.guild.id,
+                    Egg.user_id == ctx.user.id,
+                )
+            )
+        )
+    ratio = 1 - egg_count / egg_max
+
+    conf_d: Dict[str, float] = ctx.bot.config.command_attr(
+        "search", "discovered"
+    )
+    prob_d = (conf_d["max"] - conf_d["min"]) * ratio + conf_d["min"]
+
+    conf_s: Dict[str, float] = ctx.bot.config.command_attr("search", "spotted")
+    prob_s = (conf_s["max"] - conf_s["min"]) * ratio + conf_s["min"]
+
+    sample_d, sample_s = RAND.random(), RAND.random()
+    logger.info(
+        "discovered: %.2f > %.2f - spotted: %.2f > %.2f",
+        prob_d,
+        sample_d,
+        prob_s,
+        sample_s,
+    )
+    if prob_d > sample_d:
+        if prob_s > sample_s:
 
             async def send_method(
                 *args: Any, **kwargs: Any
@@ -59,18 +94,10 @@ async def search_command(ctx: EasterbotContext) -> None:
                         emoji_id=emoji.id,
                     )
                 )
-                egg_count = session.scalar(
-                    select(func.count(Egg.user_id).label("count"),).where(
-                        and_(
-                            Egg.guild_id == ctx.guild.id,
-                            Egg.user_id == ctx.user.id,
-                        )
-                    )
-                )
                 session.commit()
 
             logger.info(
-                "%s (%s) à obtenu un oeuf pour un total %s in %s",
+                "%s (%s) got an egg for a total %s in %s",
                 ctx.user,
                 ctx.user.id,
                 agree("{0} egg", "{0} eggs", egg_count),
@@ -81,7 +108,7 @@ async def search_command(ctx: EasterbotContext) -> None:
                     title=f"{name} récupère un œuf",
                     description=ctx.bot.config.hidden(ctx.user),
                     thumbnail=emoji.url,
-                    egg_count=egg_count,
+                    egg_count=egg_count + 1,
                 )
             )
     else:
@@ -89,5 +116,6 @@ async def search_command(ctx: EasterbotContext) -> None:
             embed=embed(
                 title=f"{name} repart bredouille",
                 description=ctx.bot.config.failed(ctx.user),
+                egg_count=egg_count,
             )
         )
