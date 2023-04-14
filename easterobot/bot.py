@@ -230,7 +230,7 @@ class Easterbot(discord.Bot):
                     text = agree(
                         "{1} et {0} autre chasseur ratent un œuf",
                         "{1} et {0} autres chasseurs ratent un œuf",
-                        len(hunters) - 2,
+                        len(hunters) - 1,
                         loser_name,
                     )
                 emb = embed(

@@ -41,19 +41,21 @@ async def search_command(ctx: EasterbotContext) -> None:
         )
         egg_max = egg_max or 0
         egg_count = session.scalar(
-            select(func.count().label("count"),).where(
+            select(
+                func.count().label("count"),
+            ).where(
                 and_(
                     Egg.guild_id == ctx.guild.id,
                     Egg.user_id == ctx.user.id,
                 )
             )
         )
-    ratio = 1 - egg_count / egg_max
+    ratio = egg_count / egg_max
 
     conf_d: Dict[str, float] = ctx.bot.config.command_attr(
         "search", "discovered"
     )
-    prob_d = (conf_d["max"] - conf_d["min"]) * ratio + conf_d["min"]
+    prob_d = (conf_d["max"] - conf_d["min"]) * (1 - ratio) + conf_d["min"]
 
     conf_s: Dict[str, float] = ctx.bot.config.command_attr("search", "spotted")
     prob_s = (conf_s["max"] - conf_s["min"]) * ratio + conf_s["min"]

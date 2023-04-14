@@ -37,10 +37,8 @@ pip3 install docker-compose
 
 ```bash
 docker compose up -d
-docker compose ls
 docker compose stop
-docker compose logs -f --tail 80
-docker compose restart
+docker compose logs -f
 docker compose down --volumes --rmi 'all'
 docker compose exec bot bash
 ```
