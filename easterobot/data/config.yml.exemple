@@ -20,6 +20,7 @@ commands:
     spotted:
       min: 0.4
       max: 0.6
+    cooldown: 600.0
   top:
     cooldown: 5.0
   basket:
