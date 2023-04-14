@@ -139,13 +139,14 @@ class Easterbot(discord.Bot):
             message = await channel.send(embed=emb, view=view)
         else:
             message = await send_method(embed=emb, view=view)
+        message_url = f"{channel.jump_url}/{message.id}"
         async with channel.typing():
             try:
                 await asyncio.wait_for(
                     view.wait(), timeout=self.config.hunt_timeout() + 3
                 )
             except asyncio.TimeoutError:
-                logger.warning("timeout for %s", message.jump_url)
+                logger.warning("Timeout for %s", message_url)
 
         with Session(self.engine) as session:
             has_hunt = session.scalar(
@@ -160,7 +161,7 @@ class Easterbot(discord.Bot):
         if not hunters or not has_hunt:
             button.label = "L'œuf n'a pas été ramassé"
             button.style = discord.ButtonStyle.danger
-            logger.info("No Hunter for %s", message.jump_url)
+            logger.info("No Hunter for %s", message_url)
         else:
             with Session(self.engine) as session:
                 eggs: Dict[int, int] = dict(
@@ -177,7 +178,7 @@ class Easterbot(discord.Bot):
                         .group_by(Egg.user_id)
                     ).all()
                 )
-                logger.info("Winner draw for %s", message.jump_url)
+                logger.info("Winner draw for %s", message_url)
                 if len(hunters) == 1:
                     winner = hunters[0]
                     loser = None

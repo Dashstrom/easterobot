@@ -19,6 +19,7 @@ from .base import EasterbotContext, controled_command, egg_command_group
 )
 @controled_command(cooldown=True)
 async def basket_command(ctx: EasterbotContext, user: discord.Member) -> None:
+    await ctx.defer(ephemeral=True)
     hunter = user or ctx.user
     with Session(ctx.bot.engine) as session:
         egg_counts = list(
@@ -55,7 +56,7 @@ async def basket_command(ctx: EasterbotContext, user: discord.Member) -> None:
                 text = ctx.bot.config.conjugate(
                     ":spider_web: {Iel} n'a aucun œuf", hunter
                 )
-        await ctx.respond(
+        await ctx.followup.send(
             embed=embed(
                 title=f"Contenu du panier de {hunter.nick or hunter.name}",
                 description=text,

@@ -14,9 +14,9 @@ class Base(DeclarativeBase):  # type: ignore
 class Egg(Base):
     __tablename__ = "egg"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    guild_id: Mapped[int] = mapped_column(nullable=False)
+    guild_id: Mapped[int] = mapped_column(nullable=False, index=True)
     channel_id: Mapped[int] = mapped_column(nullable=False)
-    user_id: Mapped[int] = mapped_column(nullable=False)
+    user_id: Mapped[int] = mapped_column(nullable=False, index=True)
     emoji_id: Mapped[int] = mapped_column(nullable=True)
 
     @property

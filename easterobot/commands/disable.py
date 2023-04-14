@@ -10,6 +10,7 @@ from .base import EasterbotContext, controled_command, egg_command_group
 )
 @controled_command(cooldown=True, manage_channels=True)
 async def disable_command(ctx: EasterbotContext) -> None:
+    await ctx.defer(ephemeral=True)
     with Session(ctx.bot.engine) as session:
         old = session.scalar(
             select(Hunt).where(Hunt.channel_id == ctx.channel.id)
@@ -19,6 +20,6 @@ async def disable_command(ctx: EasterbotContext) -> None:
                 delete(Hunt).where(Hunt.channel_id == ctx.channel.id)
             )
             session.commit()
-    await ctx.respond(
+    await ctx.followup.send(
         f"Chasse aux œufs{'' if old else ' déjà'} désactivée", ephemeral=True
     )

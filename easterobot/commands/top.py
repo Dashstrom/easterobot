@@ -22,6 +22,7 @@ def record_top(rank: int, user_id: int, count: int) -> str:
 )
 @controled_command(cooldown=True)
 async def top_command(ctx: EasterbotContext) -> None:
+    await ctx.defer(ephemeral=True)
     with Session(ctx.bot.engine) as session:
         base = (
             select(
@@ -53,7 +54,7 @@ async def top_command(ctx: EasterbotContext) -> None:
             else:
                 morsels.append("\n:spider_web: Vous n'avez aucun œuf")
     text = "\n".join(morsels)
-    await ctx.respond(
+    await ctx.followup.send(
         embed=embed(
             title=f"Chasse aux œufs : {ctx.guild.name}",
             description=text,

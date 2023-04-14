@@ -10,7 +10,7 @@ hunt:
     min: 600.0
     max: 1200.0
   weights:
-    egg: 0.3
+    egg: 0.4
     speed: 0.4
 commands:
   search:
@@ -18,8 +18,8 @@ commands:
       min: 0.5
       max: 0.8
     spotted:
-      min: 0.3
-      max: 0.6
+      min: 0.4
+      max: 0.7
     cooldown: 600.0
   top:
     cooldown: 5.0

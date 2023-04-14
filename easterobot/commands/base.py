@@ -6,6 +6,7 @@ from typing import Awaitable, Callable, cast
 
 import discord
 import humanize
+from sqlalchemy import and_, delete
 from sqlalchemy.orm import Session
 from typing_extensions import Concatenate, ParamSpec
 
@@ -26,6 +27,11 @@ logger = logging.getLogger("easterobot")
 
 
 Param = ParamSpec("Param")
+
+
+class InteruptedCommandError(Exception):
+    def __init__(self) -> None:
+        pass
 
 
 def controled_command(
@@ -96,7 +102,22 @@ def controled_command(
                     )
                     return
             logger.info("%s", eventname)
-            await f(ctx, *args, **kwargs)
+            try:
+                await f(ctx, *args, **kwargs)
+            except InteruptedCommandError:
+                logger.exception("InteruptedCommandError occur")
+                with Session(ctx.bot.engine) as session:
+                    # This is unsafe
+                    session.execute(
+                        delete(Cooldown).where(
+                            and_(
+                                Cooldown.guild_id == ctx.guild_id,
+                                Cooldown.user_id == ctx.user.id,
+                                Cooldown.command == cmd,
+                            )
+                        )
+                    )
+                    session.commit()
 
         return cast(
             Callable[

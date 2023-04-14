@@ -2,7 +2,7 @@ import asyncio
 from typing import cast
 
 import discord
-from sqlalchemy import delete
+from sqlalchemy import and_, delete
 from sqlalchemy.orm import Session
 
 from ..bot import embed
@@ -15,6 +15,7 @@ from .base import EasterbotContext, controled_command, egg_command_group
 )
 @controled_command(cooldown=True, administrator=True)
 async def reset_command(ctx: EasterbotContext) -> None:
+    await ctx.defer(ephemeral=True)
     view = discord.ui.View(timeout=None)
     cancel = discord.ui.Button(  # type: ignore
         label="Annuler", style=discord.ButtonStyle.danger
@@ -33,7 +34,7 @@ async def reset_command(ctx: EasterbotContext) -> None:
         title="Réinitialisation",
         description=(
             "L'ensemble des salons, œufs "
-            "et temps d'attentes ont été réinitialisatié."
+            "et temps d'attentes ont été réinitialisatiés."
         ),
     )
 
@@ -45,7 +46,7 @@ async def reset_command(ctx: EasterbotContext) -> None:
         view.disable_all_items()
         view.stop()
         await asyncio.gather(
-            message.edit_original_response(view=view),
+            message.edit(view=view),
             interaction.response.send_message(
                 embed=cancel_embed,
                 ephemeral=True,
@@ -60,7 +61,7 @@ async def reset_command(ctx: EasterbotContext) -> None:
         view.disable_all_items()
         view.stop()
         await asyncio.gather(
-            message.edit_original_response(view=view),
+            message.edit(view=view),
             interaction.response.defer(ephemeral=True),
         )
 
@@ -68,7 +69,12 @@ async def reset_command(ctx: EasterbotContext) -> None:
             session.execute(delete(Hunt).where(Hunt.guild_id == ctx.guild_id))
             session.execute(delete(Egg).where(Egg.guild_id == ctx.guild_id))
             session.execute(
-                delete(Cooldown).where(Cooldown.guild_id == ctx.guild_id)
+                delete(Cooldown).where(
+                    and_(
+                        Cooldown.guild_id == ctx.guild_id,
+                        Cooldown.command != "reset",
+                    )
+                )
             )
             session.commit()
         await interaction.followup.send(
@@ -79,8 +85,8 @@ async def reset_command(ctx: EasterbotContext) -> None:
     cancel.callback = cancel_callback  # type: ignore
     confirm.callback = confirm_callback  # type: ignore
     message = cast(
-        discord.Interaction,
-        await ctx.respond(
+        discord.WebhookMessage,
+        await ctx.followup.send(
             embed=embed(
                 title="Demande de réinitialisation",
                 description=(
@@ -97,5 +103,7 @@ async def reset_command(ctx: EasterbotContext) -> None:
     if not done:
         view.disable_all_items()
         view.stop()
-        await message.edit_original_response(view=view)
-        await ctx.followup.send(embed=cancel_embed, ephemeral=True)
+        await asyncio.gather(
+            message.edit(view=view),
+            ctx.followup.send(embed=cancel_embed, ephemeral=True),
+        )

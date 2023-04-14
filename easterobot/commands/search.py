@@ -16,19 +16,21 @@ logger = logging.getLogger("easterobot")
 @egg_command_group.command(name="search", description="Rechercher un œuf")
 @controled_command(cooldown=True)
 async def search_command(ctx: EasterbotContext) -> None:
-    await ctx.defer()
     config = ctx.bot.config
     with Session(ctx.bot.engine) as session:
         hunt = session.scalar(
             select(Hunt).where(Hunt.channel_id == ctx.channel.id)
         )
         if hunt is None:
-            await ctx.followup.send(
+            await ctx.respond(
                 "La chasse aux œufs n'est pas activée dans ce salon",
                 ephemeral=True,
             )
             return
-
+    try:
+        await ctx.defer(ephemeral=False)
+    except discord.ApplicationCommandInvokeError as err:
+        raise InterruptedError() from err
     name = ctx.user.nick or ctx.user.name
 
     with Session(ctx.bot.engine) as session:
@@ -43,16 +45,14 @@ async def search_command(ctx: EasterbotContext) -> None:
         )
         egg_max = egg_max or 0
         egg_count = session.scalar(
-            select(
-                func.count().label("count"),
-            ).where(
+            select(func.count().label("count"),).where(
                 and_(
                     Egg.guild_id == ctx.guild.id,
                     Egg.user_id == ctx.user.id,
                 )
             )
         )
-    ratio = egg_count / egg_max
+    ratio = egg_count / egg_max if egg_max != 0 else 1.0
 
     conf_d: Dict[str, float] = config.command_attr("search", "discovered")
     prob_d = (conf_d["max"] - conf_d["min"]) * (1 - ratio) + conf_d["min"]
@@ -78,7 +78,7 @@ async def search_command(ctx: EasterbotContext) -> None:
                 send_method=send_method,
             )
         else:
-            logger.info("finded: %.2f > %.2f", prob_s, sample_s)
+            logger.info("found: %.2f > %.2f", prob_s, sample_s)
             emoji = config.emoji()
             with Session(ctx.bot.engine) as session:
                 session.add(
