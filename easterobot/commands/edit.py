@@ -1,6 +1,6 @@
 import discord
 from sqlalchemy import and_, delete, select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..bot import embed
 from ..config import RAND, agree
@@ -30,12 +30,14 @@ async def edit_command(
     oeufs: int,
 ) -> None:
     await ctx.defer(ephemeral=True)
-    with Session(ctx.bot.engine) as session:
-        eggs = session.scalars(
-            select(Egg).where(
-                and_(
-                    Egg.guild_id == ctx.guild.id,
-                    Egg.user_id == ctx.user.id,
+    async with AsyncSession(ctx.bot.engine) as session:
+        eggs = (
+            await session.scalars(
+                select(Egg).where(
+                    and_(
+                        Egg.guild_id == ctx.guild.id,
+                        Egg.user_id == ctx.user.id,
+                    )
                 )
             )
         ).all()
@@ -46,8 +48,8 @@ async def edit_command(
                 egg = RAND.choice(eggs)
                 eggs.remove(egg)
                 to_delete.append(egg.id)
-            session.execute(delete(Egg).where(Egg.id.in_(to_delete)))
-            session.commit()
+            await session.execute(delete(Egg).where(Egg.id.in_(to_delete)))
+            await session.commit()
         elif diff < 0:
             for _ in range(-diff):
                 session.add(
@@ -58,7 +60,7 @@ async def edit_command(
                         emoji_id=ctx.bot.config.emoji().id,
                     )
                 )
-            session.commit()
+            await session.commit()
     await ctx.followup.send(
         embed=embed(
             title="Edition terminée",

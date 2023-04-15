@@ -1,5 +1,5 @@
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..bot import embed
 from ..config import agree
@@ -23,7 +23,7 @@ def record_top(rank: int, user_id: int, count: int) -> str:
 @controled_command(cooldown=True)
 async def top_command(ctx: EasterbotContext) -> None:
     await ctx.defer(ephemeral=True)
-    with Session(ctx.bot.engine) as session:
+    async with AsyncSession(ctx.bot.engine) as session:
         base = (
             select(
                 Egg.user_id,
@@ -34,7 +34,7 @@ async def top_command(ctx: EasterbotContext) -> None:
             .group_by(Egg.user_id)
             .order_by(func.count().desc())
         )
-        egg_counts = session.execute(base.limit(5)).all()
+        egg_counts = (await session.execute(base.limit(5))).all()
         morsels = []
         top_player = False
 
@@ -45,8 +45,10 @@ async def top_command(ctx: EasterbotContext) -> None:
         if not top_player:
             morsels.append("")
             subq = base.subquery()
-            user_egg_count = session.execute(
-                select(subq).where(subq.c.user_id == ctx.user.id)
+            user_egg_count = (
+                await session.execute(
+                    select(subq).where(subq.c.user_id == ctx.user.id)
+                )
             ).first()
             if user_egg_count:
                 user_id, rank, egg_count = user_egg_count

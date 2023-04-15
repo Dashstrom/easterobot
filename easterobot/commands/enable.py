@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import Hunt
 from .base import EasterbotContext, controled_command, egg_command_group
@@ -11,8 +11,8 @@ from .base import EasterbotContext, controled_command, egg_command_group
 @controled_command(cooldown=True, manage_channels=True)
 async def enable_command(ctx: EasterbotContext) -> None:
     await ctx.defer(ephemeral=True)
-    with Session(ctx.bot.engine) as session:
-        old = session.scalar(
+    async with AsyncSession(ctx.bot.engine) as session:
+        old = await session.scalar(
             select(Hunt).where(Hunt.channel_id == ctx.channel.id)
         )
         if not old:
@@ -23,7 +23,7 @@ async def enable_command(ctx: EasterbotContext) -> None:
                     next_egg=0,
                 )
             )
-            session.commit()
+            await session.commit()
     await ctx.followup.send(
         f"Chasse aux œufs{' déjà' if old else ''} activée", ephemeral=True
     )

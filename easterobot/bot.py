@@ -3,13 +3,24 @@ import asyncio
 from datetime import datetime
 from pathlib import Path
 from traceback import print_exc
-from typing import Awaitable, Callable, Dict, List, Optional, TypeVar, cast
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Coroutine,
+    Dict,
+    List,
+    Optional,
+    Set,
+    TypeVar,
+    cast,
+)
 
 import discord
 import discord.ext.tasks
 import humanize
-from sqlalchemy import and_, create_engine, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from .config import RAND, Config, agree
 from .logger import DATE_FORMAT, logger
@@ -32,21 +43,32 @@ class Easterbot(discord.Bot):
 
         if self.config.token is None:
             raise TypeError("Missing TOKEN in configuration")
-        self.engine = create_engine(self.config.database, echo=False)
-        Base.metadata.create_all(self.engine, checkfirst=True)
+        self.engine = create_async_engine(self.config.database, echo=False)
         self.load_extension(
             "easterobot.commands", package="easterobot.commands.__init__"
         )
         self.run(self.config.token)
 
     async def on_ready(self) -> None:
+        async with self.engine.begin() as session:
+            await session.run_sync(Base.metadata.create_all, checkfirst=True)
         await self.config.load(client=self)
-        self.loop_hunt.start()
         logger.info(
             "Logged on as %s (%s) !",
             self.user,
             getattr(self.user, "id", "unknow"),
         )
+        pending: Set[Coroutine[Any, Any, None]] = set()
+        while True:
+            if pending:
+                try:
+                    _, pending = await asyncio.wait(  # type: ignore
+                        pending, timeout=1
+                    )
+                except Exception:
+                    logger.critical("Unattended exception")
+            await asyncio.sleep(4)
+            pending.add(self.loop_hunt())
 
     async def start_hunt(
         self,
@@ -89,13 +111,6 @@ class Easterbot(discord.Bot):
         ) -> None:
             nonlocal waiting, active
             await interaction.response.defer()
-            logger.info(
-                "Hunt (%d) by %s (%s) on %s",
-                len(hunters),
-                interaction.user,
-                getattr(interaction.user, "id", "unkown"),
-                getattr(interaction.message, "jump_url", interaction.guild_id),
-            )
             message = interaction.message
             user = interaction.user
             if (
@@ -107,8 +122,25 @@ class Easterbot(discord.Bot):
             # Don't update if hunters already click
             for hunter in hunters:
                 if hunter.id == user.id:
+                    logger.info(
+                        "Already hunt by %s (%s) on %s",
+                        interaction.user,
+                        getattr(interaction.user, "id", "unkown"),
+                        getattr(
+                            interaction.message,
+                            "jump_url",
+                            interaction.guild_id,
+                        ),
+                    )
                     return
             hunters.append(user)
+            logger.info(
+                "Hunt (%d) by %s (%s) on %s",
+                len(hunters),
+                interaction.user,
+                getattr(interaction.user, "id", "unkown"),
+                getattr(interaction.message, "jump_url", interaction.guild_id),
+            )
             if active and not waiting:
                 waiting = True
                 while active:
@@ -143,13 +175,17 @@ class Easterbot(discord.Bot):
         async with channel.typing():
             try:
                 await asyncio.wait_for(
-                    view.wait(), timeout=self.config.hunt_timeout() + 3
+                    view.wait(), timeout=self.config.hunt_timeout()
                 )
             except asyncio.TimeoutError:
                 logger.warning("Timeout for %s", message_url)
+        pending = []
+        view.disable_all_items()
+        view.stop()
+        await message.edit(view=view)
 
-        with Session(self.engine) as session:
-            has_hunt = session.scalar(
+        async with AsyncSession(self.engine) as session:
+            has_hunt = await session.scalar(
                 select(Hunt).where(
                     and_(
                         Hunt.guild_id == guild.id,
@@ -157,27 +193,23 @@ class Easterbot(discord.Bot):
                     )
                 )
             )
-        pending = []
         if not hunters or not has_hunt:
             button.label = "L'œuf n'a pas été ramassé"
             button.style = discord.ButtonStyle.danger
             logger.info("No Hunter for %s", message_url)
         else:
-            with Session(self.engine) as session:
-                eggs: Dict[int, int] = dict(
-                    session.execute(  # type: ignore
-                        select(Egg.user_id, func.count().label("count"))
-                        .where(
-                            and_(
-                                Egg.guild_id == guild.id,
-                                Egg.user_id.in_(
-                                    hunter.id for hunter in hunters
-                                ),
-                            )
+            async with AsyncSession(self.engine) as session:
+                res = await session.execute(
+                    select(Egg.user_id, func.count().label("count"))
+                    .where(
+                        and_(
+                            Egg.guild_id == guild.id,
+                            Egg.user_id.in_(hunter.id for hunter in hunters),
                         )
-                        .group_by(Egg.user_id)
-                    ).all()
+                    )
+                    .group_by(Egg.user_id)
                 )
+                eggs: Dict[int, int] = dict(res.all())  # type: ignore
                 logger.info("Winner draw for %s", message_url)
                 if len(hunters) == 1:
                     winner = hunters[0]
@@ -185,8 +217,8 @@ class Easterbot(discord.Bot):
                     logger.info("100%% - %s (%s)", winner, winner.id)
                 else:
                     lh = len(eggs)
-                    minh = min(eggs.values())
-                    maxh = max(eggs.values()) - minh
+                    minh = min(eggs.values() or (0,))
+                    maxh = max(eggs.values() or (0,)) - minh
                     w_egg = self.config.hunt_weight_egg()
                     w_speed = self.config.hunt_weight_speed()
                     weigths = []
@@ -196,7 +228,10 @@ class Easterbot(discord.Bot):
                             p_egg = (1 - egg / maxh) * w_egg + 1 - w_egg
                         else:
                             p_egg = 1.0
-                        p_speed = (1 - i / lh) * w_speed + 1 - w_speed
+                        if lh != 0:
+                            p_speed = (1 - i / lh) * w_speed + 1 - w_speed
+                        else:
+                            p_speed = 1.0
                         weigths.append(p_egg * p_speed)
                     r = sum(weigths)
                     chances = [(h, p / r) for h, p in zip(hunters, weigths)]
@@ -222,7 +257,7 @@ class Easterbot(discord.Bot):
                         emoji_id=emoji.id,
                     )
                 )
-                session.commit()
+                await session.commit()
             if loser:
                 loser_name = loser.nick or loser.name
                 if len(hunters) == 1:
@@ -260,17 +295,16 @@ class Easterbot(discord.Bot):
                 agree("{0} egg", "{0} eggs", winner_eggs),
             )
         button.emoji = None
-        view.disable_all_items()
-        view.stop()
         pending.append(message.edit(view=view))
         await asyncio.gather(*pending)
 
-    @discord.ext.tasks.loop(seconds=5.0)
     async def loop_hunt(self) -> None:
-        with Session(self.engine) as session:
+        async with AsyncSession(
+            self.engine, expire_on_commit=False
+        ) as session:
             now = datetime.now().timestamp()
-            hunts = session.scalars(
-                select(Hunt).where(Hunt.next_egg <= now)
+            hunts = (
+                await session.scalars(select(Hunt).where(Hunt.next_egg <= now))
             ).all()
             if hunts:
                 for hunt in hunts:
@@ -282,18 +316,17 @@ class Easterbot(discord.Bot):
                         dt_next.strftime(DATE_FORMAT),
                     )
                     hunt.next_egg = next_egg
-                session.commit()
-                try:
-                    await asyncio.gather(
-                        *[
-                            self.start_hunt(
-                                hunt.channel_id, self.config.appear()
-                            )
-                            for hunt in hunts
-                        ]
-                    )
-                except Exception:
-                    print_exc()
+                await session.commit()
+            hunt_ids = [hunt.channel_id for hunt in hunts]
+        try:
+            await asyncio.gather(
+                *[
+                    self.start_hunt(hunt_id, self.config.appear())
+                    for hunt_id in hunt_ids
+                ]
+            )
+        except Exception:
+            print_exc()
 
 
 def embed(

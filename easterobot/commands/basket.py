@@ -1,6 +1,6 @@
 import discord
 from sqlalchemy import and_, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..bot import embed
 from ..models import Egg
@@ -21,9 +21,9 @@ from .base import EasterbotContext, controled_command, egg_command_group
 async def basket_command(ctx: EasterbotContext, user: discord.Member) -> None:
     await ctx.defer(ephemeral=True)
     hunter = user or ctx.user
-    with Session(ctx.bot.engine) as session:
-        egg_counts = list(
-            session.execute(
+    async with AsyncSession(ctx.bot.engine) as session:
+        egg_counts = (
+            await session.execute(
                 select(
                     Egg.emoji_id,
                     func.count().label("count"),
@@ -35,8 +35,8 @@ async def basket_command(ctx: EasterbotContext, user: discord.Member) -> None:
                     )
                 )
                 .group_by(Egg.emoji_id)
-            ).all()
-        )
+            )
+        ).all()
         none_emoji = 0
         morsels = []
         for egg in egg_counts:
@@ -44,9 +44,9 @@ async def basket_command(ctx: EasterbotContext, user: discord.Member) -> None:
             if emoji is None:
                 none_emoji += egg[1]
             else:
-                morsels.append(f"{emoji} × {egg[1]}")
+                morsels.append(f"{emoji} \xd7 {egg[1]}")
         if none_emoji:
-            morsels.append(f"🥚 × {none_emoji}")
+            morsels.append(f"🥚 \xd7 {none_emoji}")
         if morsels:
             text = "\n".join(morsels)
         else:

@@ -11,10 +11,10 @@ HERE = Path(__file__).parent
 LOG_DIR = HERE / "data" / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-file_handler = logging.handlers.TimedRotatingFileHandler(
+file_handler = logging.handlers.RotatingFileHandler(
     filename=LOG_DIR / "easterobot.log",
     encoding="utf-8",
-    when="d",
+    maxBytes=1 << 16,
     backupCount=10,  # Rotate through 10 files
 )
 stdout_handler = logging.StreamHandler(sys.stdout)

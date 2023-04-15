@@ -1,3 +1,4 @@
+import asyncio
 import functools
 import logging
 from datetime import timedelta
@@ -7,7 +8,7 @@ from typing import Awaitable, Callable, cast
 import discord
 import humanize
 from sqlalchemy import and_, delete
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing_extensions import Concatenate, ParamSpec
 
 from ..bot import Easterbot
@@ -32,6 +33,9 @@ Param = ParamSpec("Param")
 class InteruptedCommandError(Exception):
     def __init__(self) -> None:
         pass
+
+
+lock = asyncio.Lock()
 
 
 def controled_command(
@@ -72,8 +76,8 @@ def controled_command(
 
             if cooldown:
                 wait = None
-                with Session(ctx.bot.engine) as session:
-                    cd = session.get(
+                async with AsyncSession(ctx.bot.engine) as session, lock:
+                    cd = await session.get(
                         Cooldown,
                         (ctx.user.id, ctx.guild_id, cmd),
                     )
@@ -82,7 +86,7 @@ def controled_command(
                     )
                     now = time()
                     if cd is None or now > cd_cmd + cd.timestamp:
-                        session.merge(
+                        await session.merge(
                             Cooldown(
                                 user_id=ctx.user.id,
                                 guild_id=ctx.guild_id,
@@ -90,7 +94,7 @@ def controled_command(
                                 timestamp=now,
                             )
                         )
-                        session.commit()
+                        await session.commit()
                     else:
                         wait = timedelta(seconds=cd_cmd + cd.timestamp - now)
                 if wait:
@@ -106,9 +110,9 @@ def controled_command(
                 await f(ctx, *args, **kwargs)
             except InteruptedCommandError:
                 logger.exception("InteruptedCommandError occur")
-                with Session(ctx.bot.engine) as session:
+                async with AsyncSession(ctx.bot.engine) as session:
                     # This is unsafe
-                    session.execute(
+                    await session.execute(
                         delete(Cooldown).where(
                             and_(
                                 Cooldown.guild_id == ctx.guild_id,
@@ -117,7 +121,7 @@ def controled_command(
                             )
                         )
                     )
-                    session.commit()
+                    await session.commit()
 
         return cast(
             Callable[

@@ -3,7 +3,7 @@ from typing import cast
 
 import discord
 from sqlalchemy import and_, delete
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..bot import embed
 from ..models import Cooldown, Egg, Hunt
@@ -65,10 +65,14 @@ async def reset_command(ctx: EasterbotContext) -> None:
             interaction.response.defer(ephemeral=True),
         )
 
-        with Session(ctx.bot.engine) as session:
-            session.execute(delete(Hunt).where(Hunt.guild_id == ctx.guild_id))
-            session.execute(delete(Egg).where(Egg.guild_id == ctx.guild_id))
-            session.execute(
+        async with AsyncSession(ctx.bot.engine) as session:
+            await session.execute(
+                delete(Hunt).where(Hunt.guild_id == ctx.guild_id)
+            )
+            await session.execute(
+                delete(Egg).where(Egg.guild_id == ctx.guild_id)
+            )
+            await session.execute(
                 delete(Cooldown).where(
                     and_(
                         Cooldown.guild_id == ctx.guild_id,
@@ -76,7 +80,7 @@ async def reset_command(ctx: EasterbotContext) -> None:
                     )
                 )
             )
-            session.commit()
+            await session.commit()
         await interaction.followup.send(
             embed=confirm_embed,
             ephemeral=True,

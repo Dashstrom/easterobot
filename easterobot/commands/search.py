@@ -3,12 +3,17 @@ from typing import Any, Dict
 
 import discord
 from sqlalchemy import and_, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..bot import embed
 from ..config import RAND, agree
 from ..models import Egg, Hunt
-from .base import EasterbotContext, controled_command, egg_command_group
+from .base import (
+    EasterbotContext,
+    InteruptedCommandError,
+    controled_command,
+    egg_command_group,
+)
 
 logger = logging.getLogger("easterobot")
 
@@ -17,8 +22,8 @@ logger = logging.getLogger("easterobot")
 @controled_command(cooldown=True)
 async def search_command(ctx: EasterbotContext) -> None:
     config = ctx.bot.config
-    with Session(ctx.bot.engine) as session:
-        hunt = session.scalar(
+    async with AsyncSession(ctx.bot.engine) as session:
+        hunt = await session.scalar(
             select(Hunt).where(Hunt.channel_id == ctx.channel.id)
         )
         if hunt is None:
@@ -29,12 +34,12 @@ async def search_command(ctx: EasterbotContext) -> None:
             return
     try:
         await ctx.defer(ephemeral=False)
-    except discord.ApplicationCommandInvokeError as err:
-        raise InterruptedError() from err
+    except discord.errors.NotFound as err:
+        raise InteruptedCommandError() from err
     name = ctx.user.nick or ctx.user.name
 
-    with Session(ctx.bot.engine) as session:
-        egg_max = session.scalar(
+    async with AsyncSession(ctx.bot.engine) as session:
+        egg_max = await session.scalar(
             select(
                 func.count().label("max"),
             )
@@ -44,7 +49,7 @@ async def search_command(ctx: EasterbotContext) -> None:
             .limit(1)
         )
         egg_max = egg_max or 0
-        egg_count = session.scalar(
+        egg_count = await session.scalar(
             select(func.count().label("count"),).where(
                 and_(
                     Egg.guild_id == ctx.guild.id,
@@ -58,12 +63,12 @@ async def search_command(ctx: EasterbotContext) -> None:
     prob_d = (conf_d["max"] - conf_d["min"]) * (1 - ratio) + conf_d["min"]
 
     sample_d = RAND.random()
-    if prob_d > sample_d:
+    if prob_d > sample_d or egg_count < conf_d["shield"]:
         sample_s = RAND.random()
         conf_s: Dict[str, float] = config.command_attr("search", "spotted")
         prob_s = (conf_s["max"] - conf_s["min"]) * ratio + conf_s["min"]
         logger.info("discovered: %.2f > %.2f", prob_d, sample_d)
-        if prob_s > sample_s:
+        if prob_s > sample_s and egg_count > conf_s["shield"]:
             logger.info("spotted: %.2f > %.2f", prob_s, sample_s)
 
             async def send_method(
@@ -80,7 +85,7 @@ async def search_command(ctx: EasterbotContext) -> None:
         else:
             logger.info("found: %.2f > %.2f", prob_s, sample_s)
             emoji = config.emoji()
-            with Session(ctx.bot.engine) as session:
+            async with AsyncSession(ctx.bot.engine) as session:
                 session.add(
                     Egg(
                         channel_id=ctx.channel.id,
@@ -89,7 +94,7 @@ async def search_command(ctx: EasterbotContext) -> None:
                         emoji_id=emoji.id,
                     )
                 )
-                session.commit()
+                await session.commit()
 
             logger.info(
                 "%s (%s) got an egg for a total %s in %s",

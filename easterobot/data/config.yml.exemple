@@ -2,10 +2,11 @@ guild: YOUR_GUILD_ID
 admins:
 - YOUR_ID
 token: YOUR_TOKEN
-database: sqlite:///easterobot/data/easterobot.sqlite
+database: postgresql+asyncpg://easterobot:easterobot@postgres:5432/easterobot
 group: egg
 hunt:
   timeout: 300.0
+  penalizing: 2
   cooldown:
     min: 600.0
     max: 1200.0
@@ -15,9 +16,11 @@ hunt:
 commands:
   search:
     discovered:
+      shield: 5
       min: 0.5
       max: 0.8
     spotted:
+      shield: 10
       min: 0.4
       max: 0.7
     cooldown: 600.0
@@ -42,6 +45,9 @@ conjugate:
   le:
     man: "le"
     woman: "la"
+  lui:
+    man: "lui"
+    woman: "elle"
 failed:
 - "Malheureusement, tu n'as pas réussi à trouver d'œufs cette fois-ci. Tu auras plus de chance la prochaine fois !"
 - "Tu n'as pas eu de chance cette fois-ci, mais ne te décourage pas ! Continue de chercher des œufs."
@@ -82,7 +88,7 @@ hidden:
 - "Bravo ! Tu as remporté la chasse aux œufs ! Maintenant, prépare-toi à gagner une autre compétition contre tes confrères..."
 - "Le lapin de Pâques serait fier de toi ! Tu as trouvé un œuf comme un pro."
 - "Les cloches de Pâques ont sonné, et tu as répondu à l'appel ! Félicitations pour ta nouvelle trouvaille !"
-- "Tu viens de battre le record de la chasse aux œufs la plus rapide ! Tu as gagné un œuf en chocolat - et notre admiration éternelle."
+- "Tu viens de battre le record de la chasse aux œufs la plus rapide ! Tu as gagné un œuf en chocolat - et l'admiration éternelle."
 - "Qui a besoin d'un détecteur de métaux quand on t'a ? Tu as trouvé un œuf comme un vrai chasseur de trésors !"
 - "Incroyable! Tu viens de gagner le grand prix de la chasse aux œufs - un grand sourire sur ton visage et une réserve infinie de bonheur sucré."
 - "Alors, comment se sent-on d'être le maître de la chasse aux œufs ? Tu vas pouvoir le célébrer avec une bonne dose de chocolat et de joie !"
@@ -144,10 +150,10 @@ action:
     gif: https://tenor.com/fr/view/fish-fishing-fail-hook-gif-11334515.gif
 - text: "Courir jusqu'à l'œuf"
   success: 
-    text: "Tel Flash, {iel} s'empare de l'œuf !"
+    text: "Tel Flash, {iel} s'empare de l'œuf à une vitesse phénoménale !"
     gif: https://tenor.com/fr/view/flash-run-fast-gif-26117148.gif
   fail:
-    text: "La rapidité lui a joué des tours."
+    text: "Sa rapidité lui a joué des tours."
     gif: https://i.makeagif.com/media/3-01-2017/q_GF_o.gif
 - text: "Sécuriser l'œuf"
   success: 
@@ -175,6 +181,33 @@ action:
     text: "C'est une incroyable machine qu'{iel} a fait, malheureusement cela n'a permis de récupérer qu'un œuf."
     gif: https://media.tenor.com/w5KbvzaYbSMAAAAC/satisfactory.gif
   fail:
-    text: "Choqué par la machine à œuf, {iel} reste tétanisé{e} et laisse son œuf partir."
-    gif: https://media.tenor.com/thDFJno0zuAAAAAS/happy-easter-easter-bunny.gif.gif
-  
+    text: "Choqué{e} par la machine à œuf, {iel} reste tétanisé{e} et laisse son œuf partir."
+    gif: https://i.gifer.com/Wdts.gif
+- text: "Payer pour l'œuf"
+  success: 
+    text: "{Iel} réussi à corrompre le lapin de Pâque pour qu'il lui laisse l'œuf."
+    gif: https://media.tenor.com/BT6bMyOIbawAAAAC/cop-corruption.gif
+  fail:
+    text: "{Iel} a oublié qu'{iel} était pauvre."
+    gif: https://media.tenor.com/rdvWdzGheQYAAAAd/drama-queen-wallet.gif
+- text: "Se battre pour l'œuf"
+  success: 
+    text: "La violance ne résout rien, {iel} s'empare de l'œuf avec douceure 💞"
+    gif: https://media.tenor.com/pHwzmlVwEocAAAAd/heejake.gif
+  fail:
+    text: "{Iel} était trop concentré{e} sur le combat. {Iel} a laissé passer l'œuf."
+    gif: https://media.tenor.com/l5sIE_3H3EEAAAAd/cats-fighting-fighting-cats.gif
+- text: "Dancer pour l'œuf"
+  success: 
+    text: "{Iel} effectue une danse endiablée. Tous les yeux sont rivés sur {lui}, {iel} s'empare de l'œuf avec l'admiration de tous."
+    gif: https://media.tenor.com/NDIx856G0XIAAAAC/dance-turkey.gif
+  fail:
+    text: "Personne n'aurait aimé être à sa place. {Iel} se casse la gueule avec honte."
+    gif: https://media.tenor.com/nMcbTp1sQgYAAAAC/dance-oops.gif
+- text: "Regarder intensivement l'œuf"
+  success: 
+    text: "Son regard remplit de jugement et de puissance pousse les autres chasseurs à lui laisser l'œuf."
+    gif: https://tenor.com/fr/view/cat-cat-stare-cat-staring-staring-cat-daladada-gif-23650468
+  fail:
+    text: "{Iel} se fait surprendre par l'œuf."
+    gif: https://media.tenor.com/Dui2bqe8O0gAAAAC/children-demolition.gif

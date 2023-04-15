@@ -25,6 +25,8 @@ sudo apt install --reinstall raspberrypi-bootloader raspberrypi-kernel
 sudo reboot
 ```
 
+Install docker from script
+
 ```bash
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
@@ -36,11 +38,11 @@ pip3 install docker-compose
 ## Some usefull commands
 
 ```bash
-docker compose up -d
-docker compose stop
+docker compose up -d --build
 docker compose logs -f
-docker compose down --volumes --rmi 'all'
 docker compose exec bot bash
+docker compose stop
+docker compose down --volumes --rmi 'all'
 ```
 
 ## Generate images
@@ -70,8 +72,25 @@ sudo rm -rf /var/lib/docker
 
 ```bash
 docker compose stop
-cp easterobot/data/easterobot.sqlite easterobot/data/easterobot.bkp.sqlite
 git pull
 nano easterobot/data/config.yml
 docker compose up -d --build
+```
+
+## Backups
+
+Export backups
+
+```bash
+docker compose stop
+docker run --rm -v "easterobot_database:/database" -v "easterobot_logs:/logs" -v "$(PWD):/backup" ubuntu tar czvf /backup/backup.tar.gz -C / database logs 
+docker compose up -d
+```
+
+Import backups
+
+```bash
+docker compose stop
+docker run --rm -v "easterobot_database:/database" -v "easterobot_logs:/logs" -v "$(PWD):/backup" ubuntu bash -c "cd / && rm -rf /{database,logs}/* && tar xvfP /backup/backup.tar.gz"
+docker compose up -d
 ```
