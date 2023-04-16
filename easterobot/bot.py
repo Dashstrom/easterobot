@@ -2,6 +2,7 @@
 import asyncio
 from datetime import datetime
 from pathlib import Path
+import time
 from traceback import print_exc
 from typing import (
     Any,
@@ -162,7 +163,7 @@ class Easterbot(discord.Bot):
                 hunters.append(member)
                 button.label += " (1)"  # type: ignore
 
-        next_hunt = datetime.utcnow().timestamp() + timeout
+        next_hunt = time.time() + timeout
         emb = embed(
             title="Un œuf a été découvert !",
             description=description
@@ -303,7 +304,7 @@ class Easterbot(discord.Bot):
         async with AsyncSession(
             self.engine, expire_on_commit=False
         ) as session:
-            now = datetime.now().timestamp()
+            now = time.time()
             hunts = (
                 await session.scalars(select(Hunt).where(Hunt.next_egg <= now))
             ).all()

@@ -83,7 +83,7 @@ Export backups
 
 ```bash
 docker compose stop
-docker run --rm -v "easterobot_database:/database" -v "easterobot_logs:/logs" -v "$(PWD):/backup" ubuntu tar czvf /backup/backup.tar.gz -C / database logs 
+docker run --rm -v "easterobot_database:/database" -v "easterobot_logs:/logs" -v "$PWD":/backup ubuntu tar czvf /backup/backup.tar.gz -C / database logs 
 docker compose up -d
 ```
 
@@ -91,6 +91,6 @@ Import backups
 
 ```bash
 docker compose stop
-docker run --rm -v "easterobot_database:/database" -v "easterobot_logs:/logs" -v "$(PWD):/backup" ubuntu bash -c "cd / && rm -rf /{database,logs}/* && tar xvfP /backup/backup.tar.gz"
+docker run --rm -v "easterobot_database:/database" -v "easterobot_logs:/logs" -v "$PWD":/backup ubuntu bash -c "cd / && rm -rf /{database,logs}/* && tar xvfP /backup/backup.tar.gz"
 docker compose up -d
 ```
