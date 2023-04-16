@@ -58,14 +58,6 @@ python3 tools/cropping.py images/eggs.png images/eggs -s 13
 pip3 install requirements-dev.txt
 isort .
 black .
-tox .
-```
-
-## Unintsall
-
-```bash
-sudo apt-get purge docker-ce
-sudo rm -rf /var/lib/docker
 ```
 
 ## Update

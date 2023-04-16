@@ -36,7 +36,7 @@ async def edit_command(
                 select(Egg).where(
                     and_(
                         Egg.guild_id == ctx.guild.id,
-                        Egg.user_id == ctx.user.id,
+                        Egg.user_id == user.id,
                     )
                 )
             )
