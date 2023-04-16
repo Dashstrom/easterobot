@@ -167,7 +167,7 @@ class Easterbot(discord.Bot):
         emb = embed(
             title="Un œuf a été découvert !",
             description=description
-            + f"\n\nLe vinqueur est tiré <t:{next_hunt:.0f}:R>",
+            + f"\n\nTirage du vinqueur : <t:{next_hunt:.0f}:R>",
             thumbnail=emoji.url,
         )
 
@@ -182,7 +182,7 @@ class Easterbot(discord.Bot):
                     view.wait(), timeout=self.config.hunt_timeout()
                 )
             except asyncio.TimeoutError:
-                logger.warning("Timeout for %s", message_url)
+                logger.info("End hunt for %s", message_url)
         view.disable_all_items()
         view.stop()
         await message.edit(view=view)
@@ -320,15 +320,16 @@ class Easterbot(discord.Bot):
                     hunt.next_egg = next_egg
                 await session.commit()
             hunt_ids = [hunt.channel_id for hunt in hunts]
-        try:
-            await asyncio.gather(
-                *[
-                    self.start_hunt(hunt_id, self.config.appear())
-                    for hunt_id in hunt_ids
-                ]
-            )
-        except Exception:
-            print_exc()
+        if hunt_ids:
+            try:
+                await asyncio.gather(
+                    *[
+                        self.start_hunt(hunt_id, self.config.appear())
+                        for hunt_id in hunt_ids
+                    ]
+                )
+            except Exception:
+                print_exc()
 
     async def get_rank(
         self,

@@ -23,11 +23,12 @@ from .base import EasterbotContext, controled_command, egg_command_group
 async def basket_command(ctx: EasterbotContext, user: discord.Member) -> None:
     await ctx.defer(ephemeral=True)
     hunter = user or ctx.user
+    you = ctx.user == hunter
     async with AsyncSession(ctx.bot.engine) as session:
         morsels = []
         missings = []
         user_egg_count = await ctx.bot.get_rank(
-            session, ctx.guild_id, ctx.user.id
+            session, ctx.guild_id, hunter.id
         )
         if user_egg_count:
             rank = user_egg_count[0][1]
@@ -64,12 +65,13 @@ async def basket_command(ctx: EasterbotContext, user: discord.Member) -> None:
         if rank is not None:
             il = ctx.bot.config.conjugate("{Iel} est", hunter)
             morsels.insert(
-                0, f"{'Tu es' if ctx.user == hunter else il} au rang {rank}"
+                0,
+                f"**{'Tu es' if you else il} au rang** {rank}\n",
             )
 
         if missings:
             morsels.append(
-                f"\nIl {'te' if ctx.user == hunter else 'user'} "
+                f"\nIl {'te' if you else 'lui'} "
                 f"manque : {''.join(map(str, missings))}"
             )
 
