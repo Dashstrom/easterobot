@@ -25,17 +25,19 @@ commands:
       max: 0.7
     cooldown: 600.0
   top:
-    cooldown: 5.0
+    cooldown: 10.0
   basket:
-    cooldown: 5.0
+    cooldown: 10.0
   reset:
     cooldown: 120.0
   enable:
-    cooldown: 5.0
+    cooldown: 10.0
   disable:
-    cooldown: 5.0
+    cooldown: 10.0
   help:
-    cooldown: 5.0
+    cooldown: 10.0
+  edit:
+    cooldown: 30.0
 conjugate:
   e:
     woman: "e"
