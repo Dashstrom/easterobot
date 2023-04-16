@@ -1,12 +1,10 @@
 import asyncio
 import functools
 import logging
-from datetime import timedelta
 from time import time
 from typing import Awaitable, Callable, cast
 
 import discord
-import humanize
 from sqlalchemy import and_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing_extensions import Concatenate, ParamSpec
@@ -96,12 +94,11 @@ def controled_command(
                         )
                         await session.commit()
                     else:
-                        wait = timedelta(seconds=cd_cmd + cd.timestamp - now)
+                        wait = cd_cmd + cd.timestamp
                 if wait:
-                    wait_msg = humanize.naturaldelta(wait)
                     logger.warning("%s failed for cooldown", eventname)
                     await ctx.respond(
-                        f"Vous devez encore attendre {wait_msg}",
+                        f"Vous devez encore attendre <t:{wait + 1:.0f}:R>",
                         ephemeral=True,
                     )
                     return

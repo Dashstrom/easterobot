@@ -24,7 +24,9 @@ services:
       POSTGRES_PASSWORD: easterobot
       POSTGRES_DB: easterobot
     volumes:
-       - database:/var/lib/postgresql/data
+      - database:/var/lib/postgresql/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     ports:
       - "5432:5432"
     networks:
@@ -39,7 +41,7 @@ services:
 networks:
   postgres:
     driver: bridge
-  
+
 volumes:
   database:
   logs:

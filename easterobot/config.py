@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any, Optional, Tuple, cast
 
 import discord
-import humanize
 import yaml
 
 RAND = random.SystemRandom()
@@ -54,11 +53,6 @@ class Config:
     def __init__(self, config_path: Path) -> None:
         with config_path.open("r", encoding="utf8") as file:
             self._data = yaml.safe_load(file)
-        self._emojis: Tuple[discord.Emoji, ...] = ()
-
-    async def load(self, client: discord.Client) -> None:
-        guild = await client.fetch_guild(self.guild_id)
-        self._emojis = tuple(await guild.fetch_emojis())
 
     @property
     def guild_id(self) -> int:
@@ -102,11 +96,16 @@ class Config:
     def woman_id(self) -> int:
         return cast(int, self._data["woman_id"])
 
-    def emoji(self) -> discord.Emoji:
-        return RAND.choice(self._emojis)
+    def emoji(self) -> discord.PartialEmoji:
+        return discord.PartialEmoji(
+            name="_", animated=False, id=RAND.choice(self._data["emojis"])
+        )
 
-    def emojis(self) -> Tuple[discord.Emoji, ...]:
-        return self._emojis
+    def emojis(self) -> Tuple[discord.PartialEmoji, ...]:
+        return tuple(
+            discord.PartialEmoji(name="_", animated=False, id=emoji_id)
+            for emoji_id in self._data["emojis"]
+        )
 
     def action(self) -> Action:
         return Action(RAND.choice(self._data["action"]), self)
@@ -140,9 +139,6 @@ class Config:
             text = text.replace("{" + term.title() + "}", word.title())
         text = text.replace("{user}", f"<@{member.id}>")
         return text
-
-
-humanize.i18n.activate("fr_FR")
 
 
 def agree(

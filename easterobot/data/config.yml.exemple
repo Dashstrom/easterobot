@@ -1,12 +1,13 @@
+token: YOUR_TOKEN
 guild: YOUR_GUILD_ID
 admins:
-- YOUR_ID
-token: YOUR_TOKEN
+  - YOUR_ID
+emojis:
+  - YOUR_EMOJI_ID
 database: postgresql+asyncpg://easterobot:easterobot@postgres:5432/easterobot
 group: egg
 hunt:
   timeout: 300.0
-  penalizing: 2
   cooldown:
     min: 600.0
     max: 1200.0
@@ -51,165 +52,172 @@ conjugate:
     man: "lui"
     woman: "elle"
 failed:
-- "Malheureusement, tu n'as pas réussi à trouver d'œufs cette fois-ci. Tu auras plus de chance la prochaine fois !"
-- "Tu n'as pas eu de chance cette fois-ci, mais ne te décourage pas ! Continue de chercher des œufs."
-- "Dommage, tu n'as pas trouvé d'œufs, mais ne t'inquiète pas, il y en aura en sûrement plus loin."
-- "Tu as cherché partout, mais malheureusement, tu n'as pas trouvé d'œufs. Essaie plus tard !"
-- "Tu n'as pas réussi à trouver d'œufs. Continue de chercher, peut-être que la prochaine fois sera la bonne !"
-- "Tu n'as pas eu de chance cette fois-ci, mais garde espoir ! Les œufs peuvent être difficiles à trouver, mais c'est ce qui rend le jeu intéressant."
-- "Il semble que tu n'aies pas réussi à trouver d'œufs, mais ne te décourage pas. Essaie de nouvelles stratégies et continue de chercher !"
-- "Tu as cherché partout, mais malheureusement, tu n'as pas réussi à trouver d'œufs cette fois-ci. Ne baisse pas les bras !"
-- "Tu n'as pas trouvé d'œufs. Mais ne t'inquiète pas, il y aura de nouvelles occasions de jouer et de trouver des œufs dans le futur."
-- "Tu n'as pas eu de chance cette fois-ci, mais rappelle-toi que l'important est de s'amuser en cherchant les œufs. Continue de jouer et tu finiras par trouver des œufs !"
-- "Eh bien, ça y est, tu as fouillé tous les recoins et malheureusement, il n'y a pas d'œufs à l'horizon. Il semblerait que tu sois plus malchanceux qu'un chat noir."
-- "Tu as exploré tous les recoins et les fissures, mais il n'y a pas d'œufs à trouver. C'est comme si tu cherchais une aiguille dans une botte de foin."
-- "Hélas, tu n'as pas réussi à dénicher d'œufs. Mais garde le moral, tu es aussi tenace que Rocky Balboa."
-- "Malheureusement, tu n'as rien trouvé. C'est comme si tu cherchais une licorne dans un champ de pâquerettes."
-- "Tu as cherché partout, mais il n'y a pas d'œufs à l'horizon. Tu dois être plus malchanceux que le personnage principal dans un film d'horreur."
-- "Tu as cherché avec acharnement, mais il n'y a pas d'œufs, tu n'es pas dans Harry Potter où la baguette magique résout tout."
-- "Il semblerait que tu aies manqué les œufs cette année, mais ne t'en fais pas, tu peux toujours essayer de trouver la fontaine de Jouvence comme Jack Sparrow."
-- "Tu as cherché avec acharnement, mais il n'y a pas d'œufs ici, ils ont probablement été dévorés par les dragons de Pâques affamés."
-- "Malheureusement, tu n'as trouvé aucun œuf, mais ne sois pas triste, tu as quand même réussi à éviter les lapins maléfiques de Pâques."
-- "Désolé, tu as beau chercher, il n'y a pas d'œufs ici, tu n'es pas dans un film de Willy Wonka."
-- "Tu cherches des œufs ici ? Mauvaise pioche, il n'y en a pas, juste toi et moi."
-- "Pas d'œufs ici, mais si tu trouves un trèfle à quatre feuilles, je te fais une récompense surprise."
-- "Tu cherches des œufs ? Pas de chance, je crois que le lapin les a tous gardés pour lui cette année."
-- "Je ne veux pas te casser le moral, mais il n'y a pas d'œufs ici, juste des pixels vides et de la tristesse."
+  - "Malheureusement, tu n'as pas réussi à trouver d'œufs cette fois-ci. Tu auras plus de chance la prochaine fois !"
+  - "Tu n'as pas eu de chance cette fois-ci, mais ne te décourage pas ! Continue de chercher des œufs."
+  - "Dommage, tu n'as pas trouvé d'œufs, mais ne t'inquiète pas, il y en aura en sûrement plus loin."
+  - "Tu as cherché partout, mais malheureusement, tu n'as pas trouvé d'œufs. Essaie plus tard !"
+  - "Tu n'as pas réussi à trouver d'œufs. Continue de chercher, peut-être que la prochaine fois sera la bonne !"
+  - "Tu n'as pas eu de chance cette fois-ci, mais garde espoir ! Les œufs peuvent être difficiles à trouver, mais c'est ce qui rend le jeu intéressant."
+  - "Il semble que tu n'aies pas réussi à trouver d'œufs, mais ne te décourage pas. Essaie de nouvelles stratégies et continue de chercher !"
+  - "Tu as cherché partout, mais malheureusement, tu n'as pas réussi à trouver d'œufs cette fois-ci. Ne baisse pas les bras !"
+  - "Tu n'as pas trouvé d'œufs. Mais ne t'inquiète pas, il y aura de nouvelles occasions de jouer et de trouver des œufs dans le futur."
+  - "Tu n'as pas eu de chance cette fois-ci, mais rappelle-toi que l'important est de s'amuser en cherchant les œufs. Continue de jouer et tu finiras par trouver des œufs !"
+  - "Eh bien, ça y est, tu as fouillé tous les recoins et malheureusement, il n'y a pas d'œufs à l'horizon. Il semblerait que tu sois plus malchanceux qu'un chat noir."
+  - "Tu as exploré tous les recoins et les fissures, mais il n'y a pas d'œufs à trouver. C'est comme si tu cherchais une aiguille dans une botte de foin."
+  - "Hélas, tu n'as pas réussi à dénicher d'œufs. Mais garde le moral, tu es aussi tenace que Rocky Balboa."
+  - "Malheureusement, tu n'as rien trouvé. C'est comme si tu cherchais une licorne dans un champ de pâquerettes."
+  - "Tu as cherché partout, mais il n'y a pas d'œufs à l'horizon. Tu dois être plus malchanceux que le personnage principal dans un film d'horreur."
+  - "Tu as cherché avec acharnement, mais il n'y a pas d'œufs, tu n'es pas dans Harry Potter où la baguette magique résout tout."
+  - "Il semblerait que tu aies manqué les œufs cette année, mais ne t'en fais pas, tu peux toujours essayer de trouver la fontaine de Jouvence comme Jack Sparrow."
+  - "Tu as cherché avec acharnement, mais il n'y a pas d'œufs ici, ils ont probablement été dévorés par les dragons de Pâques affamés."
+  - "Malheureusement, tu n'as trouvé aucun œuf, mais ne sois pas triste, tu as quand même réussi à éviter les lapins maléfiques de Pâques."
+  - "Désolé, tu as beau chercher, il n'y a pas d'œufs ici, tu n'es pas dans un film de Willy Wonka."
+  - "Tu cherches des œufs ici ? Mauvaise pioche, il n'y en a pas, juste toi et moi."
+  - "Pas d'œufs ici, mais si tu trouves un trèfle à quatre feuilles, je te fais une récompense surprise."
+  - "Tu cherches des œufs ? Pas de chance, je crois que le lapin les a tous gardés pour lui cette année."
+  - "Je ne veux pas te casser le moral, mais il n'y a pas d'œufs ici, juste des pixels vides et de la tristesse."
 hidden:
-- "Bravo, aventurier! Tu as trouvé un œuf perdu depuis des siècles. Il était temps de le remettre à sa place dans le panier !"
-- "Félicitations, tu as battu les lapins de Pâques à leur propre jeu en trouvant un œuf perdu. Pas mal pour un humain !"
-- "Ah, tu as trouvé un œuf ! C'est une bonne chose que les lapins de Pâques ne t'ais pas attrapé avant que tu ne le trouves !"
-- "Tu as découvert un œuf ! Tu devrais peut-être envisager de t'inscrire aux Jeux Olympiques de la Chasse aux œufs !"
-- "Tu es un vrai Sherlock Holmes des œufs de Pâques ! Maintenant, si seulement tu pouvais résoudre le mystère de qui a mangé tous les chocolats de Pâques..."
-- "Génial ! Tu as trouvé un œuf caché. Il est maintenant temps de te faire une omelette géante au chocolat pour célébrer ta victoire !"
-- "Félicitations ! Tu as mis la main sur un œuf, tu es un héros ! Maintenant, tu as le droit de t'en vanter auprès de tous tes amis."
-- "Bien joué, tu as réussi à trouver un œuf ! C'est l'œuf le plus chanceux du monde car il a été trouvé par toi !"
-- "Oh là là, regarde qui est un chasseur d'œufs professionnel maintenant ! Bon boulot, mon ami !"
-- "Quelqu'un a appelé les chasseurs de trésors ? Tu viens de trouver un œuf, félicitations !"
-- "J'espère que tu as un beau panier pour ranger ton nouvel œuf - c'est vraiment la perle rare !"
-- "Bravo ! Tu as remporté la chasse aux œufs ! Maintenant, prépare-toi à gagner une autre compétition contre tes confrères..."
-- "Le lapin de Pâques serait fier de toi ! Tu as trouvé un œuf comme un pro."
-- "Les cloches de Pâques ont sonné, et tu as répondu à l'appel ! Félicitations pour ta nouvelle trouvaille !"
-- "Tu viens de battre le record de la chasse aux œufs la plus rapide ! Tu as gagné un œuf en chocolat - et l'admiration éternelle."
-- "Qui a besoin d'un détecteur de métaux quand on t'a ? Tu as trouvé un œuf comme un vrai chasseur de trésors !"
-- "Incroyable! Tu viens de gagner le grand prix de la chasse aux œufs - un grand sourire sur ton visage et une réserve infinie de bonheur sucré."
-- "Alors, comment se sent-on d'être le maître de la chasse aux œufs ? Tu vas pouvoir le célébrer avec une bonne dose de chocolat et de joie !"
-- "Wow, c'est incroyable ! Tu as découvert un œuf caché à la perfection. Tu pourrais peut-être envisager de travailler pour la DGSE."
+  - "Bravo, aventurier! Tu as trouvé un œuf perdu depuis des siècles. Il était temps de le remettre à sa place dans le panier !"
+  - "Félicitations, tu as battu les lapins de Pâques à leur propre jeu en trouvant un œuf perdu. Pas mal pour un humain !"
+  - "Ah, tu as trouvé un œuf ! C'est une bonne chose que les lapins de Pâques ne t'ais pas attrapé avant que tu ne le trouves !"
+  - "Tu as découvert un œuf ! Tu devrais peut-être envisager de t'inscrire aux Jeux Olympiques de la Chasse aux œufs !"
+  - "Tu es un vrai Sherlock Holmes des œufs de Pâques ! Maintenant, si seulement tu pouvais résoudre le mystère de qui a mangé tous les chocolats de Pâques..."
+  - "Génial ! Tu as trouvé un œuf caché. Il est maintenant temps de te faire une omelette géante au chocolat pour célébrer ta victoire !"
+  - "Félicitations ! Tu as mis la main sur un œuf, tu es un héros ! Maintenant, tu as le droit de t'en vanter auprès de tous tes amis."
+  - "Bien joué, tu as réussi à trouver un œuf ! C'est l'œuf le plus chanceux du monde car il a été trouvé par toi !"
+  - "Oh là là, regarde qui est un chasseur d'œufs professionnel maintenant ! Bon boulot, mon ami !"
+  - "Quelqu'un a appelé les chasseurs de trésors ? Tu viens de trouver un œuf, félicitations !"
+  - "J'espère que tu as un beau panier pour ranger ton nouvel œuf - c'est vraiment la perle rare !"
+  - "Bravo ! Tu as remporté la chasse aux œufs ! Maintenant, prépare-toi à gagner une autre compétition contre tes confrères..."
+  - "Le lapin de Pâques serait fier de toi ! Tu as trouvé un œuf comme un pro."
+  - "Les cloches de Pâques ont sonné, et tu as répondu à l'appel ! Félicitations pour ta nouvelle trouvaille !"
+  - "Tu viens de battre le record de la chasse aux œufs la plus rapide ! Tu as gagné un œuf en chocolat - et l'admiration éternelle."
+  - "Qui a besoin d'un détecteur de métaux quand on t'a ? Tu as trouvé un œuf comme un vrai chasseur de trésors !"
+  - "Incroyable! Tu viens de gagner le grand prix de la chasse aux œufs - un grand sourire sur ton visage et une réserve infinie de bonheur sucré."
+  - "Alors, comment se sent-on d'être le maître de la chasse aux œufs ? Tu vas pouvoir le célébrer avec une bonne dose de chocolat et de joie !"
+  - "Wow, c'est incroyable ! Tu as découvert un œuf caché à la perfection. Tu pourrais peut-être envisager de travailler pour la DGSE."
 spotted:
-- "Oh là là, {user} a mis la main sur un œuf très convoité ! Mais attention, les autres joueurs ont l'air de flairer la bonne affaire !"
-- "Bien joué, {user} ! Mais ne te repose pas sur tes lauriers, car tes adversaires ont l'air de vouloir te piquer ton trésor chocolaté !"
-- "Hé hé, {user} a trouvé un œuf par hasard ! Mais il faut faire attention aux autres joueurs qui ont l'air de vouloir jouer les voleurs !"
-- "Ah, voilà {user} qui a réussi à dénicher un œuf ! Mais il devrait faire attention, car les autres joueurs sont aux aguets et ont repéré sa trouvaille !"
-- "Bravo, {user} ! Mais il ne faudrait pas que tu te fasses voler ton œuf par les autres joueurs qui ont l'air de t'observer avec gourmandise !"
-- "Hourra ! {user} a trouvé un œuf ! Mais maintenant, il doit faire face aux autres joueurs qui ont le regard affûté et les doigts prêts à l'attraper. C'est le moment de sortir tes mouvements ninja pour garder ton précieux œuf !"
-- "Bien joué, {user} ! Tu as mis la main sur un œuf tant convoité. Mais n'oublie pas, les autres joueurs sont à tes trousses et sont prêts à tout pour mettre la main dessus. Esquive, plonge et cours, et garde ton œuf en sécurité !"
-- "Félicitations, {user}, tu as remporté la chasse à l'œuf ! Mais maintenant, les autres joueurs sont à tes trousses et prêts à tout pour le récupérer. Garde un œil sur tes arrières et montre-leur qui est {le} boss de la chasse aux œufs !"
-- "Félicitations {user} ! Tu as trouvé un œuf tant convoité ! Cependant, tu n'es pas seul dans ce jeu, et tes ennemis t'ont déjà repéré. Attention, ça risque de devenir une chasse aux œufs plutôt agressive !"
-- "Hé {user}, Tu es un{e} vrai Sherlock Holmes ! Tu as réussi à trouver un œuf, mais tes adversaires ont flairé le coup et ils sont en route pour le prendre ! Prépare-toi à défendre ton butin de toutes tes forces !"
-- "Oh là là, {user} ! Tu as réussi à trouver un œuf ! C'est vraiment incroyable ! Malheureusement, tes adversaires sont très jaloux de ta réussite, et ils vont tout faire pour te dépouiller. Sois sur tes gardes et va chercher ton trésor !"
-- "Bravo {user} ! Tu as trouvé un œuf ! Mais ne te repose pas sur tes lauriers, car les autres joueurs vont tout faire pour le voler ! Si tu veux le garder, il va falloir être plus rapide, plus malin et plus rusé{e} qu'eux !"
-- "Incroyable {user} ! Tu as trouvé un œuf ! Mais attention, tes adversaires sont déjà en train de te traquer ! Prépare-toi à une course-poursuite effrénée et amusante pour défendre ton trophée ! Alors, es-tu prêt{e} à relever le défi ?"
+  - "Oh là là, {user} a mis la main sur un œuf très convoité ! Mais attention, les autres joueurs ont l'air de flairer la bonne affaire !"
+  - "Bien joué, {user} ! Mais ne te repose pas sur tes lauriers, car tes adversaires ont l'air de vouloir te piquer ton trésor chocolaté !"
+  - "Hé hé, {user} a trouvé un œuf par hasard ! Mais il faut faire attention aux autres joueurs qui ont l'air de vouloir jouer les voleurs !"
+  - "Ah, voilà {user} qui a réussi à dénicher un œuf ! Mais il devrait faire attention, car les autres joueurs sont aux aguets et ont repéré sa trouvaille !"
+  - "Bravo, {user} ! Mais il ne faudrait pas que tu te fasses voler ton œuf par les autres joueurs qui ont l'air de t'observer avec gourmandise !"
+  - "Hourra ! {user} a trouvé un œuf ! Mais maintenant, il doit faire face aux autres joueurs qui ont le regard affûté et les doigts prêts à l'attraper. C'est le moment de sortir tes mouvements ninja pour garder ton précieux œuf !"
+  - "Bien joué, {user} ! Tu as mis la main sur un œuf tant convoité. Mais n'oublie pas, les autres joueurs sont à tes trousses et sont prêts à tout pour mettre la main dessus. Esquive, plonge et cours, et garde ton œuf en sécurité !"
+  - "Félicitations, {user}, tu as remporté la chasse à l'œuf ! Mais maintenant, les autres joueurs sont à tes trousses et prêts à tout pour le récupérer. Garde un œil sur tes arrières et montre-leur qui est {le} boss de la chasse aux œufs !"
+  - "Félicitations {user} ! Tu as trouvé un œuf tant convoité ! Cependant, tu n'es pas seul dans ce jeu, et tes ennemis t'ont déjà repéré. Attention, ça risque de devenir une chasse aux œufs plutôt agressive !"
+  - "Hé {user}, Tu es un{e} vrai Sherlock Holmes ! Tu as réussi à trouver un œuf, mais tes adversaires ont flairé le coup et ils sont en route pour le prendre ! Prépare-toi à défendre ton butin de toutes tes forces !"
+  - "Oh là là, {user} ! Tu as réussi à trouver un œuf ! C'est vraiment incroyable ! Malheureusement, tes adversaires sont très jaloux de ta réussite, et ils vont tout faire pour te dépouiller. Sois sur tes gardes et va chercher ton trésor !"
+  - "Bravo {user} ! Tu as trouvé un œuf ! Mais ne te repose pas sur tes lauriers, car les autres joueurs vont tout faire pour le voler ! Si tu veux le garder, il va falloir être plus rapide, plus malin et plus rusé{e} qu'eux !"
+  - "Incroyable {user} ! Tu as trouvé un œuf ! Mais attention, tes adversaires sont déjà en train de te traquer ! Prépare-toi à une course-poursuite effrénée et amusante pour défendre ton trophée ! Alors, es-tu prêt{e} à relever le défi ?"
 appear:
-- "Le mystère de Pâques s'épaissit, un œuf vient d'apparaître sous vos yeux ébahis !"
-- "Oh, regardez ! Un petit coquin d'œuf s'est caché ici !"
-- "Levez les yeux et admirez ! Un œuf vient d'être découvert !"
-- "Alerte ! Alertez les chasseurs d'œufs ! Un œuf vient de faire son apparition dans le coin !"
-- "On dirait que la chasse à l'œuf a commencé, un petit malin vient de se cacher ici !"
-- "Le soleil brille, les oiseaux chantent et les œufs apparaissent comme par magie !"
-- "La fête de Pâques ne serait pas complète sans un peu de chasse aux œufs, et voilà que l'un d'entre eux vient montrer le bout de son nez !"
-- "Les cloches de Pâques ont-elles sonné ? Non, c'est juste un œuf qui vient de faire une apparition surprise !"
-- "Regardez bien où vous mettez les pieds, un œuf farceur a décidé de se cacher ici !"
-- "Un œuf tout beau, tout frais, est apparu devant vous tel un cadeau tombé du ciel !"
-- "Soudain, un œuf coloré est sorti de sa cachette pour se montrer au grand jour."
-- "Vous avez cherché partout, mais finalement un œuf s'est laissé découvrir avec plaisir."
-- "Comme par magie, un œuf est apparu juste sous vos nez, prêt à être chassé !"
-- "Après une recherche intensive, un œuf a été découvert dans son nid douillet."
-- "Les yeux émerveillés, vous voyez un œuf éclatant de couleurs se montrer timidement."
-- "Tout à coup, un œuf est sorti de nulle part, comme si c'était une évidence qu'il soit là."
-- "Les chasseurs ont presque abandonné, mais heureusement, un œuf est apparu pour leur redonner espoir."
-- "Alors que vous cherchiez encore et encore, un œuf a décidé de se montrer pour vous faciliter la tâche !"
+  - "Le mystère de Pâques s'épaissit, un œuf vient d'apparaître sous vos yeux ébahis !"
+  - "Oh, regardez ! Un petit coquin d'œuf s'est caché ici !"
+  - "Levez les yeux et admirez ! Un œuf vient d'être découvert !"
+  - "Alerte ! Alertez les chasseurs d'œufs ! Un œuf vient de faire son apparition dans le coin !"
+  - "On dirait que la chasse à l'œuf a commencé, un petit malin vient de se cacher ici !"
+  - "Le soleil brille, les oiseaux chantent et les œufs apparaissent comme par magie !"
+  - "La fête de Pâques ne serait pas complète sans un peu de chasse aux œufs, et voilà que l'un d'entre eux vient montrer le bout de son nez !"
+  - "Les cloches de Pâques ont-elles sonné ? Non, c'est juste un œuf qui vient de faire une apparition surprise !"
+  - "Regardez bien où vous mettez les pieds, un œuf farceur a décidé de se cacher ici !"
+  - "Un œuf tout beau, tout frais, est apparu devant vous tel un cadeau tombé du ciel !"
+  - "Soudain, un œuf coloré est sorti de sa cachette pour se montrer au grand jour."
+  - "Vous avez cherché partout, mais finalement un œuf s'est laissé découvrir avec plaisir."
+  - "Comme par magie, un œuf est apparu juste sous vos nez, prêt à être chassé !"
+  - "Après une recherche intensive, un œuf a été découvert dans son nid douillet."
+  - "Les yeux émerveillés, vous voyez un œuf éclatant de couleurs se montrer timidement."
+  - "Tout à coup, un œuf est sorti de nulle part, comme si c'était une évidence qu'il soit là."
+  - "Les chasseurs ont presque abandonné, mais heureusement, un œuf est apparu pour leur redonner espoir."
+  - "Alors que vous cherchiez encore et encore, un œuf a décidé de se montrer pour vous faciliter la tâche !"
 action:
-- text: "Ramasser calmement l'œuf"
-  success:
-    text: "Sa sagesse lui a permis d'arriver en vie jusqu'à l'œuf."
-    gif: https://tenor.com/fr/view/cute-fail-throw-gif-5352748.gif
-  fail:
-    text: "{Iel} s'est précipité{e} et n'a pas vu le danger !"
-    gif: https://tenor.com/fr/view/tia-be-like-here-tilki-tula-hunter-wait-you-dont-live-with-me-anymore-crash-easter-eggs-gif-13972456.gif
-- text: "Roulade pour attraper l'œuf"
-  success: 
-    text: "{Iel} effectue une roulade à la perfection et s'empare de l'œuf."
-    gif: https://tenor.com/fr/view/raccoon-elden-ring-dark-souls-gif-25429762.gif
-  fail:
-    text: "{Iel} se tape la tête contre un mur en essayant de faire une roulade."
-    gif: https://tenor.com/fr/view/roll-cat-fall-gif-5399277.gif
-- text: "Canne à pêche pour voler l'œuf"
-  success: 
-    text: "Une canne à pêche ? À la main c'est plus rapide !"
-    gif: https://tenor.com/fr/view/fishing-caught-by-hand-gif-11428985.gif
-  fail:
-    text: "{Iel} fait des dommages collatéraux."
-    gif: https://tenor.com/fr/view/fish-fishing-fail-hook-gif-11334515.gif
-- text: "Courir jusqu'à l'œuf"
-  success: 
-    text: "Tel Flash, {iel} s'empare de l'œuf à une vitesse phénoménale !"
-    gif: https://tenor.com/fr/view/flash-run-fast-gif-26117148.gif
-  fail:
-    text: "Sa rapidité lui a joué des tours."
-    gif: https://i.makeagif.com/media/3-01-2017/q_GF_o.gif
-- text: "Sécuriser l'œuf"
-  success: 
-    text: "C'est un raid d'une efficacité incontestable, {iel} s'empare de l'œuf."
-    gif: https://media.tenor.com/1AhUNYnySx4AAAAC/f-bi-raid.gif
-  fail:
-    text: "{Iel} a oublié qu'il y avait aussi des œufs dans son panier !"
-    gif: https://i.gifer.com/IQED.gif
-- text: "Voler l'œuf"
-  success: 
-    text: "{Iel} vole l'œuf avec une discrétion qui lui est propre, donc aucune."
-    gif: https://i.makeagif.com/media/5-13-2015/95FLVz.gif
-  fail:
-    text: "{Iel} rate son vol et perd un peu de sa dignité au passage."
-    gif: https://media.tenor.com/FoRxXGhnH2EAAAAC/gun-fail.gif
-- text: "Mettre l'œuf dans le panier"
-  success: 
-    text: "C'est un magnifique panier qu'{iel} nous fait là !"
-    gif: https://media.tenor.com/OI7r9b2aHawAAAAC/basketball-mj.gif
-  fail:
-    text: "Il semblerait que mettre un œuf dans un panier serait trop dur pour certain."
-    gif: https://tenor.com/fr/view/ralph-easter-egg-easter-egg-hunt-simpsons-gif-13718359.gif
-- text: "Construire une machine à œufs"
-  success: 
-    text: "C'est une incroyable machine qu'{iel} a fait, malheureusement cela n'a permis de récupérer qu'un œuf."
-    gif: https://media.tenor.com/w5KbvzaYbSMAAAAC/satisfactory.gif
-  fail:
-    text: "Choqué{e} par la machine à œuf, {iel} reste tétanisé{e} et laisse son œuf partir."
-    gif: https://i.gifer.com/Wdts.gif
-- text: "Payer pour l'œuf"
-  success: 
-    text: "{Iel} réussi à corrompre le lapin de Pâque pour qu'il lui laisse l'œuf."
-    gif: https://media.tenor.com/BT6bMyOIbawAAAAC/cop-corruption.gif
-  fail:
-    text: "{Iel} a oublié qu'{iel} était pauvre."
-    gif: https://media.tenor.com/rdvWdzGheQYAAAAd/drama-queen-wallet.gif
-- text: "Se battre pour l'œuf"
-  success: 
-    text: "La violance ne résout rien, {iel} s'empare de l'œuf avec douceure 💞"
-    gif: https://media.tenor.com/pHwzmlVwEocAAAAd/heejake.gif
-  fail:
-    text: "{Iel} était trop concentré{e} sur le combat. {Iel} a laissé passer l'œuf."
-    gif: https://media.tenor.com/l5sIE_3H3EEAAAAd/cats-fighting-fighting-cats.gif
-- text: "Dancer pour l'œuf"
-  success: 
-    text: "{Iel} effectue une danse endiablée. Tous les yeux sont rivés sur {lui}, {iel} s'empare de l'œuf avec l'admiration de tous."
-    gif: https://media.tenor.com/NDIx856G0XIAAAAC/dance-turkey.gif
-  fail:
-    text: "Personne n'aurait aimé être à sa place. {Iel} se casse la gueule avec honte."
-    gif: https://media.tenor.com/nMcbTp1sQgYAAAAC/dance-oops.gif
-- text: "Regarder intensivement l'œuf"
-  success: 
-    text: "Son regard remplit de jugement et de puissance pousse les autres chasseurs à lui laisser l'œuf."
-    gif: https://tenor.com/fr/view/cat-cat-stare-cat-staring-staring-cat-daladada-gif-23650468
-  fail:
-    text: "{Iel} se fait surprendre par l'œuf."
-    gif: https://media.tenor.com/Dui2bqe8O0gAAAAC/children-demolition.gif
+  - text: "Ramasser calmement l'œuf"
+    success:
+      text: "Sa sagesse lui a permis d'arriver en vie jusqu'à l'œuf."
+      gif: https://media.tenor.com/13sYDxqgJxkAAAAC/cute-fail.gif
+    fail:
+      text: "{Iel} s'est précipité{e} et n'a pas vu le danger !"
+      gif: https://media.tenor.com/jRN1rDkw3RAAAAAC/tia-be-like-here-tilki-tula-hunter.gif
+  - text: "Roulade pour attraper l'œuf"
+    success:
+      text: "{Iel} effectue une roulade à la perfection et s'empare de l'œuf."
+      gif: https://media.tenor.com/3jJ7jUrduLAAAAAC/raccoon-elden-ring.gif
+    fail:
+      text: "{Iel} se tape la tête contre un mur en essayant de faire une roulade."
+      gif: https://media.tenor.com/sEH-VStJ0OEAAAAC/roll-cat.gif
+  - text: "Canne à pêche pour voler l'œuf"
+    success:
+      text: "Une canne à pêche ? À la main c'est plus rapide !"
+      gif: https://media.tenor.com/ByLaEQYy5y8AAAAC/fishing-caught.gif
+    fail:
+      text: "{Iel} fait des dommages collatéraux."
+      gif: https://media.tenor.com/R1k5xMnbQ9YAAAAC/fish-fishing.gif
+  - text: "Courir jusqu'à l'œuf"
+    success:
+      text: "Tel Flash, {iel} s'empare de l'œuf à une vitesse phénoménale !"
+      gif: https://media.tenor.com/OOLXbK3qSn0AAAAC/flash-run.gif
+    fail:
+      text: "Sa rapidité lui a joué des tours."
+      gif: https://i.makeagif.com/media/3-01-2017/q_GF_o.gif
+  - text: "Sécuriser l'œuf"
+    success:
+      text: "C'est un raid d'une efficacité incontestable, {iel} s'empare de l'œuf."
+      gif: https://media.tenor.com/1AhUNYnySx4AAAAC/f-bi-raid.gif
+    fail:
+      text: "{Iel} a oublié qu'il y avait aussi des œufs dans son panier !"
+      gif: https://i.gifer.com/IQED.gif
+  - text: "Voler l'œuf"
+    success:
+      text: "{Iel} vole l'œuf avec une discrétion qui lui est propre, donc aucune."
+      gif: https://i.makeagif.com/media/5-13-2015/95FLVz.gif
+    fail:
+      text: "{Iel} rate son vol et perd un peu de sa dignité au passage."
+      gif: https://media.tenor.com/FoRxXGhnH2EAAAAC/gun-fail.gif
+  - text: "Mettre l'œuf dans le panier"
+    success:
+      text: "C'est un magnifique panier qu'{iel} nous fait là !"
+      gif: https://media.tenor.com/OI7r9b2aHawAAAAC/basketball-mj.gif
+    fail:
+      text: "Il semblerait que mettre un œuf dans un panier serait trop dur pour certain."
+      gif: https://media.tenor.com/LbVdHqEDChYAAAAC/ralph-easter-egg.gif
+  - text: "Construire une machine à œufs"
+    success:
+      text: "C'est une incroyable machine qu'{iel} a fait, malheureusement cela n'a permis de récupérer qu'un œuf."
+      gif: https://media.tenor.com/w5KbvzaYbSMAAAAC/satisfactory.gif
+    fail:
+      text: "Choqué{e} par la machine à œuf, {iel} reste tétanisé{e} et laisse son œuf partir."
+      gif: https://i.gifer.com/Wdts.gif
+  - text: "Payer pour l'œuf"
+    success:
+      text: "{Iel} réussi à corrompre le lapin de Pâque pour qu'il lui laisse l'œuf."
+      gif: https://media.tenor.com/BT6bMyOIbawAAAAC/cop-corruption.gif
+    fail:
+      text: "{Iel} a oublié qu'{iel} était pauvre."
+      gif: https://media.tenor.com/rdvWdzGheQYAAAAd/drama-queen-wallet.gif
+  - text: "Se battre pour l'œuf"
+    success:
+      text: "La violence ne résout rien, {iel} s'empare de l'œuf avec douceur 💞"
+      gif: https://media.tenor.com/pHwzmlVwEocAAAAd/heejake.gif
+    fail:
+      text: "{Iel} était trop concentré{e} sur le combat. {Iel} a laissé passer l'œuf."
+      gif: https://media.tenor.com/l5sIE_3H3EEAAAAd/cats-fighting-fighting-cats.gif
+  - text: "Danser pour l'œuf"
+    success:
+      text: "{Iel} effectue une danse endiablée. Tous les yeux sont rivés sur {lui}, {iel} s'empare de l'œuf avec l'admiration de tous."
+      gif: https://media.tenor.com/NDIx856G0XIAAAAC/dance-turkey.gif
+    fail:
+      text: "Personne n'aurait aimé être à sa place. {Iel} se casse la gueule avec honte."
+      gif: https://media.tenor.com/nMcbTp1sQgYAAAAC/dance-oops.gif
+  - text: "Regarder intensivement l'œuf"
+    success:
+      text: "Son regard remplit de jugement et de puissance pousse les autres chasseurs à lui laisser l'œuf."
+      gif: https://media.tenor.com/OVUDwIM8mBkAAAAC/cat-cat-stare.gif
+    fail:
+      text: "{Iel} se fait surprendre par l'œuf."
+      gif: https://media.tenor.com/Dui2bqe8O0gAAAAC/children-demolition.gif
+  - text: "Assommer le lapin de Pâques"
+    success:
+      text: "{Iel} porte un coup assommant au lapin de Pâques, c'est un coup critique ! {Iel} obtient un œuf."
+      gif: https://media.tenor.com/Aofnhf0GL6AAAAAd/happy-easter.gif
+    fail:
+      text: "Le lapin de Pâques n'a pas trop l'air d'aimer sa tentative d'assassinat. Il lui défonce violemment sa race."
+      gif: https://media.tenor.com/Zv4FWUoX2xoAAAAC/happy-easter.gif

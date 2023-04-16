@@ -1,17 +1,13 @@
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..bot import embed
 from ..config import agree
-from ..models import Egg
 from .base import EasterbotContext, controled_command, egg_command_group
 
-RANK_MEDAL = {1: "🥇", 2: "🥈", 3: "🥉"}
 
-
-def record_top(rank: int, user_id: int, count: int) -> str:
+def record_top(rank: str, user_id: int, count: int) -> str:
     return (
-        f"{RANK_MEDAL.get(rank, f'`#{rank}`')} <@{user_id}>\n"
+        f"{rank} <@{user_id}>\n"
         f"\u2004\u2004\u2004\u2004\u2004"
         f"➥ {agree('{0} œuf', '{0} œufs', count)}"
     )
@@ -24,37 +20,26 @@ def record_top(rank: int, user_id: int, count: int) -> str:
 async def top_command(ctx: EasterbotContext) -> None:
     await ctx.defer(ephemeral=True)
     async with AsyncSession(ctx.bot.engine) as session:
-        base = (
-            select(
-                Egg.user_id,
-                func.rank().over(order_by=func.count().desc()).label("row"),
-                func.count().label("count"),
-            )
-            .where(Egg.guild_id == ctx.guild_id)
-            .group_by(Egg.user_id)
-            .order_by(func.count().desc())
-        )
-        egg_counts = (await session.execute(base.limit(5))).all()
+        egg_counts = await ctx.bot.get_rank(session, ctx.guild_id)
         morsels = []
         top_player = False
-
-        for user_id, rank, egg_count in egg_counts:
-            if user_id == ctx.user.id:
-                top_player = True
-            morsels.append(record_top(rank, user_id, egg_count))
-        if not top_player:
-            morsels.append("")
-            subq = base.subquery()
-            user_egg_count = (
-                await session.execute(
-                    select(subq).where(subq.c.user_id == ctx.user.id)
-                )
-            ).first()
-            if user_egg_count:
-                user_id, rank, egg_count = user_egg_count
+        if egg_counts:
+            for user_id, rank, egg_count in egg_counts:
+                if user_id == ctx.user.id:
+                    top_player = True
                 morsels.append(record_top(rank, user_id, egg_count))
-            else:
-                morsels.append("\n:spider_web: Vous n'avez aucun œuf")
+            if not top_player:
+                morsels.append("")
+                user_egg_count = await ctx.bot.get_rank(
+                    session, ctx.guild_id, ctx.user.id
+                )
+                if user_egg_count:
+                    user_id, rank, egg_count = user_egg_count[0]
+                    morsels.append(record_top(rank, user_id, egg_count))
+                else:
+                    morsels.append("\n:spider_web: Vous n'avez aucun œuf")
+        else:
+            morsels.append("\n:spider_web: Personne n'a d'œuf")
     text = "\n".join(morsels)
     await ctx.followup.send(
         embed=embed(

@@ -12,13 +12,13 @@ from typing import (
     List,
     Optional,
     Set,
+    Tuple,
     TypeVar,
     cast,
 )
 
 import discord
 import discord.ext.tasks
-import humanize
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
@@ -31,6 +31,7 @@ T = TypeVar("T")
 
 HERE = Path(__file__).parent
 DEFAULT_CONFIG_PATH = HERE / "data" / "config.yml"
+RANK_MEDAL = {1: "🥇", 2: "🥈", 3: "🥉"}
 
 
 class Easterbot(discord.Bot):
@@ -52,7 +53,8 @@ class Easterbot(discord.Bot):
     async def on_ready(self) -> None:
         async with self.engine.begin() as session:
             await session.run_sync(Base.metadata.create_all, checkfirst=True)
-        await self.config.load(client=self)
+        async for guild in self.fetch_guilds():
+            logger.info("Guild %s (%s)", guild, guild.id)
         logger.info(
             "Logged on as %s (%s) !",
             self.user,
@@ -95,7 +97,8 @@ class Easterbot(discord.Bot):
         guild = channel.guild
         emoji = self.config.emoji()
         logger.info("Start hunt in %s", channel.jump_url)
-        view = discord.ui.View(timeout=self.config.hunt_timeout())
+        timeout = self.config.hunt_timeout() + 2
+        view = discord.ui.View(timeout=timeout)
         button = discord.ui.Button(  # type: ignore
             label=action.text(),
             style=discord.ButtonStyle.primary,
@@ -159,12 +162,12 @@ class Easterbot(discord.Bot):
                 hunters.append(member)
                 button.label += " (1)"  # type: ignore
 
-        timeout = humanize.naturaldelta(self.config.hunt_timeout())
+        next_hunt = datetime.utcnow().timestamp() + timeout
         emb = embed(
             title="Un œuf a été découvert !",
-            description=description,
+            description=description
+            + f"\n\nLe vinqueur est tiré <t:{next_hunt:.0f}:R>",
             thumbnail=emoji.url,
-            footer=f"Vous avez {timeout} pour réagir",
         )
 
         if send_method is None:
@@ -179,7 +182,6 @@ class Easterbot(discord.Bot):
                 )
             except asyncio.TimeoutError:
                 logger.warning("Timeout for %s", message_url)
-        pending = []
         view.disable_all_items()
         view.stop()
         await message.edit(view=view)
@@ -274,7 +276,7 @@ class Easterbot(discord.Bot):
                     description=action.fail_text(loser),
                     image=action.fail_gif(),
                 )
-                pending.append(channel.send(embed=emb, reference=message))
+                await channel.send(embed=emb, reference=message)
 
             winner_name = winner.nick or winner.name
             winner_eggs = eggs.get(winner.id, 0) + 1
@@ -285,7 +287,7 @@ class Easterbot(discord.Bot):
                 thumbnail=emoji.url,
                 egg_count=winner_eggs,
             )
-            pending.append(channel.send(embed=emb, reference=message))
+            await channel.send(embed=emb, reference=message)
             button.label = f"L'œuf a été ramassé par {winner_name}"
             button.style = discord.ButtonStyle.success
             logger.info(
@@ -295,8 +297,7 @@ class Easterbot(discord.Bot):
                 agree("{0} egg", "{0} eggs", winner_eggs),
             )
         button.emoji = None
-        pending.append(message.edit(view=view))
-        await asyncio.gather(*pending)
+        await message.edit(view=view)
 
     async def loop_hunt(self) -> None:
         async with AsyncSession(
@@ -327,6 +328,35 @@ class Easterbot(discord.Bot):
             )
         except Exception:
             print_exc()
+
+    async def get_rank(
+        self,
+        session: AsyncSession,
+        guild_id: int,
+        user_id: Optional[int] = None,
+    ) -> List[Tuple[int, str, int]]:
+        stmt = (
+            select(
+                Egg.user_id,
+                func.rank().over(order_by=func.count().desc()).label("row"),
+                func.count().label("count"),
+            )
+            .where(Egg.guild_id == guild_id)
+            .group_by(Egg.user_id)
+            .order_by(func.count().desc())
+        )
+
+        if user_id is None:
+            res = await session.execute(stmt.limit(10))
+        else:
+            subq = stmt.subquery()
+            res = await session.execute(
+                select(subq).where(subq.c.user_id == user_id)
+            )
+        return [
+            (member_id, RANK_MEDAL.get(rank, f"`#{rank}`"), egg_count)
+            for member_id, rank, egg_count in res.all()
+        ]
 
 
 def embed(
