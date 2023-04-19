@@ -2,7 +2,7 @@ from math import floor
 from typing import Optional, Tuple, Union
 
 import discord
-from sqlalchemy import func, select
+from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..bot import embed
@@ -37,7 +37,7 @@ async def embed_rank(
         else:
             morsels.append("\n:spider_web: Personne n'a d'œuf")
         total = await session.scalar(
-            select(func.count().label("count")).where(
+            select(func.count(distinct(Egg.user_id)).label("count")).where(
                 Egg.guild_id == ctx.guild_id
             )
         )
