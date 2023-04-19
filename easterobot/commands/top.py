@@ -1,4 +1,4 @@
-from math import floor
+from math import ceil
 from typing import Optional, Tuple, Union
 
 import discord
@@ -31,36 +31,21 @@ async def embed_rank(
             session, ctx.guild_id, PAGE_SIZE, page
         )
         morsels = []
-        top_player = False
         if egg_counts:
             for user_id, rank, egg_count in egg_counts[:10]:
-                if user_id == ctx.user.id:
-                    top_player = True
                 morsels.append(record_top(rank, user_id, egg_count))
-            if not top_player:
-                morsels.append("")
-                user_egg_count = await ctx.bot.get_rank(
-                    session, ctx.guild_id, ctx.user.id
-                )
-                if user_egg_count:
-                    user_id, rank, egg_count = user_egg_count
-                    morsels.append(record_top(rank, user_id, egg_count))
-                else:
-                    morsels.append("\n:spider_web: Vous n'avez aucun œuf")
         else:
             morsels.append("\n:spider_web: Personne n'a d'œuf")
 
-        total = (
-            floor(
-                await session.scalar(
-                    select(func.count().label("count"))
-                    .where(Egg.guild_id == ctx.guild_id)
-                    .group_by(Egg.user_id)
-                )
-                / PAGE_SIZE
+        total = ceil(
+            await session.scalar(
+                select(func.count().label("count"))
+                .where(Egg.guild_id == ctx.guild_id)
+                .group_by(Egg.user_id)
             )
-            + 1
+            / PAGE_SIZE
         )
+        total = max(total, 1)
     text = "\n".join(morsels)
     emb = embed(
         title=f"Chasse aux œufs : {ctx.guild.name}",
@@ -70,7 +55,7 @@ async def embed_rank(
     )
     if colour is not None:
         emb.colour = colour
-    return emb, len(egg_counts) != 10
+    return emb, page >= total
 
 
 @egg_command_group.command(
@@ -82,11 +67,11 @@ async def top_command(ctx: EasterbotContext) -> None:
 
     view = discord.ui.View(timeout=None)
     previous_page = discord.ui.Button(  # type: ignore
-        label="Précédant", style=discord.ButtonStyle.gray, disabled=True
+        label="⮜", style=discord.ButtonStyle.gray, disabled=True
     )
     view.add_item(previous_page)
     next_page = discord.ui.Button(  # type: ignore
-        label="Suivant", style=discord.ButtonStyle.gray
+        label="⮞", style=discord.ButtonStyle.gray
     )
     view.add_item(next_page)
     page = 0
