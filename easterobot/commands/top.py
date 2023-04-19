@@ -45,7 +45,7 @@ async def embed_rank(
             )
             / PAGE_SIZE
         )
-        total = max(total, 1)
+        total = total + 1
     text = "\n".join(morsels)
     emb = embed(
         title=f"Chasse aux œufs : {ctx.guild.name}",
