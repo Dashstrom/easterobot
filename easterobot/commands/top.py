@@ -1,4 +1,4 @@
-from math import ceil
+from math import floor
 from typing import Optional, Tuple, Union
 
 import discord
@@ -36,16 +36,12 @@ async def embed_rank(
                 morsels.append(record_top(rank, user_id, egg_count))
         else:
             morsels.append("\n:spider_web: Personne n'a d'œuf")
-
-        total = ceil(
-            await session.scalar(
-                select(func.count().label("count"))
-                .where(Egg.guild_id == ctx.guild_id)
-                .group_by(Egg.user_id)
+        total = await session.scalar(
+            select(func.count().label("count")).where(
+                Egg.guild_id == ctx.guild_id
             )
-            / PAGE_SIZE
         )
-        total = total + 1
+        total = floor(total / PAGE_SIZE)
     text = "\n".join(morsels)
     emb = embed(
         title=f"Chasse aux œufs : {ctx.guild.name}",
