@@ -31,7 +31,7 @@ async def basket_command(ctx: EasterbotContext, user: discord.Member) -> None:
             session, ctx.guild_id, hunter.id
         )
         if user_egg_count:
-            rank = user_egg_count[0][1]
+            rank = user_egg_count[1]
         else:
             rank = None
         res = await session.execute(

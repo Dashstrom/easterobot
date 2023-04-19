@@ -1,3 +1,5 @@
+from typing import List
+
 import discord
 from sqlalchemy import and_, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,7 +33,7 @@ async def edit_command(
 ) -> None:
     await ctx.defer(ephemeral=True)
     async with AsyncSession(ctx.bot.engine) as session:
-        eggs = (
+        eggs: List[Egg] = (
             await session.scalars(
                 select(Egg).where(
                     and_(

@@ -1,8 +1,8 @@
 """Main program."""
 import asyncio
+import time
 from datetime import datetime
 from pathlib import Path
-import time
 from traceback import print_exc
 from typing import (
     Any,
@@ -22,6 +22,7 @@ import discord
 import discord.ext.tasks
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.sql.expression import Select
 
 from .config import RAND, Config, agree
 from .logger import DATE_FORMAT, logger
@@ -98,7 +99,7 @@ class Easterbot(discord.Bot):
         guild = channel.guild
         emoji = self.config.emoji()
         logger.info("Start hunt in %s", channel.jump_url)
-        timeout = self.config.hunt_timeout() + 2
+        timeout = self.config.hunt_timeout() + 1
         view = discord.ui.View(timeout=timeout)
         button = discord.ui.Button(  # type: ignore
             label=action.text(),
@@ -335,30 +336,50 @@ class Easterbot(discord.Bot):
         self,
         session: AsyncSession,
         guild_id: int,
-        user_id: Optional[int] = None,
-    ) -> List[Tuple[int, str, int]]:
-        stmt = (
-            select(
-                Egg.user_id,
-                func.rank().over(order_by=func.count().desc()).label("row"),
-                func.count().label("count"),
-            )
-            .where(Egg.guild_id == guild_id)
-            .group_by(Egg.user_id)
-            .order_by(func.count().desc())
-        )
+        user_id: int,
+    ) -> Optional[Tuple[int, str, int]]:
+        query = _prepare_rank(guild_id)
+        subq = query.subquery()
+        select(subq).where(subq.c.user_id == user_id)
+        ranks = await _compute_rank(session, query)
+        return ranks[0] if ranks else None
 
-        if user_id is None:
-            res = await session.execute(stmt.limit(10))
-        else:
-            subq = stmt.subquery()
-            res = await session.execute(
-                select(subq).where(subq.c.user_id == user_id)
-            )
-        return [
-            (member_id, RANK_MEDAL.get(rank, f"`#{rank}`"), egg_count)
-            for member_id, rank, egg_count in res.all()
-        ]
+    async def get_ranks(
+        self,
+        session: AsyncSession,
+        guild_id: int,
+        limit: Optional[int] = None,
+        page: Optional[int] = None,
+    ) -> List[Tuple[int, str, int]]:
+        query = _prepare_rank(guild_id)
+        if limit is not None:
+            query = query.limit(limit)
+            if page is not None:
+                query = query.offset(page * limit)
+        return await _compute_rank(session, query)
+
+
+def _prepare_rank(guild_id: int) -> Select:
+    return (
+        select(
+            Egg.user_id,
+            func.rank().over(order_by=func.count().desc()).label("row"),
+            func.count().label("count"),
+        )
+        .where(Egg.guild_id == guild_id)
+        .group_by(Egg.user_id)
+        .order_by(func.count().desc())
+    )
+
+
+async def _compute_rank(
+    session: AsyncSession, query: Select
+) -> List[Tuple[int, str, int]]:
+    res = await session.execute(query)
+    return [
+        (member_id, RANK_MEDAL.get(rank, f"`#{rank}`"), egg_count)
+        for member_id, rank, egg_count in res.all()
+    ]
 
 
 def embed(
