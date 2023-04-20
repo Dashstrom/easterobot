@@ -44,9 +44,8 @@ async def embed_rank(
         total = floor(total / PAGE_SIZE)
     text = "\n".join(morsels)
     emb = embed(
-        title=f"Chasse aux œufs : {ctx.guild.name}",
+        title="Chasse aux œufs",
         description=text,
-        thumbnail=ctx.guild.icon.url if ctx.guild.icon else None,
         footer=f"Page {page + 1}/{total + 1}",
     )
     if colour is not None:
