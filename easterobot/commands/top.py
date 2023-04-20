@@ -63,11 +63,11 @@ async def top_command(ctx: EasterbotContext) -> None:
 
     view = discord.ui.View(timeout=None)
     previous_page = discord.ui.Button(  # type: ignore
-        label="⮜", style=discord.ButtonStyle.gray, disabled=True
+        label="<", style=discord.ButtonStyle.gray, disabled=True
     )
     view.add_item(previous_page)
     next_page = discord.ui.Button(  # type: ignore
-        label="⮞", style=discord.ButtonStyle.gray
+        label=">", style=discord.ButtonStyle.gray
     )
     view.add_item(next_page)
     page = 0
