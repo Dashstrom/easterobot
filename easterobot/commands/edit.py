@@ -31,6 +31,7 @@ async def edit_command(
     user: discord.Member,
     oeufs: int,
 ) -> None:
+    oeufs = min(max(oeufs, 0), 100_000)
     await ctx.defer(ephemeral=True)
     async with AsyncSession(ctx.bot.engine) as session:
         eggs: List[Egg] = (
