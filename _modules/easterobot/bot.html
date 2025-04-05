@@ -1,0 +1,727 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>easterobot.bot &mdash; easterobot 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.png"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";
+window.addEventListener("load", () => mermaid.run());
+</script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            easterobot
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../references.html">API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">easterobot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">easterobot.bot</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for easterobot.bot</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Main program.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging.config</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Awaitable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">getpass</span><span class="w"> </span><span class="kn">import</span> <span class="n">getpass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Any</span><span class="p">,</span>
+    <span class="n">Callable</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">,</span>
+    <span class="n">TypeVar</span><span class="p">,</span>
+    <span class="n">Union</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">discord</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">discord.app_commands</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">discord.ext.commands</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">and_</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">select</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.ext.asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncSession</span><span class="p">,</span> <span class="n">create_async_engine</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.sql.expression</span><span class="w"> </span><span class="kn">import</span> <span class="n">Select</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.config</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">RAND</span><span class="p">,</span>
+    <span class="n">RESOURCES</span><span class="p">,</span>
+    <span class="n">MConfig</span><span class="p">,</span>
+    <span class="n">RandomItem</span><span class="p">,</span>
+    <span class="n">agree</span><span class="p">,</span>
+    <span class="n">dump_yaml</span><span class="p">,</span>
+    <span class="n">load_config</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">Egg</span><span class="p">,</span> <span class="n">Hunt</span>
+
+<span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">HERE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
+
+<span class="n">DATE_FORMAT</span> <span class="o">=</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span>
+
+<span class="n">DEFAULT_CONFIG_PATH</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;config.yml&quot;</span><span class="p">)</span>
+<span class="n">EXAMPLE_CONFIG_PATH</span> <span class="o">=</span> <span class="n">RESOURCES</span> <span class="o">/</span> <span class="s2">&quot;config.example.yml&quot;</span>
+<span class="n">RANK_MEDAL</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;🥇&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;🥈&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;🥉&quot;</span><span class="p">}</span>
+<span class="n">INTENTS</span> <span class="o">=</span> <span class="n">discord</span><span class="o">.</span><span class="n">Intents</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="Easterobot">
+<a class="viewcode-back" href="../../references.html#easterobot.Easterobot">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Easterobot</span><span class="p">(</span><span class="n">discord</span><span class="o">.</span><span class="n">ext</span><span class="o">.</span><span class="n">commands</span><span class="o">.</span><span class="n">Bot</span><span class="p">):</span>
+    <span class="n">owner</span><span class="p">:</span> <span class="n">discord</span><span class="o">.</span><span class="n">User</span>
+
+<div class="viewcode-block" id="Easterobot.__init__">
+<a class="viewcode-back" href="../../references.html#easterobot.Easterobot.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">MConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialise Easterbot.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">command_prefix</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
+            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Bot discord pour faire la chasse aux œufs&quot;</span><span class="p">,</span>
+            <span class="n">activity</span><span class="o">=</span><span class="n">discord</span><span class="o">.</span><span class="n">Game</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;rechercher des œufs&quot;</span><span class="p">),</span>
+            <span class="n">intents</span><span class="o">=</span><span class="n">INTENTS</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="n">defaults</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">working_directory</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">use_logging_file</span><span class="p">:</span>
+            <span class="n">logging_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">resources</span> <span class="o">/</span> <span class="s2">&quot;logging.conf&quot;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">logging_file</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+                <span class="n">error_message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Cannot find message: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">logging_file</span><span class="p">)</span><span class="si">!r}</span><span class="s2">&quot;</span>
+                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="n">error_message</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">fileConfig</span><span class="p">(</span>
+                <span class="n">logging_file</span><span class="p">,</span>
+                <span class="n">disable_existing_loggers</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">defaults</span><span class="o">=</span><span class="n">defaults</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app_commands</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">discord</span><span class="o">.</span><span class="n">app_commands</span><span class="o">.</span><span class="n">AppCommand</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app_emojis</span><span class="p">:</span> <span class="n">RandomItem</span><span class="p">[</span><span class="n">discord</span><span class="o">.</span><span class="n">Emoji</span><span class="p">]</span> <span class="o">=</span> <span class="n">RandomItem</span><span class="p">([])</span>
+        <span class="n">database_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">%(data)s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">working_directory</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Open database </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">database_uri</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">create_async_engine</span><span class="p">(</span><span class="n">database_uri</span><span class="p">,</span> <span class="n">echo</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Easterobot.from_config">
+<a class="viewcode-back" href="../../references.html#easterobot.Easterobot.from_config">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_config</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">config_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_CONFIG_PATH</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">env</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Easterobot&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Instantiate Easterobot from config.&quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">()</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">attach_default_working_directory</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Easterobot</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Easterobot.generate">
+<a class="viewcode-back" href="../../references.html#easterobot.Easterobot.generate">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">destination</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">env</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">interactive</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Easterobot&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate all data.&quot;&quot;&quot;</span>
+        <span class="n">destination</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">destination</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+        <span class="n">destination</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">config_data</span> <span class="o">=</span> <span class="n">EXAMPLE_CONFIG_PATH</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">()</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">config_data</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">attach_default_working_directory</span><span class="p">(</span><span class="n">destination</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">interactive</span><span class="p">:</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">config</span><span class="o">.</span><span class="n">verified_token</span><span class="p">()</span>
+                    <span class="k">break</span>
+                <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+                    <span class="n">config</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">getpass</span><span class="p">(</span><span class="s2">&quot;Token: &quot;</span><span class="p">)</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">_resources</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;resources&quot;</span><span class="p">)</span>  <span class="c1"># noqa: SLF001</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copytree</span><span class="p">(</span>
+            <span class="n">RESOURCES</span><span class="p">,</span> <span class="n">destination</span> <span class="o">/</span> <span class="s2">&quot;resources&quot;</span><span class="p">,</span> <span class="n">dirs_exist_ok</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">config_path</span> <span class="o">=</span> <span class="n">destination</span> <span class="o">/</span> <span class="s2">&quot;config.yml&quot;</span>
+        <span class="n">config_path</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span><span class="n">dump_yaml</span><span class="p">(</span><span class="n">config</span><span class="p">))</span>
+        <span class="p">(</span><span class="n">destination</span> <span class="o">/</span> <span class="s2">&quot;.gitignore&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;*</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Easterobot</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></div>
+
+
+    <span class="c1"># Method that loads cogs</span>
+<div class="viewcode-block" id="Easterobot.setup_hook">
+<a class="viewcode-back" href="../../references.html#easterobot.Easterobot.setup_hook">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">setup_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup hooks.&quot;&quot;&quot;</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_extension</span><span class="p">(</span>
+            <span class="s2">&quot;easterobot.commands&quot;</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="s2">&quot;easterobot.commands.__init__&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Easterobot.auto_run">
+<a class="viewcode-back" href="../../references.html#easterobot.Easterobot.auto_run">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">auto_run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run the bot with the given token.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">token</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">verified_token</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="Easterobot.on_ready">
+<a class="viewcode-back" href="../../references.html#easterobot.Easterobot.on_ready">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_ready</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle ready event, can be trigger many time if disconnected.&quot;&quot;&quot;</span>
+        <span class="c1"># Sync bot commands</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Syncing command&quot;</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">sync</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app_commands</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">fetch_commands</span><span class="p">()</span>
+
+        <span class="c1"># Sync bot owner</span>
+        <span class="n">app_info</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">application_info</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">owner</span> <span class="o">=</span> <span class="n">app_info</span><span class="o">.</span><span class="n">owner</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Owner is </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">owner</span><span class="o">.</span><span class="n">display_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">owner</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+        <span class="c1"># Sync emojis</span>
+        <span class="n">emojis</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">emoji</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">emoji</span>
+            <span class="k">for</span> <span class="n">emoji</span> <span class="ow">in</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">fetch_application_emojis</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="n">eggs_path</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">resources</span> <span class="o">/</span> <span class="s2">&quot;eggs&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app_emojis</span> <span class="o">=</span> <span class="n">RandomItem</span><span class="p">([])</span>
+        <span class="k">for</span> <span class="n">egg</span> <span class="ow">in</span> <span class="n">eggs_path</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">egg</span><span class="o">.</span><span class="n">stem</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">emojis</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Missing emoji </span><span class="si">%s</span><span class="s2">, create emoji on application&quot;</span><span class="p">,</span>
+                    <span class="n">egg</span><span class="o">.</span><span class="n">stem</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">image_data</span> <span class="o">=</span> <span class="n">egg</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">()</span>
+                <span class="n">emoji</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_application_emoji</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">egg</span><span class="o">.</span><span class="n">stem</span><span class="p">,</span>
+                    <span class="n">image</span><span class="o">=</span><span class="n">image_data</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">app_emojis</span><span class="o">.</span><span class="n">choices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">emoji</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Load emoji </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">egg</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">app_emojis</span><span class="o">.</span><span class="n">choices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">emojis</span><span class="p">[</span><span class="n">egg</span><span class="o">.</span><span class="n">stem</span><span class="p">])</span>
+
+        <span class="c1"># Create the tables</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">begin</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+            <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">run_sync</span><span class="p">(</span><span class="n">Base</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">create_all</span><span class="p">,</span> <span class="n">checkfirst</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Log all available guilds</span>
+        <span class="k">async</span> <span class="k">for</span> <span class="n">guild</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fetch_guilds</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Guild </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">guild</span><span class="p">,</span> <span class="n">guild</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Logged on as </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">) !&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">pending_hunts</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pending_hunts</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">_</span><span class="p">,</span> <span class="n">pending_hunts</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span>
+                        <span class="n">pending_hunts</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span>
+                    <span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>  <span class="c1"># noqa: BLE001</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span><span class="s2">&quot;Unattended exception&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="n">err</span><span class="p">)</span>
+            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+            <span class="n">pending_hunts</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loop_hunt</span><span class="p">()))</span></div>
+
+
+<div class="viewcode-block" id="Easterobot.start_hunt">
+<a class="viewcode-back" href="../../references.html#easterobot.Easterobot.start_hunt">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">start_hunt</span><span class="p">(</span>  <span class="c1"># noqa: C901, PLR0912, PLR0915</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">hunt_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">description</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">member_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">send_method</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+            <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Awaitable</span><span class="p">[</span><span class="n">discord</span><span class="o">.</span><span class="n">Message</span><span class="p">]]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Start an hunt in a channel.&quot;&quot;&quot;</span>
+        <span class="c1"># Get the hunt channel of resolve it</span>
+        <span class="n">channel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_channel</span><span class="p">(</span><span class="n">hunt_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">channel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">channel</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">fetch_channel</span><span class="p">(</span><span class="n">hunt_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">channel</span><span class="p">,</span> <span class="n">discord</span><span class="o">.</span><span class="n">TextChannel</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Invalid channel type </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">channel</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Get from config</span>
+        <span class="n">action</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">action</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span>
+        <span class="n">guild</span> <span class="o">=</span> <span class="n">channel</span><span class="o">.</span><span class="n">guild</span>
+        <span class="n">emoji</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app_emojis</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span>
+
+        <span class="c1"># Label and hunters</span>
+        <span class="n">hunters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">discord</span><span class="o">.</span><span class="n">Member</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">action</span><span class="o">.</span><span class="n">text</span>
+        <span class="k">if</span> <span class="n">member_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">member</span> <span class="o">=</span> <span class="n">channel</span><span class="o">.</span><span class="n">guild</span><span class="o">.</span><span class="n">get_member</span><span class="p">(</span><span class="n">member_id</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">member</span><span class="p">:</span>
+                <span class="n">hunters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">member</span><span class="p">)</span>
+                <span class="n">label</span> <span class="o">+=</span> <span class="s2">&quot; (1)&quot;</span>
+
+        <span class="c1"># Start hunt</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Start hunt in </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">channel</span><span class="o">.</span><span class="n">jump_url</span><span class="p">)</span>
+        <span class="n">timeout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">hunt</span><span class="o">.</span><span class="n">timeout</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">view</span> <span class="o">=</span> <span class="n">discord</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">View</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+        <span class="n">button</span><span class="p">:</span> <span class="n">discord</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">Button</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">discord</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="n">discord</span><span class="o">.</span><span class="n">ButtonStyle</span><span class="o">.</span><span class="n">primary</span><span class="p">,</span>
+            <span class="n">emoji</span><span class="o">=</span><span class="n">emoji</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">view</span><span class="o">.</span><span class="n">add_item</span><span class="p">(</span><span class="n">button</span><span class="p">)</span>
+        <span class="n">waiting</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">active</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">button_callback</span><span class="p">(</span>
+            <span class="n">interaction</span><span class="p">:</span> <span class="n">discord</span><span class="o">.</span><span class="n">Interaction</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">nonlocal</span> <span class="n">waiting</span><span class="p">,</span> <span class="n">active</span>
+            <span class="c1"># Respond later</span>
+            <span class="k">await</span> <span class="n">interaction</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">defer</span><span class="p">()</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">interaction</span><span class="o">.</span><span class="n">message</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="n">interaction</span><span class="o">.</span><span class="n">user</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">message</span> <span class="ow">is</span> <span class="kc">None</span>  <span class="c1"># Message must be loaded</span>
+                <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">discord</span><span class="o">.</span><span class="n">Member</span><span class="p">)</span>  <span class="c1"># Must be a member</span>
+            <span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Invalid callback for </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">guild</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="c1"># Check if user doesn&#39;t already claim the egg</span>
+            <span class="k">for</span> <span class="n">hunter</span> <span class="ow">in</span> <span class="n">hunters</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">hunter</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s2">&quot;Already hunt by </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">) on </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                        <span class="n">user</span><span class="p">,</span>
+                        <span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                        <span class="n">message</span><span class="o">.</span><span class="n">jump_url</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">return</span>
+
+            <span class="c1"># Add the user to the current users</span>
+            <span class="n">hunters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+
+            <span class="c1"># Show information about the hunter</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Hunt (</span><span class="si">%d</span><span class="s2">) by </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">) on </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">hunters</span><span class="p">),</span>
+                <span class="n">user</span><span class="p">,</span>
+                <span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">.</span><span class="n">jump_url</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># TODO(dashstrom): must refactor this lock ?</span>
+            <span class="k">if</span> <span class="n">active</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">waiting</span><span class="p">:</span>
+                <span class="n">waiting</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">while</span> <span class="n">active</span><span class="p">:</span>  <span class="c1"># noqa: ASYNC110</span>
+                    <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+                <span class="n">waiting</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="n">active</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">button</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">action</span><span class="o">.</span><span class="n">text</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">hunters</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="k">await</span> <span class="n">message</span><span class="o">.</span><span class="n">edit</span><span class="p">(</span><span class="n">view</span><span class="o">=</span><span class="n">view</span><span class="p">)</span>
+            <span class="n">active</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># Set the button callback</span>
+        <span class="n">button</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="n">button_callback</span>  <span class="c1"># type: ignore[method-assign]</span>
+
+        <span class="c1"># Set next hunt</span>
+        <span class="n">next_hunt</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">+</span> <span class="n">timeout</span>
+
+        <span class="c1"># Create and embed</span>
+        <span class="n">emb</span> <span class="o">=</span> <span class="n">embed</span><span class="p">(</span>
+            <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Un œuf a été découvert !&quot;</span><span class="p">,</span>
+            <span class="n">description</span><span class="o">=</span><span class="n">description</span>
+            <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">Tirage du vinqueur : &lt;t:</span><span class="si">{</span><span class="n">next_hunt</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">:R&gt;&quot;</span><span class="p">,</span>
+            <span class="n">thumbnail</span><span class="o">=</span><span class="n">emoji</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Send the embed in the hunt channel</span>
+        <span class="k">if</span> <span class="n">send_method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="k">await</span> <span class="n">channel</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">embed</span><span class="o">=</span><span class="n">emb</span><span class="p">,</span> <span class="n">view</span><span class="o">=</span><span class="n">view</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="k">await</span> <span class="n">send_method</span><span class="p">(</span><span class="n">embed</span><span class="o">=</span><span class="n">emb</span><span class="p">,</span> <span class="n">view</span><span class="o">=</span><span class="n">view</span><span class="p">)</span>
+
+        <span class="c1"># TODO(dashstrom): channel is wrong due to the send message !</span>
+        <span class="c1"># Wait the end of the hunt</span>
+        <span class="n">message_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">channel</span><span class="o">.</span><span class="n">jump_url</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="n">channel</span><span class="o">.</span><span class="n">typing</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span>
+                    <span class="n">view</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">hunt</span><span class="o">.</span><span class="n">timeout</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">TimeoutError</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;End hunt for </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">message_url</span><span class="p">)</span>
+
+        <span class="c1"># Disable button and view after hunt</span>
+        <span class="n">button</span><span class="o">.</span><span class="n">disabled</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">view</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+        <span class="k">await</span> <span class="n">message</span><span class="o">.</span><span class="n">edit</span><span class="p">(</span><span class="n">view</span><span class="o">=</span><span class="n">view</span><span class="p">)</span>  <span class="c1"># Send the stop info</span>
+
+        <span class="c1"># Get if hunt is valid</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="n">AsyncSession</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+            <span class="n">has_hunt</span> <span class="o">=</span> <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span>
+                <span class="n">select</span><span class="p">(</span><span class="n">Hunt</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                    <span class="n">and_</span><span class="p">(</span>
+                        <span class="n">Hunt</span><span class="o">.</span><span class="n">guild_id</span> <span class="o">==</span> <span class="n">guild</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                        <span class="n">Hunt</span><span class="o">.</span><span class="n">channel_id</span> <span class="o">==</span> <span class="n">channel</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># The egg was not collected</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">hunters</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">has_hunt</span><span class="p">:</span>
+            <span class="n">button</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;L&#39;œuf n&#39;a pas été ramassé&quot;</span>
+            <span class="n">button</span><span class="o">.</span><span class="n">style</span> <span class="o">=</span> <span class="n">discord</span><span class="o">.</span><span class="n">ButtonStyle</span><span class="o">.</span><span class="n">danger</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No Hunter for </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">message_url</span><span class="p">)</span>
+
+        <span class="c1"># Process the winner</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">async</span> <span class="k">with</span> <span class="n">AsyncSession</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+                <span class="c1"># Get the count of egg by user</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                    <span class="n">select</span><span class="p">(</span><span class="n">Egg</span><span class="o">.</span><span class="n">user_id</span><span class="p">,</span> <span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">&quot;count&quot;</span><span class="p">))</span>
+                    <span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                        <span class="n">and_</span><span class="p">(</span>
+                            <span class="n">Egg</span><span class="o">.</span><span class="n">guild_id</span> <span class="o">==</span> <span class="n">guild</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                            <span class="n">Egg</span><span class="o">.</span><span class="n">user_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">hunter</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">hunter</span> <span class="ow">in</span> <span class="n">hunters</span><span class="p">),</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">Egg</span><span class="o">.</span><span class="n">user_id</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">eggs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">all</span><span class="p">())</span>  <span class="c1"># type: ignore[arg-type]</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Winner draw for </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">message_url</span><span class="p">)</span>
+
+                <span class="c1"># If only one hunter, give the egg to him</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hunters</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">winner</span> <span class="o">=</span> <span class="n">hunters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">loser</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;100</span><span class="si">%%</span><span class="s2"> - </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">winner</span><span class="p">,</span> <span class="n">winner</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">lh</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">hunters</span><span class="p">)</span>
+                    <span class="n">min_eggs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">eggs</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">max_eggs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">eggs</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">diff_eggs</span> <span class="o">=</span> <span class="n">max_eggs</span> <span class="o">-</span> <span class="n">min_eggs</span>
+                    <span class="n">w_egg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">hunt</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">egg</span>
+                    <span class="n">w_speed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">hunt</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">speed</span>
+                    <span class="n">weights</span> <span class="o">=</span> <span class="p">[]</span>
+
+                    <span class="c1"># Compute chances of each hunters</span>
+                    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">hunters</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">diff_eggs</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">egg</span> <span class="o">=</span> <span class="n">eggs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">min_eggs</span>
+                            <span class="n">p_egg</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">egg</span> <span class="o">/</span> <span class="n">diff_eggs</span><span class="p">)</span> <span class="o">*</span> <span class="n">w_egg</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">w_egg</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">p_egg</span> <span class="o">=</span> <span class="mf">1.0</span>
+                        <span class="k">if</span> <span class="n">lh</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">p_speed</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">i</span> <span class="o">/</span> <span class="n">lh</span><span class="p">)</span> <span class="o">*</span> <span class="n">w_speed</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">w_speed</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">p_speed</span> <span class="o">=</span> <span class="mf">1.0</span>
+                        <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p_egg</span> <span class="o">*</span> <span class="n">p_speed</span><span class="p">)</span>
+                    <span class="n">r</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+                    <span class="n">chances</span> <span class="o">=</span> <span class="p">[(</span><span class="n">h</span><span class="p">,</span> <span class="n">p</span> <span class="o">/</span> <span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hunters</span><span class="p">,</span> <span class="n">weights</span><span class="p">)]</span>
+                    <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chances</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%.2f%%</span><span class="s2"> - </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">c</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">h</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+                    <span class="c1"># Get the winner</span>
+                    <span class="n">n</span> <span class="o">=</span> <span class="n">RAND</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">chances</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">p</span><span class="p">:</span>
+                            <span class="n">winner</span> <span class="o">=</span> <span class="n">h</span>
+                            <span class="k">break</span>
+                        <span class="n">n</span> <span class="o">-=</span> <span class="n">p</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">winner</span> <span class="o">=</span> <span class="n">hunters</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+                    <span class="c1"># Get a random loser</span>
+                    <span class="n">hunters</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">winner</span><span class="p">)</span>
+                    <span class="n">loser</span> <span class="o">=</span> <span class="n">RAND</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">hunters</span><span class="p">)</span>
+
+                <span class="c1"># Add the egg to the member</span>
+                <span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+                    <span class="n">Egg</span><span class="p">(</span>
+                        <span class="n">channel_id</span><span class="o">=</span><span class="n">channel</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                        <span class="n">guild_id</span><span class="o">=</span><span class="n">channel</span><span class="o">.</span><span class="n">guild</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                        <span class="n">user_id</span><span class="o">=</span><span class="n">winner</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                        <span class="n">emoji_id</span><span class="o">=</span><span class="n">emoji</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+            <span class="c1"># Show the embed to loser</span>
+            <span class="k">if</span> <span class="n">loser</span><span class="p">:</span>
+                <span class="n">loser_name</span> <span class="o">=</span> <span class="n">loser</span><span class="o">.</span><span class="n">display_name</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hunters</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">loser_name</span><span class="si">}</span><span class="s2"> rate un œuf&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">text</span> <span class="o">=</span> <span class="n">agree</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{1}</span><span class="s2"> et </span><span class="si">{0}</span><span class="s2"> autre chasseur ratent un œuf&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;</span><span class="si">{1}</span><span class="s2"> et </span><span class="si">{0}</span><span class="s2"> autres chasseurs ratent un œuf&quot;</span><span class="p">,</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">hunters</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="n">loser_name</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="n">emb</span> <span class="o">=</span> <span class="n">embed</span><span class="p">(</span>
+                    <span class="n">title</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+                    <span class="n">description</span><span class="o">=</span><span class="n">action</span><span class="o">.</span><span class="n">fail</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">loser</span><span class="p">),</span>
+                    <span class="n">image</span><span class="o">=</span><span class="n">action</span><span class="o">.</span><span class="n">fail</span><span class="o">.</span><span class="n">gif</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">await</span> <span class="n">channel</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">embed</span><span class="o">=</span><span class="n">emb</span><span class="p">,</span> <span class="n">reference</span><span class="o">=</span><span class="n">message</span><span class="p">)</span>
+
+            <span class="c1"># Send embed for the winner</span>
+            <span class="n">winner_eggs</span> <span class="o">=</span> <span class="n">eggs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">winner</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">emb</span> <span class="o">=</span> <span class="n">embed</span><span class="p">(</span>
+                <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">winner</span><span class="o">.</span><span class="n">display_name</span><span class="si">}</span><span class="s2"> récupère un œuf&quot;</span><span class="p">,</span>
+                <span class="n">description</span><span class="o">=</span><span class="n">action</span><span class="o">.</span><span class="n">success</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">winner</span><span class="p">),</span>
+                <span class="n">image</span><span class="o">=</span><span class="n">action</span><span class="o">.</span><span class="n">success</span><span class="o">.</span><span class="n">gif</span><span class="p">,</span>
+                <span class="n">thumbnail</span><span class="o">=</span><span class="n">emoji</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+                <span class="n">egg_count</span><span class="o">=</span><span class="n">winner_eggs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">await</span> <span class="n">channel</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">embed</span><span class="o">=</span><span class="n">emb</span><span class="p">,</span> <span class="n">reference</span><span class="o">=</span><span class="n">message</span><span class="p">)</span>
+
+            <span class="c1"># Update button</span>
+            <span class="n">button</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;L&#39;œuf a été ramassé par </span><span class="si">{</span><span class="n">winner</span><span class="o">.</span><span class="n">display_name</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">button</span><span class="o">.</span><span class="n">style</span> <span class="o">=</span> <span class="n">discord</span><span class="o">.</span><span class="n">ButtonStyle</span><span class="o">.</span><span class="n">success</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Winner is </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">) with </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">winner</span><span class="p">,</span>
+                <span class="n">winner</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">agree</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> egg&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> eggs&quot;</span><span class="p">,</span> <span class="n">winner_eggs</span><span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Remove emoji and edit view</span>
+        <span class="n">button</span><span class="o">.</span><span class="n">emoji</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">await</span> <span class="n">message</span><span class="o">.</span><span class="n">edit</span><span class="p">(</span><span class="n">view</span><span class="o">=</span><span class="n">view</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Easterobot.loop_hunt">
+<a class="viewcode-back" href="../../references.html#easterobot.Easterobot.loop_hunt">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">loop_hunt</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Manage the schedule of run.&quot;&quot;&quot;</span>
+        <span class="c1"># Create a async session</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="n">AsyncSession</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">expire_on_commit</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+            <span class="c1"># Find hunt with next egg available</span>
+            <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">hunts</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">scalars</span><span class="p">(</span><span class="n">select</span><span class="p">(</span><span class="n">Hunt</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">Hunt</span><span class="o">.</span><span class="n">next_egg</span> <span class="o">&lt;=</span> <span class="n">now</span><span class="p">))</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+            <span class="c1"># For each hunt, set the next run and store the channel ids</span>
+            <span class="k">if</span> <span class="n">hunts</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">hunt</span> <span class="ow">in</span> <span class="n">hunts</span><span class="p">:</span>
+                    <span class="n">next_egg</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">hunt</span><span class="o">.</span><span class="n">cooldown</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span>
+                    <span class="n">dt_next</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">next_egg</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s2">&quot;Next hunt at </span><span class="si">%s</span><span class="s2"> on </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                        <span class="n">hunt</span><span class="o">.</span><span class="n">jump_url</span><span class="p">,</span>
+                        <span class="n">dt_next</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">DATE_FORMAT</span><span class="p">),</span>
+                    <span class="p">)</span>
+                    <span class="n">hunt</span><span class="o">.</span><span class="n">next_egg</span> <span class="o">=</span> <span class="n">next_egg</span>
+                <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+            <span class="n">hunt_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">hunt</span><span class="o">.</span><span class="n">channel_id</span> <span class="k">for</span> <span class="n">hunt</span> <span class="ow">in</span> <span class="n">hunts</span><span class="p">]</span>
+
+        <span class="c1"># Call start_hunt for each hunt</span>
+        <span class="k">if</span> <span class="n">hunt_ids</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+                    <span class="o">*</span><span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">start_hunt</span><span class="p">(</span><span class="n">hunt_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">appear</span><span class="o">.</span><span class="n">rand</span><span class="p">())</span>
+                        <span class="k">for</span> <span class="n">hunt_id</span> <span class="ow">in</span> <span class="n">hunt_ids</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span>
+                    <span class="s2">&quot;An error occurred during start hunt&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="n">err</span>
+                <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Easterobot.get_rank">
+<a class="viewcode-back" href="../../references.html#easterobot.Easterobot.get_rank">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_rank</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">session</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">,</span>
+        <span class="n">guild_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the rank of single user.&quot;&quot;&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">_prepare_rank</span><span class="p">(</span><span class="n">guild_id</span><span class="p">)</span>
+        <span class="n">subq</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">subquery</span><span class="p">()</span>
+        <span class="n">select</span><span class="p">(</span><span class="n">subq</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">subq</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="n">user_id</span><span class="p">)</span>
+        <span class="n">ranks</span> <span class="o">=</span> <span class="k">await</span> <span class="n">_compute_rank</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ranks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">ranks</span> <span class="k">else</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="Easterobot.get_ranks">
+<a class="viewcode-back" href="../../references.html#easterobot.Easterobot.get_ranks">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_ranks</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">session</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">,</span>
+        <span class="n">guild_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">limit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">page</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get ranks by page.&quot;&quot;&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">_prepare_rank</span><span class="p">(</span><span class="n">guild_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="n">limit</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">page</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">offset</span><span class="p">(</span><span class="n">page</span> <span class="o">*</span> <span class="n">limit</span><span class="p">)</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="n">_compute_rank</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span></div>
+</div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_prepare_rank</span><span class="p">(</span><span class="n">guild_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Select</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a select query with order user by egg count.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">select</span><span class="p">(</span>
+            <span class="n">Egg</span><span class="o">.</span><span class="n">user_id</span><span class="p">,</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">rank</span><span class="p">()</span><span class="o">.</span><span class="n">over</span><span class="p">(</span><span class="n">order_by</span><span class="o">=</span><span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">desc</span><span class="p">())</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">&quot;row&quot;</span><span class="p">),</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">&quot;count&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">Egg</span><span class="o">.</span><span class="n">guild_id</span> <span class="o">==</span> <span class="n">guild_id</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">Egg</span><span class="o">.</span><span class="n">user_id</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">desc</span><span class="p">())</span>
+    <span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_compute_rank</span><span class="p">(</span>
+    <span class="n">session</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">Select</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">member_id</span><span class="p">,</span> <span class="n">RANK_MEDAL</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">rank</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;`#</span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2">`&quot;</span><span class="p">),</span> <span class="n">egg_count</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">member_id</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">egg_count</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">embed</span><span class="p">(</span>  <span class="c1"># noqa: PLR0913</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">thumbnail</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">egg_count</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">footer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">discord</span><span class="o">.</span><span class="n">Embed</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create an embed with default format.&quot;&quot;&quot;</span>
+    <span class="n">new_embed</span> <span class="o">=</span> <span class="n">discord</span><span class="o">.</span><span class="n">Embed</span><span class="p">(</span>
+        <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
+        <span class="n">colour</span><span class="o">=</span><span class="n">RAND</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">24</span><span class="p">),</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;gifv&quot;</span> <span class="k">if</span> <span class="n">image</span> <span class="k">else</span> <span class="s2">&quot;rich&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">new_embed</span><span class="o">.</span><span class="n">set_image</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="n">image</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">thumbnail</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">new_embed</span><span class="o">.</span><span class="n">set_thumbnail</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="n">thumbnail</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">egg_count</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">footer</span> <span class="o">=</span> <span class="p">(</span><span class="n">footer</span> <span class="o">+</span> <span class="s2">&quot; - &quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">footer</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">footer</span> <span class="o">+=</span> <span class="s2">&quot;Cela lui fait un total de &quot;</span>
+        <span class="n">footer</span> <span class="o">+=</span> <span class="n">agree</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> œuf&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> œufs&quot;</span><span class="p">,</span> <span class="n">egg_count</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">footer</span><span class="p">:</span>
+        <span class="n">new_embed</span><span class="o">.</span><span class="n">set_footer</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">footer</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">new_embed</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Dashstrom &lt;dashstrom.pro@gmail.com&gt;.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
