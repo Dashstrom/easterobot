@@ -1,33 +1,16 @@
-import logging
-import logging.handlers
-import sys
+"""Module for logging stuff."""
+
+import pathlib
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from typing import Any, Union
 
-logger_discord = logging.getLogger("discord")
-logger_discord.setLevel(logging.INFO)
-logging.getLogger("discord.http").setLevel(logging.INFO)
 
-HERE = Path(__file__).parent
-LOG_DIR = HERE / "data" / "logs"
-LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-file_handler = logging.handlers.RotatingFileHandler(
-    filename=LOG_DIR / "easterobot.log",
-    encoding="utf-8",
-    maxBytes=1 << 16,
-    backupCount=10,  # Rotate through 10 files
-)
-stdout_handler = logging.StreamHandler(sys.stdout)
-DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
-formatter = logging.Formatter(
-    "[{asctime}] [{levelname}] [{name}]: {message}", DATE_FORMAT, style="{"
-)
-file_handler.setFormatter(formatter)
-stdout_handler.setFormatter(formatter)
-logger_discord.addHandler(file_handler)
-logger_discord.addHandler(stdout_handler)
-
-logger = logging.getLogger("easterobot")
-logger.setLevel(logging.INFO)
-logger.addHandler(file_handler)
-logger.addHandler(stdout_handler)
+class AutoDirRotatingFileHandler(RotatingFileHandler):
+    def __init__(
+        self, filename: Union[str, pathlib.Path], *args: Any, **kwargs: Any
+    ) -> None:
+        """Show logger."""
+        path = Path(filename)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        super().__init__(filename, *args, **kwargs)

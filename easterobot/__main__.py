@@ -1,4 +1,6 @@
-from .bot import Easterbot
+"""Entrypoint with `python -m easterobot`."""
+
+from .cli import entrypoint
 
 if __name__ == "__main__":
-    Easterbot()
+    entrypoint()  # pragma: no cover

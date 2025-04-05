@@ -1,47 +1,11 @@
-version: "3.7"
 services:
   bot:
     container_name: easterobot_bot
+    stdin_open: true
+    tty: true
     build:
       context: .
       dockerfile: Dockerfile
+    env_file: ".env"
     volumes:
-      - ./easterobot/data/config.yml:/app/easterobot/data/config.yml
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-      - logs:/app/easterobot/data/logs
-    networks:
-      - postgres
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  postgres:
-    container_name: easterobot_postgres
-    image: postgres
-    environment:
-      POSTGRES_USER: easterobot
-      POSTGRES_PASSWORD: easterobot
-      POSTGRES_DB: easterobot
-    volumes:
-      - database:/var/lib/postgresql/data
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-    ports:
-      - "5432:5432"
-    networks:
-      - postgres
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U easterobot"]
-      interval: 3s
-      timeout: 60s
-      retries: 20
-
-networks:
-  postgres:
-    driver: bridge
-
-volumes:
-  database:
-  logs:
+      - ./data:/data:rw

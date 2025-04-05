@@ -1,7 +1,19 @@
-"""Application to visualize the fractal of Mandelbrot and julia."""
+"""Main module."""
 
-from typing import List
+from .bot import Easterobot
+from .cli import entrypoint
+from .info import (
+    __author__,
+    __email__,
+    __summary__,
+    __version__,
+)
 
-__all__: List[str] = []
-__version__ = "1.0.0"
-__author__ = "Dashstrom"
+__all__ = [
+    "Easterobot",
+    "__author__",
+    "__email__",
+    "__summary__",
+    "__version__",
+    "entrypoint",
+]

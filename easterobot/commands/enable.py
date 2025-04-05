@@ -1,17 +1,23 @@
+"""Command enable."""
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models import Hunt
-from .base import EasterbotContext, controled_command, egg_command_group
+from easterobot.models import Hunt
+
+from .base import Context, controlled_command, egg_command_group
 
 
 @egg_command_group.command(
-    name="enable", description="Activer la chasse aux œufs dans le salon"
+    name="enable", description="Activer la chasse dans le salon"
 )
-@controled_command(cooldown=True, manage_channels=True)
-async def enable_command(ctx: EasterbotContext) -> None:
-    await ctx.defer(ephemeral=True)
-    async with AsyncSession(ctx.bot.engine) as session:
+@controlled_command(cooldown=True, manage_channels=True)
+async def enable_command(
+    ctx: Context,
+) -> None:
+    """Enable hunt in a channel."""
+    await ctx.response.defer(ephemeral=True)
+    async with AsyncSession(ctx.client.engine) as session:
         old = await session.scalar(
             select(Hunt).where(Hunt.channel_id == ctx.channel.id)
         )

@@ -1,144 +1,391 @@
 """Main program."""
+
+import os
+import pathlib
 import random
-from pathlib import Path
-from typing import Any, Optional, Tuple, cast
+from abc import ABC, abstractmethod
+from collections.abc import Iterable
+from typing import (
+    Any,
+    Generic,
+    Literal,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import discord
-import yaml
+import msgspec
+from typing_extensions import TypeGuard, get_args, get_origin, override
 
 RAND = random.SystemRandom()
 
-
-class Action:
-    """Represent a possible action."""
-
-    def __init__(self, data: Any, conf: "Config") -> None:
-        self._data = data
-        self._config = conf
-
-    def text(self) -> str:
-        """Text used to describe action."""
-        return cast(str, self._data["text"])
-
-    def fail_text(self, member: discord.Member) -> str:
-        """Text to print if action is failed."""
-        return self._config.conjugate(
-            self._data.get("fail", {}).get("text", ""), member
-        )
-
-    def fail_gif(self) -> str:
-        """Gif to print if action is failed."""
-        return cast(str, self._data.get("fail", {}).get("gif", ""))
-
-    def success_text(self, member: discord.Member) -> str:
-        """Text to print if action is success."""
-        return self._config.conjugate(
-            self._data.get("success", {}).get("text", ""), member
-        )
-
-    def success_gif(self) -> str:
-        """Gif to print if action is success."""
-        return cast(str, self._data.get("success", {}).get("gif", ""))
+T = TypeVar("T")
+V = TypeVar("V")
+Members = Union[discord.Member, list[discord.Member]]
+RESOURCES = pathlib.Path(__file__).parent.resolve() / "resources"
 
 
-class Command:
-    """Represent a possible action."""
+class Serializable(ABC, Generic[V]):
+    _decodable_flag = True
 
-    def __init__(self, data: Any, conf: "Config") -> None:
-        self._data = data
-        self._config = conf
+    @abstractmethod
+    def encode(self) -> V:
+        """Encode current object of msgspec."""
+
+    @classmethod
+    @abstractmethod
+    def decode(cls: type[T], args: tuple[Any, ...], obj: V) -> T:
+        """Encode current object of msgspec."""
+
+    @staticmethod
+    def decodable(typ: type[Any]) -> TypeGuard["type[Serializable[T]]"]:
+        """Check if a class is decodable."""
+        return hasattr(typ, "_decodable_flag")
 
 
-class Config:
-    def __init__(self, config_path: Path) -> None:
-        with config_path.open("r", encoding="utf8") as file:
-            self._data = yaml.safe_load(file)
+class ConjugableText(Serializable[str]):
+    __slots__ = ("_conjugation", "_text")
 
-    @property
-    def guild_id(self) -> int:
-        return cast(int, self._data["guild"])
+    def __init__(self, text: str):
+        """Create a conjugable text."""
+        self._text = text
+        self._conjugation: Conjugation = {}
 
-    @property
-    def admin_ids(self) -> Tuple[int, ...]:
-        return cast(Tuple[int, ...], tuple(self._data["admins"]))
+    def __str__(self) -> str:
+        """Get the string representation."""
+        return f"<{self.__class__.__name__} {self._text!r}>"
 
-    @property
-    def token(self) -> int:
-        return cast(int, self._data["token"])
+    __repr__ = __str__
 
-    @property
-    def database(self) -> str:
-        return cast(str, self._data["database"])
+    @override
+    def encode(self) -> str:
+        return self._text
 
-    @property
-    def group(self) -> str:
-        return cast(str, self._data["group"])
+    @override
+    @classmethod
+    def decode(cls, typ: tuple[Any, ...], obj: str) -> "ConjugableText":
+        return cls(obj)
 
-    def command_attr(self, name: str, key: str) -> Any:
-        return cast(float, self._data["commands"][name][key])
-
-    def hunt_cooldown(self) -> float:
-        min_ = self._data["hunt"]["cooldown"]["min"]
-        max_ = self._data["hunt"]["cooldown"]["max"]
-        min_, max_ = min(min_, max_), max(min_, max_)
-        return cast(float, min_ + RAND.random() * (max_ - min_))
-
-    def hunt_timeout(self) -> float:
-        return cast(float, self._data["hunt"]["timeout"])
-
-    def hunt_weight_egg(self) -> float:
-        return cast(float, self._data["hunt"]["weights"]["egg"])
-
-    def hunt_weight_speed(self) -> float:
-        return cast(float, self._data["hunt"]["weights"]["speed"])
-
-    @property
-    def woman_id(self) -> int:
-        return cast(int, self._data["woman_id"])
-
-    def emoji(self) -> discord.PartialEmoji:
-        return discord.PartialEmoji(
-            name="_", animated=False, id=RAND.choice(self._data["emojis"])
-        )
-
-    def emojis(self) -> Tuple[discord.PartialEmoji, ...]:
-        return tuple(
-            discord.PartialEmoji(name="_", animated=False, id=emoji_id)
-            for emoji_id in self._data["emojis"]
-        )
-
-    def action(self) -> Action:
-        return Action(RAND.choice(self._data["action"]), self)
-
-    def appear(self) -> str:
-        return cast(str, RAND.choice(self._data["appear"]))
-
-    def spotted(self, member: discord.Member) -> str:
-        return self.conjugate(
-            RAND.choice(self._data["spotted"]), member=member
-        )
-
-    def hidden(self, member: discord.Member) -> str:
-        return self.conjugate(RAND.choice(self._data["hidden"]), member)
-
-    def failed(self, member: discord.Member) -> str:
-        return self.conjugate(RAND.choice(self._data["failed"]), member)
-
-    def conjugate(self, text: str, member: discord.Member) -> str:
+    @staticmethod
+    def gender(member: discord.Member) -> Literal["man", "woman"]:
+        """Get the gender of a people."""
         if any(
-            role.name.lower() in ("woman", "girl", "femme", "fille")
+            marker in role.name.casefold()
             for role in member.roles
+            for marker in (
+                "woman",
+                "girl",
+                "femme",
+                "fille",
+                "elle",
+                "her",
+                "she",
+            )
         ):
-            key = "woman"
+            return "woman"
+        return "man"
+
+    def attach(self, conjugation: "Conjugation") -> None:
+        """Attach conjugation to the text."""
+        self._conjugation = conjugation
+
+    def __call__(self, members: Members) -> str:
+        """Conjugate the text."""
+        if isinstance(members, discord.Member):
+            members = [members]
+        if not members:
+            gender = "man"
         else:
-            key = "man"
-        for term, versions in self._data["conjugate"].items():
-            word = versions.get(key, "")
+            for member in members:
+                if self.gender(member) == "man":
+                    gender = "man"
+                    break
+            else:
+                gender = "woman"
+        text = self._text
+        for term, versions in self._conjugation.items():
+            word = versions[gender]
             text = text.replace("{" + term.lower() + "}", word.lower())
             text = text.replace("{" + term.upper() + "}", word.upper())
             text = text.replace("{" + term.title() + "}", word.title())
-        text = text.replace("{user}", f"<@{member.id}>")
-        return text
+        return text.replace("{user}", f"<@{member.id}>")
+
+
+class RandomItem(
+    Serializable[list[T]],  # Stored form
+):
+    __slots__ = ("choices",)
+
+    def __str__(self) -> str:
+        """Get the string representation."""
+        return f"<{self.__class__.__name__} {self.choices!r}>"
+
+    __repr__ = __str__
+
+    def __init__(self, choices: Optional[Iterable[T]] = None):
+        """Create RandomItem."""
+        self.choices = list(choices) if choices is not None else []
+
+    @override
+    def encode(self) -> list[T]:
+        return self.choices
+
+    @override
+    @classmethod
+    def decode(cls, args: tuple[Any, ...], obj: list[T]) -> "RandomItem[T]":
+        return cls(convert(obj, typ=list[args[0]]))  # type: ignore[valid-type]
+
+    def rand(self) -> T:
+        """Get a random choice."""
+        return RAND.choice(self.choices)
+
+
+class RandomConjugableText(RandomItem[ConjugableText]):
+    def __call__(self, members: Members) -> str:
+        """Conjugate a random item."""
+        return self.rand()(members)
+
+    @override
+    @classmethod
+    def decode(
+        cls, args: tuple[Any, ...], obj: list[ConjugableText]
+    ) -> "RandomConjugableText":
+        return cls(convert(obj, typ=list[ConjugableText]))
+
+
+class MCooldown(msgspec.Struct):
+    min: float
+    max: float
+
+    def rand(self) -> float:
+        """Randomize a min to max."""
+        return self.min + RAND.random() * (self.max - self.min)
+
+
+class MWeights(msgspec.Struct):
+    egg: float
+    speed: float
+
+
+class MHunt(msgspec.Struct):
+    timeout: float
+    cooldown: MCooldown
+    weights: MWeights
+
+
+class MCommand(msgspec.Struct):
+    cooldown: float
+
+
+class MDiscovered(msgspec.Struct):
+    shield: int
+    min: float
+    max: float
+
+
+class MSpotted(msgspec.Struct):
+    shield: int
+    min: float
+    max: float
+
+
+class SearchCommand(MCommand):
+    discovered: MDiscovered
+    spotted: MSpotted
+
+
+class MGender(msgspec.Struct):
+    woman: str = ""
+    man: str = ""
+
+    def __getitem__(self, key: str) -> str:
+        """Get text."""
+        return getattr(self, key, "")
+
+
+class MEmbed(msgspec.Struct):
+    text: ConjugableText
+    gif: str
+
+
+class MText(msgspec.Struct):
+    text: str
+    success: MEmbed
+    fail: MEmbed
+
+
+Conjugation = dict[str, MGender]
+
+
+class MCommands(msgspec.Struct):
+    search: SearchCommand
+    top: MCommand
+    basket: MCommand
+    reset: MCommand
+    enable: MCommand
+    disable: MCommand
+    help: MCommand
+    edit: MCommand
+
+    def __getitem__(self, key: str, /) -> MCommand:
+        """Get a command."""
+        if key not in self.__struct_fields__:
+            raise KeyError(key)
+        try:
+            result = getattr(self, key)
+            if not isinstance(result, MCommand):
+                raise KeyError(key)
+        except AttributeError:
+            raise KeyError(key) from None
+        return result
+
+
+class MConfig(msgspec.Struct, dict=True):
+    owner_is_admin: bool
+    use_logging_file: bool
+    admins: list[int]
+    database: str
+    group: str
+    hunt: MHunt
+    conjugation: Conjugation
+    failed: RandomConjugableText
+    hidden: RandomConjugableText
+    spotted: RandomConjugableText
+    appear: RandomItem[str]
+    action: RandomItem[MText]
+    commands: MCommands
+    _resources: Optional[Union[pathlib.Path, msgspec.UnsetType]] = (
+        msgspec.field(name="resources", default=msgspec.UNSET)
+    )
+    _working_directory: Optional[Union[pathlib.Path, msgspec.UnsetType]] = (
+        msgspec.field(name="working_directory", default=msgspec.UNSET)
+    )
+    token: Optional[Union[str, msgspec.UnsetType]] = msgspec.UNSET
+
+    def verified_token(self) -> str:
+        """Get the safe token."""
+        if self.token is None or self.token is msgspec.UNSET:
+            error_message = "Token was not provided"
+            raise TypeError(error_message)
+        if "." not in self.token:
+            error_message = "Wrong token format"
+            raise ValueError(error_message)
+        return self.token
+
+    def attach_default_working_directory(
+        self,
+        path: Union[pathlib.Path, str],
+    ) -> None:
+        """Attach working directory."""
+        self._cwd = pathlib.Path(path)
+
+    @property
+    def working_directory(self) -> pathlib.Path:
+        """Get the safe token."""
+        if (
+            self._working_directory is None
+            or self._working_directory is msgspec.UNSET
+        ):
+            if hasattr(self, "_cwd"):
+                return self._cwd.resolve()
+            return pathlib.Path.cwd().resolve()
+        return self._working_directory.resolve()
+
+    @property
+    def resources(self) -> pathlib.Path:
+        """Get path to resources or the embed resources if not configured."""
+        if self._resources is None or self._resources is msgspec.UNSET:
+            return RESOURCES
+        if self._resources.is_absolute():
+            return self._resources
+        return self.working_directory / self._resources
+
+    def __post_init__(self) -> None:
+        """Add conjugation to item and check some value."""
+        for conjugable in self.failed.choices:
+            conjugable.attach(self.conjugation)
+        for conjugable in self.hidden.choices:
+            conjugable.attach(self.conjugation)
+        for conjugable in self.spotted.choices:
+            conjugable.attach(self.conjugation)
+        for choice in self.action.choices:
+            choice.success.text.attach(self.conjugation)
+            choice.fail.text.attach(self.conjugation)
+
+    def conjugate(self, text: str, member: discord.Member) -> str:
+        """Conjugate the text."""
+        conj = ConjugableText(text)
+        conj.attach(self.conjugation)
+        return conj(member)
+
+
+def _dec_hook(typ: type[T], obj: Any) -> T:
+    # Get the base type
+    origin: Optional[type[T]] = get_origin(typ)
+    if origin is None:
+        origin = typ
+    args = get_args(typ)
+    if issubclass(origin, discord.PartialEmoji):
+        return discord.PartialEmoji(  # type: ignore[return-value]
+            name="_", animated=False, id=obj
+        )
+    if issubclass(origin, pathlib.Path):
+        return cast(T, pathlib.Path(obj))
+    if Serializable.decodable(origin):
+        return cast(T, origin.decode(args, obj))
+    error_message = f"Invalid type {typ!r} for {obj!r}"
+    raise TypeError(error_message)
+
+
+def _enc_hook(obj: Any) -> Any:
+    if isinstance(obj, discord.PartialEmoji):
+        return obj.id
+    if isinstance(obj, pathlib.Path):
+        return str(obj)
+    if isinstance(obj, Serializable):
+        return obj.encode()
+    error_message = f"Invalid object {obj!r}"
+    raise TypeError(error_message)
+
+
+def load_yaml(data: Union[bytes, str], typ: type[T]) -> T:
+    """Load YAML."""
+    return msgspec.yaml.decode(  # type: ignore[no-any-return,unused-ignore]
+        data, type=typ, dec_hook=_dec_hook
+    )
+
+
+def dump_yaml(obj: Any) -> bytes:
+    """Load YAML."""
+    return msgspec.yaml.encode(  # type: ignore[no-any-return,unused-ignore]
+        obj, enc_hook=_enc_hook
+    )
+
+
+def convert(obj: Any, typ: type[T]) -> T:
+    """Convert object."""
+    return msgspec.convert(  # type: ignore[no-any-return,unused-ignore]
+        obj, type=typ, dec_hook=_dec_hook
+    )
+
+
+def load_config(
+    data: Union[bytes, str],
+    token: Optional[str] = None,
+    *,
+    env: bool = False,
+) -> MConfig:
+    """Load config."""
+    config = load_yaml(data, MConfig)
+    if env:
+        potential_token = os.environ.get("DISCORD_TOKEN")
+        if potential_token is not None:
+            config.token = potential_token
+    if token is not None:
+        config.token = token
+    return config
 
 
 def agree(
@@ -148,6 +395,7 @@ def agree(
     amount: Optional[int],
     *args: Any,
 ) -> str:
+    """Agree the text to the text."""
     if amount is None or amount in (-1, 0, 1):
         return singular.format(amount, *args)
     return plural.format(amount, *args)

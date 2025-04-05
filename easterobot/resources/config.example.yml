@@ -1,16 +1,19 @@
-token: YOUR_TOKEN
-guild: YOUR_GUILD_ID
-admins:
-  - YOUR_ID
-emojis:
-  - YOUR_EMOJI_ID
-database: postgresql+asyncpg://easterobot:easterobot@postgres:5432/easterobot
+token: YOU_MUST_PUT_YOUR_TOKEN_HERE
+owner_is_admin: true
+use_logging_file: true
+working_directory: null
+admins: []
+resources: null
+logs:
+  path: ./logs
+  level: INFO
+database: sqlite+aiosqlite://%(data)s/easterobot.db
 group: egg
 hunt:
   timeout: 300.0
   cooldown:
-    min: 600.0
-    max: 1200.0
+    min: 1200.0
+    max: 3000.0
   weights:
     egg: 0.4
     speed: 0.4
@@ -39,7 +42,7 @@ commands:
     cooldown: 10.0
   edit:
     cooldown: 30.0
-conjugate:
+conjugation:
   e:
     woman: "e"
   iel:

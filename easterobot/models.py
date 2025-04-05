@@ -1,5 +1,7 @@
-from sqlalchemy import BigInteger
-from sqlalchemy.orm import (  # type: ignore
+"""Module for models."""
+
+from sqlalchemy import BigInteger, Integer
+from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
     mapped_column,
@@ -8,14 +10,16 @@ from sqlalchemy.orm import (  # type: ignore
 DISCORD_URL = "https://discord.com/channels"
 
 
-class Base(DeclarativeBase):  # type: ignore
+class Base(DeclarativeBase):
     pass
 
 
 class Egg(Base):
     __tablename__ = "egg"
     id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True
+        BigInteger().with_variant(Integer, "sqlite"),
+        primary_key=True,
+        autoincrement=True,
     )
     guild_id: Mapped[int] = mapped_column(
         BigInteger, nullable=False, index=True
@@ -28,6 +32,7 @@ class Egg(Base):
 
     @property
     def jump_url(self) -> str:
+        """Url to jump to the egg."""
         guild_id = self.guild_id or "@me"
         return f"{DISCORD_URL}/{guild_id}/{self.channel_id}/{self.id}"
 
@@ -40,6 +45,7 @@ class Hunt(Base):
 
     @property
     def jump_url(self) -> str:
+        """Url to jump to an hunt."""
         guild_id = self.guild_id or "@me"
         return f"{DISCORD_URL}/{guild_id}/{self.channel_id}"
 

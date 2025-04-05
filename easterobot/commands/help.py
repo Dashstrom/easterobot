@@ -1,20 +1,33 @@
-from ..bot import embed
-from .base import EasterbotContext, controled_command, egg_command_group
+"""Module for help command."""
+
+from discord.app_commands import AppCommandGroup
+
+from easterobot.bot import embed
+
+from .base import Context, controlled_command, egg_command_group
 
 
 @egg_command_group.command(name="help", description="Obtenir de l'aide")
-@controled_command(cooldown=True)
-async def help_command(ctx: EasterbotContext) -> None:
+@controlled_command(cooldown=True)
+async def help_command(ctx: Context) -> None:
+    """Help command."""
     emb = embed(
         title="Liste des commandes",
-        description=ctx.bot.description,
-        thumbnail=ctx.bot.user.display_avatar.url,  # type: ignore
-        footer="Crée par Dashstrom#6593",
+        description=ctx.client.description,
+        thumbnail=(
+            ctx.client.user.display_avatar.url if ctx.client.user else None
+        ),
+        footer="Crée par dashstrom",
     )
-    for cmd in egg_command_group.subcommands:
-        emb.add_field(
-            name=f"/{egg_command_group.name} {cmd.name}",
-            value=f"{cmd.description}",
-            inline=False,
-        )
-    await ctx.respond(embed=emb, ephemeral=True)
+    for command in ctx.client.app_commands:
+        for option in command.options:
+            if not isinstance(option, AppCommandGroup):
+                continue
+            emb.add_field(
+                name=(
+                    f"</{egg_command_group.name} {option.name}:{command.id}>"
+                ),
+                value=f"{option.description}",
+                inline=False,
+            )
+    await ctx.response.send_message(embed=emb, ephemeral=True)
