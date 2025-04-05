@@ -43,7 +43,7 @@ InteractionChannel = Union[
 
 class Context(discord.Interaction[Easterobot]):
     user: discord.Member
-    command: app_commands.Command[Any, ..., Any]  # type: ignore[assignment]
+    command: "app_commands.Command[Any, ..., Any]"  # type: ignore[assignment]
     channel: InteractionChannel
     channel_id: int
     guild: discord.Guild
