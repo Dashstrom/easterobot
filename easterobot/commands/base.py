@@ -33,8 +33,6 @@ InteractionChannel = Union[
     discord.VoiceChannel,
     discord.StageChannel,
     discord.TextChannel,
-    discord.ForumChannel,
-    discord.CategoryChannel,
     discord.Thread,
     discord.DMChannel,
     discord.GroupChannel,
@@ -98,10 +96,8 @@ def controlled_command(
             have_perms = interaction.user.guild_permissions.is_superset(
                 needed_perms
             )
-            admin_ids = interaction.client.config.admins
-            is_super_admin = (
-                interaction.user.id in admin_ids
-                or interaction.user.id == interaction.client.owner_id
+            is_super_admin = interaction.client.is_super_admin(
+                interaction.user
             )
             if not have_perms and not is_super_admin:
                 logger.warning("%s failed for wrong permissions", event_repr)
@@ -113,7 +109,7 @@ def controlled_command(
 
             # Check command cooldown
             cmd = interaction.command.name
-            if cooldown:
+            if cooldown and not is_super_admin:
                 available_at = None
                 async with (
                     AsyncSession(interaction.client.engine) as session,

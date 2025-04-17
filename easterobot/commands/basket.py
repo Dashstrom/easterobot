@@ -60,7 +60,7 @@ async def basket_command(
         )
         egg_counts: dict[int, int] = dict(res.all())  # type: ignore[arg-type]
         egg_count = 0
-        for emoji in ctx.client.app_emojis.choices:
+        for emoji in ctx.client.egg_emotes.choices:
             try:
                 type_count = egg_counts.pop(emoji.id)
                 egg_count += type_count

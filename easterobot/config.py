@@ -219,7 +219,7 @@ class MText(msgspec.Struct):
 Conjugation = dict[str, MGender]
 
 
-class MCommands(msgspec.Struct):
+class MCommands(msgspec.Struct, forbid_unknown_fields=True):
     search: SearchCommand
     top: MCommand
     basket: MCommand
@@ -228,6 +228,9 @@ class MCommands(msgspec.Struct):
     disable: MCommand
     help: MCommand
     edit: MCommand
+    connect4: MCommand
+    tictactoe: MCommand
+    rockpaperscissor: MCommand
 
     def __getitem__(self, key: str, /) -> MCommand:
         """Get a command."""

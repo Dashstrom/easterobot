@@ -1,1 +1,5 @@
-https://openclipart.org/detail/169059/easter-eggs-by-viscious-speedViscious-SpeedColorfulEasterEggsclip
+eggs/ https://openclipart.org/detail/169059/easter-eggs-by-viscious-speedViscious-SpeedColorfulEasterEggsclip
+icons/arrow.png https://www.flaticon.com/free-icon/right-arrow_10570067
+icons/end.png https://www.flaticon.com/free-icon/end_5553850
+icons/versus.png https://www.flaticon.com/free-icon/versus_7960356
+icons/wait.png https://www.flaticon.com/free-icon/hourglass_3874060

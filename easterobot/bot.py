@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from getpass import getpass
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Optional,
@@ -24,6 +25,9 @@ import discord.ext.commands
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.sql.expression import Select
+
+if TYPE_CHECKING:
+    from easterobot.games.game import GameCog
 
 from .config import (
     RAND,
@@ -52,6 +56,7 @@ INTENTS = discord.Intents.all()
 
 class Easterobot(discord.ext.commands.Bot):
     owner: discord.User
+    game: "GameCog"
 
     def __init__(self, config: MConfig) -> None:
         """Initialise Easterbot."""
@@ -74,7 +79,7 @@ class Easterobot(discord.ext.commands.Bot):
                 defaults=defaults,
             )
         self.app_commands: list[discord.app_commands.AppCommand] = []
-        self.app_emojis: RandomItem[discord.Emoji] = RandomItem([])
+        self.app_emojis: dict[str, discord.Emoji] = {}
         database_uri = self.config.database.replace(
             "%(data)s", "/" + self.config.working_directory.as_posix()
         )
@@ -127,11 +132,25 @@ class Easterobot(discord.ext.commands.Bot):
         (destination / ".gitignore").write_bytes(b"*\n")
         return Easterobot(config)
 
+    def is_super_admin(
+        self,
+        user: Union[discord.User, discord.Member],
+    ) -> bool:
+        """Get if user is admin."""
+        return (
+            user.id in self.config.admins
+            or user.id in (self.owner.id, self.owner_id)
+            or (self.owner_ids is not None and user.id in self.owner_ids)
+        )
+
     # Method that loads cogs
     async def setup_hook(self) -> None:
         """Setup hooks."""
         await self.load_extension(
             "easterobot.commands", package="easterobot.commands.__init__"
+        )
+        await self.load_extension(
+            "easterobot.games", package="easterobot.games.__init__"
         )
 
     def auto_run(self) -> None:
@@ -150,28 +169,14 @@ class Easterobot(discord.ext.commands.Bot):
         self.owner = app_info.owner
         logger.info("Owner is %s (%s)", self.owner.display_name, self.owner.id)
 
-        # Sync emojis
-        emojis = {
-            emoji.name: emoji
-            for emoji in await self.fetch_application_emojis()
-        }
-        eggs_path = (self.config.resources / "eggs").resolve()
-        self.app_emojis = RandomItem([])
-        for egg in eggs_path.iterdir():
-            if egg.stem not in emojis:
-                logger.info(
-                    "Missing emoji %s, create emoji on application",
-                    egg.stem,
-                )
-                image_data = egg.read_bytes()
-                emoji = await self.create_application_emoji(
-                    name=egg.stem,
-                    image=image_data,
-                )
-                self.app_emojis.choices.append(emoji)
-            else:
-                logger.info("Load emoji %s", egg.stem)
-                self.app_emojis.choices.append(emojis[egg.stem])
+        # Load emojis
+        await self._load_emojis()
+
+        # Load eggs
+        eggs_path = (self.config.resources / "emotes" / "eggs").resolve()
+        self.egg_emotes = RandomItem(
+            [self.app_emojis[path.stem] for path in eggs_path.glob("**/*")]
+        )
 
         # Create the tables
         async with self.engine.begin() as session:
@@ -197,6 +202,32 @@ class Easterobot(discord.ext.commands.Bot):
             await asyncio.sleep(5)
             pending_hunts.add(asyncio.create_task(self.loop_hunt()))
 
+    async def _load_emojis(self) -> None:
+        emojis = {
+            emoji.name: emoji
+            for emoji in await self.fetch_application_emojis()
+        }
+        emotes_path = (self.config.resources / "emotes").resolve()
+        self.app_emojis = {}
+        for emote in emotes_path.glob("**/*"):
+            if not emote.is_file():
+                continue
+            name = emote.stem
+            if emote.stem not in emojis:
+                logger.info(
+                    "Missing emoji %s, create emoji on application",
+                    name,
+                )
+                image_data = emote.read_bytes()
+                emoji = await self.create_application_emoji(
+                    name=name,
+                    image=image_data,
+                )
+                self.app_emojis[name] = emoji
+            else:
+                logger.info("Load emoji %s", name)
+                self.app_emojis[name] = emojis[name]
+
     async def start_hunt(  # noqa: C901, PLR0912, PLR0915
         self,
         hunt_id: int,
@@ -219,7 +250,7 @@ class Easterobot(discord.ext.commands.Bot):
         # Get from config
         action = self.config.action.rand()
         guild = channel.guild
-        emoji = self.app_emojis.rand()
+        emoji = self.egg_emotes.rand()
 
         # Label and hunters
         hunters: list[discord.Member] = []

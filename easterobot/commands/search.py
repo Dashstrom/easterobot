@@ -89,7 +89,7 @@ async def search_command(ctx: Context) -> None:
             )
         else:
             logger.info("found: %.2f > %.2f", prob_s, sample_s)
-            emoji = ctx.client.app_emojis.rand()
+            emoji = ctx.client.egg_emotes.rand()
             async with AsyncSession(ctx.client.engine) as session:
                 session.add(
                     Egg(

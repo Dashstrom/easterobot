@@ -30,6 +30,12 @@ commands:
     cooldown: 600.0
   top:
     cooldown: 10.0
+  connect4:
+    cooldown: 60.0
+  rockpaperscissor:
+    cooldown: 60.0
+  tictactoe:
+    cooldown: 60.0
   basket:
     cooldown: 10.0
   reset:

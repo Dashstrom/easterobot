@@ -52,7 +52,7 @@ async def edit_command(
                         guild_id=ctx.guild_id,
                         channel_id=ctx.channel_id,
                         user_id=user.id,
-                        emoji_id=ctx.client.app_emojis.rand().id,
+                        emoji_id=ctx.client.egg_emotes.rand().id,
                     )
                 )
             await session.commit()
