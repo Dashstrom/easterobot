@@ -2,7 +2,7 @@
 
 from discord.app_commands import AppCommandGroup
 
-from easterobot.bot import embed
+from easterobot.hunts.hunt import embed
 
 from .base import Context, controlled_command, egg_command_group
 

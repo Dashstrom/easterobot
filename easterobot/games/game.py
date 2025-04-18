@@ -1,6 +1,7 @@
 """Base class for game."""
 
 import asyncio
+import contextlib
 import datetime
 import logging
 from collections.abc import Coroutine
@@ -14,7 +15,8 @@ from discord.message import convert_emoji_reaction
 from discord.utils import format_dt
 
 from easterobot.bot import Easterobot
-from easterobot.commands.base import Context, Interaction
+from easterobot.commands.base import Context, Interaction, InteractionChannel
+from easterobot.config import RAND
 
 logger = logging.getLogger(__name__)
 AsyncCallback = Callable[[], Coroutine[Any, Any, None]]
@@ -56,12 +58,18 @@ class Game:
         self.lock = asyncio.Lock()
         self._cleanup: Optional[AsyncCallback] = None
         self._completion: Optional[AsyncCallback] = None
+        self._end_event = asyncio.Event()
         self._reset_countdown_event = asyncio.Event()
         self._timeout_task: Optional[asyncio.Task[None]] = None
 
     async def set_completion(self, callback: AsyncCallback) -> None:
         """Get the current state for a player."""
         self._completion = callback
+
+    async def wait_winner(self) -> Optional[discord.Member]:
+        """Wait the end of the game."""
+        await self._end_event.wait()
+        return self.winner
 
     async def on_start(self) -> None:
         """Get the current state for a player."""
@@ -84,6 +92,7 @@ class Game:
             await self._cleanup()
         if self._completion is not None:
             await self._completion()
+        self._end_event.set()
 
     def start_timer(self, seconds: float) -> str:
         """Start the timer for turn."""
@@ -130,6 +139,30 @@ class GameCog(commands.Cog):
         self.bot = bot
         self._games: dict[int, Game] = {}
 
+    async def dual(
+        self,
+        channel: InteractionChannel,
+        reference: discord.Message,
+        user1: discord.Member,
+        user2: discord.Member,
+    ) -> Optional[discord.Member]:
+        """Start a dual between two players."""
+        from easterobot.games.connect import Connect4
+        from easterobot.games.rock_paper_scissor import RockPaperScissor
+        from easterobot.games.tic_tac_toe import TicTacToe
+
+        cls = RAND.choice([Connect4, TicTacToe, RockPaperScissor])
+        now = datetime.datetime.now() + datetime.timedelta(seconds=63)  # noqa: DTZ005
+        dt = format_dt(now, style="R")
+        msg = await channel.send(
+            f"{user1.mention} et {user2.mention} vont s'affronter {dt} ...",
+            reference=reference,
+        )
+        await asyncio.sleep(63)
+        game: Game = cls(user1, user2, msg)  # type: ignore[operator]
+        await self.run(game)
+        return await game.wait_winner()
+
     async def run(self, game: Game) -> None:
         """Attach the game to the manager."""
         message_id = game.message.id
@@ -157,18 +190,16 @@ class GameCog(commands.Cog):
 
         view = discord.ui.View()
         yes_btn: Button = discord.ui.Button(
-            label="Accepter",
-            style=discord.ButtonStyle.green,
-            emoji="✅"
+            label="Accepter", style=discord.ButtonStyle.green, emoji="✅"
         )
         no_btn: Button = discord.ui.Button(
-            label="Refuser",
-            style=discord.ButtonStyle.gray,
-            emoji="❌"
+            label="Refuser", style=discord.ButtonStyle.gray, emoji="❌"
         )
+
         async def yes(interaction: Interaction) -> Any:
             if interaction.user.id == member.id:
                 future.set_result(True)
+
         async def no(interaction: Interaction) -> Any:
             if interaction.user.id == member.id:
                 future.set_result(False)
@@ -181,11 +212,22 @@ class GameCog(commands.Cog):
         dt = format_dt(now, style="R")
         result = await ctx.response.send_message(
             f"{member.mention}, {ctx.user.mention} vous demande en duel ⚔️"
-            f"Vous avez {dt} pour répondre !",
-            view=view
+            f"\nVous avez {dt} pour répondre !",
+            view=view,
         )
-        accept = await asyncio.wait_for(future, timeout=60)
+        message = result.resource
+        if not isinstance(message, discord.Message):
+            error_message = f"Invalid kind of message: {message!r}"
+            raise TypeError(error_message)
+        with contextlib.suppress(asyncio.TimeoutError):
+            accept = await asyncio.wait_for(future, timeout=60)
         if not accept:
+            await message.edit(
+                content=(
+                    f"{member.mention}, {ctx.user.mention} a refusé le duel 🛡️"
+                ),
+                view=None,
+            )
             return None
         if not isinstance(result.resource, discord.Message):
             error_message = f"Invalid kind of message: {result.resource!r}"

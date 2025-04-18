@@ -1,6 +1,7 @@
 """Module for disable hunt."""
 
 import discord
+from discord import app_commands
 
 from easterobot.games.connect import Connect4
 from easterobot.games.rock_paper_scissor import RockPaperScissor
@@ -13,13 +14,21 @@ from .base import Context, controlled_command, egg_command_group
     name="connect4", description="Lancer une partie de puissance 4."
 )
 @controlled_command(cooldown=True)
-async def connect4_command(ctx: Context, member: discord.Member) -> None:
+async def connect4_command(
+    ctx: Context,
+    member: discord.Member,
+    bet: app_commands.Range[int, 0] = 0,  # noqa: ARG001
+) -> None:
     """Run a Connect4."""
     if (member.bot or member == ctx.user) and not ctx.client.is_super_admin(
         member
     ):
-        await ctx.response.send_message("Invalid user !", ephemeral=True)
+        await ctx.response.send_message(
+            "L'utilisateur n'est pas valide !",
+            ephemeral=True,
+        )
         return
+
     msg = await ctx.client.game.ask_dual(ctx, member)
     if msg:
         game = Connect4(ctx.user, member, msg)
@@ -30,7 +39,11 @@ async def connect4_command(ctx: Context, member: discord.Member) -> None:
     name="tictactoe", description="Lancer une partie de morpion."
 )
 @controlled_command(cooldown=True)
-async def tictactoe_command(ctx: Context, member: discord.Member) -> None:
+async def tictactoe_command(
+    ctx: Context,
+    member: discord.Member,
+    bet: app_commands.Range[int, 0] = 0,  # noqa: ARG001
+) -> None:
     """Run a tictactoe."""
     if (member.bot or member == ctx.user) and not ctx.client.is_super_admin(
         member
@@ -50,7 +63,9 @@ async def tictactoe_command(ctx: Context, member: discord.Member) -> None:
 )
 @controlled_command(cooldown=True)
 async def rockpaperscissor_command(
-    ctx: Context, member: discord.Member
+    ctx: Context,
+    member: discord.Member,
+    bet: app_commands.Range[int, 0] = 0,  # noqa: ARG001
 ) -> None:
     """Run a rockpaperscissor."""
     if (member.bot or member == ctx.user) and not ctx.client.is_super_admin(

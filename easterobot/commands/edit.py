@@ -1,11 +1,12 @@
 """Module for edit command."""
 
 import discord
+from discord import app_commands
 from sqlalchemy import and_, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from easterobot.bot import embed
 from easterobot.config import RAND, agree
+from easterobot.hunts.hunt import embed
 from easterobot.models import Egg
 
 from .base import Context, controlled_command, egg_command_group
@@ -18,10 +19,9 @@ from .base import Context, controlled_command, egg_command_group
 async def edit_command(
     ctx: Context,
     user: discord.Member,
-    oeufs: int,
+    oeufs: app_commands.Range[int, 0, 10_000],
 ) -> None:
     """Edit command."""
-    oeufs = min(max(oeufs, 0), 100_000)
     await ctx.response.defer(ephemeral=True)
     async with AsyncSession(ctx.client.engine) as session:
         eggs: list[Egg] = list(

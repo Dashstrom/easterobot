@@ -8,23 +8,14 @@ import discord
 from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from easterobot.bot import embed
-from easterobot.config import agree
+from easterobot.hunts.hunt import embed
+from easterobot.hunts.rank import Ranking
 from easterobot.models import Egg
 
 from .base import Context, Interaction, controlled_command, egg_command_group
 
 PAGE_SIZE = 10
 logger = logging.getLogger(__name__)
-
-
-def record_top(rank: str, user_id: int, count: int) -> str:
-    """Format the current user."""
-    return (
-        f"{rank} <@{user_id}>\n"
-        f"\u2004\u2004\u2004\u2004\u2004"
-        f"➥ {agree('{0} œuf', '{0} œufs', count)}"
-    )
 
 
 async def embed_rank(
@@ -34,13 +25,11 @@ async def embed_rank(
 ) -> tuple[discord.Embed, bool]:
     """Embed for rank."""
     async with AsyncSession(ctx.client.engine) as session:
-        egg_counts = await ctx.client.get_ranks(
-            session, ctx.guild_id, PAGE_SIZE, page
-        )
-        morsels = []
-        if egg_counts:
-            for user_id, rank, egg_count in egg_counts[:10]:
-                morsels.append(record_top(rank, user_id, egg_count))
+        ranking = await Ranking.from_guild(session, ctx.guild_id)
+        hunters = ranking.page(page, limit=PAGE_SIZE)
+        morsels: list[str] = []
+        if hunters:
+            morsels.extend(hunter.record for hunter in hunters)
         else:
             morsels.append("\n:spider_web: Personne n'a d'œuf")
         total = await session.scalar(

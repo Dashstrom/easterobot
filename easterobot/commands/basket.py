@@ -7,13 +7,14 @@ from discord import app_commands
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from easterobot.bot import embed
 from easterobot.commands.base import (
     Context,
     controlled_command,
     egg_command_group,
 )
 from easterobot.config import agree
+from easterobot.hunts.hunt import embed
+from easterobot.hunts.rank import Ranking
 from easterobot.models import Egg
 
 
@@ -41,10 +42,8 @@ async def basket_command(
     async with AsyncSession(ctx.client.engine) as session:
         morsels = []
         missing = []
-        user_egg_count = await ctx.client.get_rank(
-            session, ctx.guild_id, hunter.id
-        )
-        rank = user_egg_count[1] if user_egg_count else None
+        ranking = await Ranking.from_guild(session, ctx.guild_id)
+        hunter_rank = ranking.get(hunter.id)
         res = await session.execute(
             select(
                 Egg.emoji_id,
@@ -73,12 +72,11 @@ async def basket_command(
             egg_count += absent_count
             morsels.insert(0, f"🥚 \xd7 {absent_count}")
 
-        if rank is not None:
-            il = ctx.client.config.conjugate("{Iel} est", hunter)
-            morsels.insert(
-                0,
-                f"**{'Tu es' if you else il} au rang** {rank}\n",
-            )
+        il = ctx.client.config.conjugate("{Iel} est", hunter)
+        morsels.insert(
+            0,
+            f"**{'Tu es' if you else il} au rang** {hunter_rank.badge}\n",
+        )
 
         their = "te" if you else "lui"
         if missing:

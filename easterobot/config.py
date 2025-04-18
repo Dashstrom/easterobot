@@ -167,12 +167,14 @@ class MCooldown(msgspec.Struct):
 class MWeights(msgspec.Struct):
     egg: float
     speed: float
+    base: float
 
 
 class MHunt(msgspec.Struct):
     timeout: float
     cooldown: MCooldown
     weights: MWeights
+    game: float
 
 
 class MCommand(msgspec.Struct):

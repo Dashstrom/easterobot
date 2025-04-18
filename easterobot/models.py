@@ -1,6 +1,6 @@
 """Module for models."""
 
-from sqlalchemy import BigInteger, Integer
+from sqlalchemy import BigInteger, Boolean, Integer
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -29,6 +29,7 @@ class Egg(Base):
         BigInteger, nullable=False, index=True
     )
     emoji_id: Mapped[int] = mapped_column(BigInteger, nullable=True)
+    lock: Mapped[bool] = mapped_column(Boolean, default=False)
 
     @property
     def jump_url(self) -> str:

@@ -7,7 +7,7 @@ import discord
 from sqlalchemy import and_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from easterobot.bot import embed
+from easterobot.hunts.hunt import embed
 from easterobot.models import Cooldown, Egg, Hunt
 
 from .base import Context, Interaction, controlled_command, egg_command_group

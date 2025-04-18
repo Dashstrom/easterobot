@@ -7,8 +7,8 @@ import discord
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from easterobot.bot import embed
 from easterobot.config import RAND, agree
+from easterobot.hunts.hunt import embed
 from easterobot.models import Egg, Hunt
 
 from .base import (
@@ -81,7 +81,7 @@ async def search_command(ctx: Context) -> None:
             ) -> discord.Message:
                 return await ctx.followup.send(*args, **kwargs)  # type: ignore[no-any-return]
 
-            await ctx.client.start_hunt(
+            await ctx.client.hunt.start_hunt(
                 ctx.channel_id,
                 ctx.client.config.spotted(ctx.user),
                 member_id=ctx.user.id,
