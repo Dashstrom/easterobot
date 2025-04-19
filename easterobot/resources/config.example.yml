@@ -21,6 +21,7 @@ hunt:
     speed: 0.3
 commands:
   search:
+    cooldown: 600.0
     discovered:
       shield: 5
       min: 0.5
@@ -29,15 +30,14 @@ commands:
       shield: 10
       min: 0.4
       max: 0.7
-    cooldown: 600.0
   top:
     cooldown: 10.0
   connect4:
-    cooldown: 60.0
+    cooldown: 120.0
   rockpaperscissor:
-    cooldown: 60.0
+    cooldown: 120.0
   tictactoe:
-    cooldown: 60.0
+    cooldown: 120.0
   basket:
     cooldown: 10.0
   reset:

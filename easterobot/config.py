@@ -1,9 +1,12 @@
 """Main program."""
 
+import logging
+import logging.config
 import os
 import pathlib
 import random
 from abc import ABC, abstractmethod
+from argparse import Namespace
 from collections.abc import Iterable
 from typing import (
     Any,
@@ -17,6 +20,7 @@ from typing import (
 
 import discord
 import msgspec
+from alembic.config import Config
 from typing_extensions import TypeGuard, get_args, get_origin, override
 
 RAND = random.SystemRandom()
@@ -24,7 +28,11 @@ RAND = random.SystemRandom()
 T = TypeVar("T")
 V = TypeVar("V")
 Members = Union[discord.Member, list[discord.Member]]
+
+HERE = pathlib.Path(__file__).parent.resolve()
 RESOURCES = pathlib.Path(__file__).parent.resolve() / "resources"
+DEFAULT_CONFIG_PATH = pathlib.Path("config.yml")
+EXAMPLE_CONFIG_PATH = RESOURCES / "config.example.yml"
 
 
 class Serializable(ABC, Generic[V]):
@@ -261,13 +269,20 @@ class MConfig(msgspec.Struct, dict=True):
     appear: RandomItem[str]
     action: RandomItem[MText]
     commands: MCommands
+    token: Optional[Union[str, msgspec.UnsetType]] = msgspec.UNSET
     _resources: Optional[Union[pathlib.Path, msgspec.UnsetType]] = (
         msgspec.field(name="resources", default=msgspec.UNSET)
     )
     _working_directory: Optional[Union[pathlib.Path, msgspec.UnsetType]] = (
         msgspec.field(name="working_directory", default=msgspec.UNSET)
     )
-    token: Optional[Union[str, msgspec.UnsetType]] = msgspec.UNSET
+
+    @property
+    def database_uri(self) -> str:
+        """Get async string for database."""
+        return self.database.replace(
+            "%(data)s", "/" + self.working_directory.as_posix()
+        )
 
     def verified_token(self) -> str:
         """Get the safe token."""
@@ -325,6 +340,36 @@ class MConfig(msgspec.Struct, dict=True):
         conj.attach(self.conjugation)
         return conj(member)
 
+    def alembic_config(self, namespace: Optional[Namespace] = None) -> Config:
+        """Get alembic config."""
+        config_alembic = str(self.resources / "alembic.ini")
+        cfg = Config(
+            file_=config_alembic,
+            ini_section="alembic" if namespace is None else namespace.name,
+            cmd_opts=namespace,
+            attributes={
+                "easterobot_config": self,
+            },
+        )
+        cfg.set_main_option("sqlalchemy.url", self.database_uri)
+        cfg.set_main_option("script_location", str(HERE / "alembic"))
+        return cfg
+
+    def configure_logging(self) -> None:
+        """Configure logging."""
+        if self.use_logging_file and not hasattr(self, "__logging_flag"):
+            logging_file = self.resources / "logging.conf"
+            defaults = {"data": self.working_directory.as_posix()}
+            if not logging_file.is_file():
+                error_message = f"Cannot find message: {str(logging_file)!r}"
+                raise FileNotFoundError(error_message)
+            logging.config.fileConfig(
+                logging_file,
+                disable_existing_loggers=False,
+                defaults=defaults,
+            )
+            self.__logging_flag = True
+
 
 def _dec_hook(typ: type[T], obj: Any) -> T:
     # Get the base type
@@ -376,7 +421,7 @@ def convert(obj: Any, typ: type[T]) -> T:
     )
 
 
-def load_config(
+def load_config_from_buffer(
     data: Union[bytes, str],
     token: Optional[str] = None,
     *,
@@ -390,6 +435,20 @@ def load_config(
             config.token = potential_token
     if token is not None:
         config.token = token
+    return config
+
+
+def load_config_from_path(
+    path: Union[str, pathlib.Path],
+    token: Optional[str] = None,
+    *,
+    env: bool = False,
+) -> MConfig:
+    """Load config."""
+    path = pathlib.Path(path)
+    data = path.read_bytes()
+    config = load_config_from_buffer(data, token=token, env=env)
+    config.attach_default_working_directory(path.parent)
     return config
 
 

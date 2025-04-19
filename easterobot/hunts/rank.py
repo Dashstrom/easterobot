@@ -1,13 +1,9 @@
 """Start a run."""
 
 from dataclasses import dataclass
-from typing import (
-    Any,
-)
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.expression import Select
 
 from easterobot.config import agree
 from easterobot.models import Egg
@@ -30,7 +26,7 @@ class Hunter:
     def record(self) -> str:
         """Get the records of eggs."""
         return (
-            f"{self.rank} <@{self.member_id}>\n"
+            f"{self.badge} <@{self.member_id}>\n"
             f"\u2004\u2004\u2004\u2004\u2004"
             f"➥ {agree('{0} œuf', '{0} œufs', self.eggs)}"
         )
@@ -45,6 +41,10 @@ class Ranking:
         """Get all hunter."""
         return self.hunters
 
+    def over(self, limit: int) -> list[Hunter]:
+        """Get all hunter over limit."""
+        return [h for h in self.hunters if h.eggs >= limit]
+
     def page(self, n: int, *, limit: int) -> list[Hunter]:
         """Get a hunters by page."""
         if n < 0 or limit < 0:
@@ -57,17 +57,6 @@ class Ranking:
             if hunter.member_id == member_id:
                 return hunter
         return Hunter(member_id, min(len(self.hunters), 1), 0)
-
-    async def _compute_rank(
-        self,
-        session: AsyncSession,
-        query: Select[Any],
-    ) -> list[Hunter]:
-        res = await session.execute(query)
-        return [
-            Hunter(member_id, rank, egg_count)
-            for member_id, rank, egg_count in res.all()
-        ]
 
     @staticmethod
     async def from_guild(

@@ -53,6 +53,7 @@ class Connect(Game):
         await self.update()
         for emoji in EMOJIS[: self.cols]:
             await self.message.add_reaction(emoji)
+        self.start_timer(60)
 
     async def update(self) -> None:
         """Update the text."""

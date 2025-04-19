@@ -16,6 +16,7 @@ from typing import (
 import discord
 import discord.app_commands
 import discord.ext.commands
+from alembic.command import upgrade
 from sqlalchemy.ext.asyncio import create_async_engine
 
 if TYPE_CHECKING:
@@ -23,22 +24,19 @@ if TYPE_CHECKING:
     from easterobot.hunts.hunt import HuntCog
 
 from .config import (
+    DEFAULT_CONFIG_PATH,
+    EXAMPLE_CONFIG_PATH,
     RESOURCES,
     MConfig,
     RandomItem,
     dump_yaml,
-    load_config,
+    load_config_from_buffer,
+    load_config_from_path,
 )
-from .models import Base
 
 T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
-
-HERE = Path(__file__).parent
-
-DEFAULT_CONFIG_PATH = pathlib.Path("config.yml")
-EXAMPLE_CONFIG_PATH = RESOURCES / "config.example.yml"
 INTENTS = discord.Intents.all()
 
 
@@ -56,38 +54,34 @@ class Easterobot(discord.ext.commands.Bot):
             intents=INTENTS,
         )
         self.config = config
-        defaults = {"data": self.config.working_directory.as_posix()}
-        if self.config.use_logging_file:
-            logging_file = self.config.resources / "logging.conf"
-            if not logging_file.is_file():
-                error_message = f"Cannot find message: {str(logging_file)!r}"
-                raise FileNotFoundError(error_message)
-            logging.config.fileConfig(
-                logging_file,
-                disable_existing_loggers=False,
-                defaults=defaults,
-            )
+
+        # Attributes
         self.app_commands: list[discord.app_commands.AppCommand] = []
         self.app_emojis: dict[str, discord.Emoji] = {}
-        database_uri = self.config.database.replace(
-            "%(data)s", "/" + self.config.working_directory.as_posix()
+
+        # Configure logging
+        self.config.configure_logging()
+
+        # Update database
+        upgrade(self.config.alembic_config(), "head")
+
+        # Open database
+        logger.info("Open database %s", self.config.database_uri)
+        self.engine = create_async_engine(
+            self.config.database_uri,
+            echo=False,
         )
-        logger.info("Open database %s", database_uri)
-        self.engine = create_async_engine(database_uri, echo=False)
 
     @classmethod
     def from_config(
         cls,
-        config_path: Union[str, Path] = DEFAULT_CONFIG_PATH,
+        path: Union[str, Path] = DEFAULT_CONFIG_PATH,
         *,
         token: Optional[str] = None,
         env: bool = False,
     ) -> "Easterobot":
         """Instantiate Easterobot from config."""
-        path = pathlib.Path(config_path)
-        data = pathlib.Path(path).read_bytes()
-        config = load_config(data, token=token, env=env)
-        config.attach_default_working_directory(path.parent)
+        config = load_config_from_path(path, token=token, env=env)
         return Easterobot(config)
 
     @classmethod
@@ -103,7 +97,7 @@ class Easterobot(discord.ext.commands.Bot):
         destination = Path(destination).resolve()
         destination.mkdir(parents=True, exist_ok=True)
         config_data = EXAMPLE_CONFIG_PATH.read_bytes()
-        config = load_config(config_data, token=token, env=env)
+        config = load_config_from_buffer(config_data, token=token, env=env)
         config.attach_default_working_directory(destination)
         if interactive:
             while True:
@@ -184,10 +178,6 @@ class Easterobot(discord.ext.commands.Bot):
         self.egg_emotes = RandomItem(
             [self.app_emojis[path.stem] for path in eggs_path.glob("**/*")]
         )
-
-        # Create the tables
-        async with self.engine.begin() as session:
-            await session.run_sync(Base.metadata.create_all, checkfirst=True)
 
         # Log all available guilds
         async for guild in self.fetch_guilds():

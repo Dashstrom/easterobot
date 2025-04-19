@@ -13,7 +13,7 @@ from typing import (
 
 import discord
 from discord.ext import commands
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from easterobot.bot import Easterobot
@@ -35,6 +35,16 @@ class HuntCog(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         """Handle ready event, can be trigger many time if disconnected."""
+        # Unlock all eggs
+        logger.info("Unlock all previous eggs")
+        async with AsyncSession(self.bot.engine) as session:
+            await session.execute(
+                update(Egg).where(Egg.lock).values(lock=False)
+            )
+            await session.commit()
+
+        # Start hunt
+        logger.info("Start hunt handler")
         pending_hunts: set[asyncio.Task[Any]] = set()
         while True:
             if pending_hunts:

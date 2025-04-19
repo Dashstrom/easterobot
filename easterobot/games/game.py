@@ -183,6 +183,7 @@ class GameCog(commands.Cog):
         self,
         ctx: Context,
         member: discord.Member,
+        bet: int,
     ) -> Optional[discord.Message]:
         """Send basic message for initialization."""
         future: asyncio.Future[bool] = asyncio.Future()
@@ -190,29 +191,32 @@ class GameCog(commands.Cog):
 
         view = discord.ui.View()
         yes_btn: Button = discord.ui.Button(
-            label="Accepter", style=discord.ButtonStyle.green, emoji="✅"
+            label="Accepter", style=discord.ButtonStyle.green, emoji="⚔️"
         )
         no_btn: Button = discord.ui.Button(
-            label="Refuser", style=discord.ButtonStyle.gray, emoji="❌"
+            label="Refuser", style=discord.ButtonStyle.red, emoji="🛡️"
         )
 
         async def yes(interaction: Interaction) -> Any:
             if interaction.user.id == member.id:
                 future.set_result(True)
+            await interaction.response.defer()
 
         async def no(interaction: Interaction) -> Any:
             if interaction.user.id == member.id:
                 future.set_result(False)
+            await interaction.response.defer()
 
         yes_btn.callback = yes  # type: ignore[method-assign,assignment]
         no_btn.callback = no  # type: ignore[method-assign,assignment]
         view.add_item(yes_btn)
         view.add_item(no_btn)
-        now = datetime.datetime.now() + datetime.timedelta(seconds=60)  # noqa: DTZ005
+        now = datetime.datetime.now() + datetime.timedelta(seconds=180)  # noqa: DTZ005
         dt = format_dt(now, style="R")
         result = await ctx.response.send_message(
-            f"{member.mention}, {ctx.user.mention} vous demande en duel ⚔️"
-            f"\nVous avez {dt} pour répondre !",
+            f"{member.mention}, {ctx.user.mention} "
+            f"vous demande en duel pour `{bet}` œufs ⚔️"
+            f"\nVous devez repondre {dt} !",
             view=view,
         )
         message = result.resource
@@ -220,7 +224,7 @@ class GameCog(commands.Cog):
             error_message = f"Invalid kind of message: {message!r}"
             raise TypeError(error_message)
         with contextlib.suppress(asyncio.TimeoutError):
-            accept = await asyncio.wait_for(future, timeout=60)
+            accept = await asyncio.wait_for(future, timeout=180)
         if not accept:
             await message.edit(
                 content=(

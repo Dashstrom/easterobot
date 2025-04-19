@@ -8,6 +8,7 @@
   "files.associations": {
     "settings.json": "jsonc",
     "extensions.json": "jsonc",
+    "*.py.mako": "txt",
     "LICENSE": "txt"
   },
   // Files to exclude
