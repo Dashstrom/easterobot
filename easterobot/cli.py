@@ -4,7 +4,6 @@ import argparse
 import logging
 import sys
 from collections.abc import Sequence
-from traceback import print_exc
 from typing import NoReturn, Optional
 
 from alembic.config import CommandLine
@@ -160,9 +159,8 @@ def entrypoint(argv: Optional[Sequence[str]] = None) -> None:
                 cmd_alembic.run_cmd(cfg, namespace)
         else:
             parser.error("No command specified")  # pragma: no cover
-    except BaseException as err:  # NoQA: BLE001  # pragma: no cover
+    except Exception as err:  # NoQA: BLE001  # pragma: no cover
         setup_logging(verbose=True)
-        print_exc()
         logger.critical("Unexpected error", exc_info=err)
         logger.critical("Please, report this error to %s.", __issues__)
         sys.exit(1)
