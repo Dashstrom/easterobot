@@ -98,6 +98,7 @@ Configuration directory
 ..  code-block:: text
 
   data                        Root directory
+  ├── .gitignore              Avoid pushing sensitive data
   ├── config.yml              Configuration file
   ├── easterobot.db           Database
   ├── logs                    Logging directory
@@ -105,10 +106,14 @@ Configuration directory
   │   └── easterobot.log.1    Rotating log file
   └── resources               Resource directory
       ├── config.example.yml  An example of config
-      ├── credits.txt         Credits of eggs emoji
-      ├── eggs                Directory for eggs
-      │   └── egg_01.png      Emoji to use
+      ├── credits.txt         Credits of emotes
+      ├── emotes              Directory loaded as application emotes
+      │   ├── eggs            Directory for eggs
+      │   |   └── egg_01.png  Emoji to use for egg
+      │   └── icons           Misc emotes to load
+      │       └── arrow.png   Emoji used in messages
       ├── logging.conf        Logging configuration
+      ├── alembic.ini         Configure for alembic
       └── logo.png            Logo used by the bot
 
 Development
