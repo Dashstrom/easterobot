@@ -36,7 +36,7 @@ COPY . .
 RUN uv sync --frozen
 
 # Make script executable
-RUN chmod /src/entrypoint.sh
+RUN chmod +x /src/entrypoint.sh
 
 # Default command (use exec form for signal handling)
 CMD ["/src/entrypoint.sh"]
