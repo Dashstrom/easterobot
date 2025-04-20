@@ -170,7 +170,10 @@ def controlled_command(  # noqa: C901, PLR0915
             try:
                 await f(cast(Context, interaction), *args, **kwargs)
             except InterruptedCommandError:
-                logger.exception("InterruptedCommandError occur")
+                logger.warning(
+                    "InterruptedCommandError occur for %s",
+                    event_repr,
+                )
                 async with (
                     AsyncSession(interaction.client.engine) as session,
                     cooldown_lock,
