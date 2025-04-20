@@ -257,14 +257,36 @@ class GameCog(commands.Cog):
             return
         if payload.message_id in self._games:
             # Use connection for faster remove
-            emoji = convert_emoji_reaction(payload.emoji)
             game = self._games[payload.message_id]
             await asyncio.gather(
-                self.bot._connection.http.remove_reaction(  # noqa: SLF001
+                self.silent_reaction_remove(
                     payload.channel_id,
                     payload.message_id,
-                    emoji,
-                    payload.user_id,
+                    payload.emoji,
+                    payload.user_id
                 ),
                 game.on_reaction(payload.user_id, payload.emoji),
+            )
+
+    async def silent_reaction_remove(
+        self,
+        channel_id: int,
+        message_id: int,
+        emoji: discord.PartialEmoji,
+        user_id: int,
+    ) -> None:
+        """Handle reaction."""
+        reaction = convert_emoji_reaction(emoji)
+        try:
+            await self.bot._connection.http.remove_reaction(  # noqa: SLF001
+                channel_id,
+                message_id,
+                reaction,
+                user_id,
+            )
+        except discord.Forbidden:
+            logger.warning(
+                "Missing permission for remove %s from %s",
+                reaction,
+                message_id,
             )

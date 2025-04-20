@@ -85,7 +85,7 @@ from `PyPI <https://pypi.org/project>`_
 
     # Can be unsafe
     chmod -R 700 .
-    mkdir data
+    mkdir data -p
     chmod 777 data
 
     # Run the docker container

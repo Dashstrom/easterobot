@@ -165,7 +165,7 @@ async def connect4_command(
     name="tictactoe",
     description="Lancer une partie de morpion",
 )
-@controlled_command(cooldown=True)
+@controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def tictactoe_command(
     ctx: Context,
     member: discord.Member,
@@ -179,7 +179,7 @@ async def tictactoe_command(
     name="rockpaperscissor",
     description="Lancer une partie de pierre papier ciseaux",
 )
-@controlled_command(cooldown=True)
+@controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def rockpaperscissor_command(
     ctx: Context,
     member: discord.Member,

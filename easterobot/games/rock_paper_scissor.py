@@ -45,7 +45,7 @@ class RockPaperScissor(Game):
         embed.set_author(
             name="Partie en cours", icon_url=self.bot.app_emojis["wait"].url
         )
-        self.view = discord.ui.View()
+        self.view = discord.ui.View(timeout=1800)
         rock_btn: Button = discord.ui.Button(
             style=discord.ButtonStyle.gray,
             emoji=ROCK,
@@ -170,7 +170,7 @@ class RockPaperScissor(Game):
             if not self.timeout:
                 await self.set_winner(final_winner)
         else:
-            dt = self.start_timer(31)
+            dt = await self.start_timer(31)
             embed.description += f"\n\n{info}\n\nFin du tour {dt}"
         embed.set_author(name=header, icon_url=icon_url)
         await self.message.edit(embed=embed, view=self.view, content="")
