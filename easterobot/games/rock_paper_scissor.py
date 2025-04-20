@@ -124,10 +124,10 @@ class RockPaperScissor(Game):
         for play1, play2 in self.history:
             i1 = EMOJIS.index(play1)
             i2 = EMOJIS.index(play2)
-            if i1 == (i2 + 1) % 3:
+            if i1 == (i2 - 1) % 3:
                 pt1 += 1
                 text = self.player1.mention
-            elif i1 == (i2 - 1) % 3:
+            elif i1 == (i2 + 1) % 3:
                 pt2 += 1
                 text = self.player2.mention
             else:
