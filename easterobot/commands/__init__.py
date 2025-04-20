@@ -33,4 +33,5 @@ __all__ = [
 
 
 async def setup(bot: Easterobot) -> None:
+    egg_command_group.name = bot.config.group
     bot.tree.add_command(egg_command_group)

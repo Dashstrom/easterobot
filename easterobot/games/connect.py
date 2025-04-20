@@ -1,14 +1,13 @@
 """Connect4 and Connect3."""
 
-import datetime
 from functools import partial
 from typing import Optional
 
 import discord
-from discord.utils import format_dt
 from typing_extensions import override
 
 from easterobot.games.game import Game, Player
+from easterobot.utils import in_seconds
 
 EMOJIS_MAPPER = {
     "1️⃣": 0,
@@ -81,9 +80,8 @@ class Connect(Game):
             for x in reversed(range(self.rows))
         )
         content += footer
-        now = datetime.datetime.now() + datetime.timedelta(seconds=61)  # noqa: DTZ005
         if not self.terminate:
-            content += f"\n\nFin du tour {format_dt(now, style='R')}"
+            content += f"\n\nFin du tour {in_seconds(61)}"
         embed = discord.Embed(description=content, color=self.color(player))
         embed.set_author(
             name="Partie terminée" if self.terminate else "Partie en cours",
@@ -95,7 +93,10 @@ class Connect(Game):
         )
         self.message = await self.message.edit(
             embed=embed,
-            content="",
+            content=(
+                f"-# {self.player1.member.mention} "
+                f"{self.player2.member.mention}"
+            ),
             view=None,
         )
 

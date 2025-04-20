@@ -10,16 +10,22 @@ logs:
   level: INFO
 database: sqlite+aiosqlite://%(data)s/easterobot.db
 group: egg
+sleep:
+  start: '23:00:00'
+  end: '09:00:00'
+  divide_hunt: 2
+  divide_discovered: 2
+  divide_spotted: 1.5
 hunt:
   timeout: 300.0
-  game: 0.75
   cooldown:
     min: 600.0
     max: 1800.0
   weights:
-    base: 0.3
     egg: 0.4
-    speed: 0.3
+    speed: 0.2
+    base: 0.4
+  game: 0.3
 commands:
   search:
     cooldown: 600.0

@@ -9,10 +9,10 @@ import re
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from collections.abc import Iterable
+from datetime import datetime, time, timezone
 from typing import (
     Any,
     Generic,
-    List,
     Literal,
     Optional,
     TypeVar,
@@ -166,6 +166,14 @@ class RandomConjugableText(RandomItem[ConjugableText]):
         return cls(convert(obj, typ=list[ConjugableText]))
 
 
+class MSleep(msgspec.Struct):
+    start: time
+    end: time
+    divide_hunt: float
+    divide_discovered: float
+    divide_spotted: float
+
+
 class MCooldown(msgspec.Struct):
     min: float
     max: float
@@ -272,6 +280,15 @@ class MConfig(msgspec.Struct, dict=True):
     appear: RandomItem[str]
     action: RandomItem[MText]
     commands: MCommands
+    sleep: MSleep = msgspec.field(
+        default_factory=lambda: MSleep(
+            start=time(hour=23),
+            end=time(hour=9),
+            divide_hunt=2.0,
+            divide_discovered=2.0,
+            divide_spotted=1.5,
+        )
+    )
     message_content: bool = True
     token: Optional[Union[str, msgspec.UnsetType]] = msgspec.UNSET
     _resources: Optional[Union[pathlib.Path, msgspec.UnsetType]] = (
@@ -287,6 +304,17 @@ class MConfig(msgspec.Struct, dict=True):
         return self.database.replace(
             "%(data)s", "/" + self.working_directory.as_posix()
         )
+
+    def in_sleep_hours(self) -> bool:
+        """Get if bot is currently in sleep mode."""
+        hour = datetime.now(tz=timezone.utc).time()
+        if self.sleep.start < self.sleep.end:
+            if self.sleep.start < hour < self.sleep.end:
+                return True
+        elif self.sleep.start > self.sleep.end:  # noqa: SIM102
+            if not self.sleep.start < hour < self.sleep.end:
+                return True
+        return False
 
     def verified_token(self) -> str:
         """Get the safe token."""
@@ -472,7 +500,7 @@ def agree(
 RE_VALID = re.compile(r"[^a-zA-Z0-9éàèê]")
 
 
-def tokenize(text: str) -> List[str]:
+def tokenize(text: str) -> list[str]:
     """Get token from text.
 
     Examples:

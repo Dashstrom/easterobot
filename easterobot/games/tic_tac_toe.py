@@ -1,13 +1,12 @@
 """TicTacToe."""
 
-import datetime
 from typing import Optional
 
 import discord
-from discord.utils import format_dt
 from typing_extensions import override
 
 from easterobot.games.game import Game, Player
+from easterobot.utils import in_seconds
 
 EMOJIS_MAPPER = {
     "1️⃣": 0,
@@ -85,8 +84,7 @@ class TicTacToe(Game):
         content += footer
 
         if not self.terminate:
-            now = datetime.datetime.now() + datetime.timedelta(seconds=31)  # noqa: DTZ005
-            content += f"\n\nFin du tour {format_dt(now, style='R')}"
+            content += f"\n\nFin du tour {in_seconds(31)}"
 
         embed = discord.Embed(description=content, color=self.color(user))
         embed.set_author(
@@ -99,7 +97,10 @@ class TicTacToe(Game):
         )
         self.message = await self.message.edit(
             embed=embed,
-            content="",
+            content=(
+                f"-# {self.player1.member.mention} "
+                f"{self.player2.member.mention}"
+            ),
             view=None,
         )
 

@@ -267,7 +267,11 @@ class HuntCog(commands.Cog):
                     description=action.fail.text(loser),
                     image=action.fail.gif,
                 )
-                await channel.send(embed=emb, reference=message)
+                await channel.send(
+                    embed=emb,
+                    reference=message,
+                    delete_after=60,
+                )
 
             if winner:
                 # Send embed for the winner
@@ -373,7 +377,10 @@ class HuntCog(commands.Cog):
             # For each hunt, set the next run and store the channel ids
             if hunts:
                 for hunt in hunts:
-                    next_egg = now + self.bot.config.hunt.cooldown.rand()
+                    delta = self.bot.config.hunt.cooldown.rand()
+                    if self.bot.config.in_sleep_hours():
+                        delta *= self.bot.config.sleep.divide_hunt
+                    next_egg = now + delta
                     dt_next = datetime.fromtimestamp(next_egg, tz=timezone.utc)
                     logger.info(
                         "Next hunt at %s on %s",

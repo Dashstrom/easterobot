@@ -69,12 +69,16 @@ async def search_command(ctx: Context) -> None:
 
     discovered = ctx.client.config.commands.search.discovered
     prob_d = (discovered.max - discovered.min) * (1 - ratio) + discovered.min
+    if ctx.client.config.in_sleep_hours():
+        prob_d /= ctx.client.config.sleep.divide_discovered
 
     sample_d = RAND.random()
     if prob_d > sample_d or egg_count < discovered.shield:
         sample_s = RAND.random()
         spotted = ctx.client.config.commands.search.spotted
         prob_s = (spotted.max - spotted.min) * ratio + spotted.min
+        if ctx.client.config.in_sleep_hours():
+            prob_s /= ctx.client.config.sleep.divide_discovered
         logger.info("discovered: %.2f > %.2f", prob_d, sample_d)
         if prob_s > sample_s and egg_count > spotted.shield:
             logger.info("spotted: %.2f > %.2f", prob_s, sample_s)

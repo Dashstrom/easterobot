@@ -179,7 +179,11 @@ class RockPaperScissor(Game):
             dt = await self.start_timer(31)
             embed.description += f"\n\n{info}\n\nFin du tour {dt}"
         embed.set_author(name=header, icon_url=icon_url)
-        await self.message.edit(embed=embed, view=self.view, content="")
+        await self.message.edit(
+            embed=embed,
+            view=self.view,
+            content=(f"-# {self.player1.mention} {self.player2.mention}"),
+        )
 
     def compute_winner(
         self, play1: str, play2: str
