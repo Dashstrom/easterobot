@@ -1,6 +1,6 @@
 #!/bin/sh
 if [ ! -f /data/config.yml ]
 then
-  uv run easterobot generate /data
+  uv run --frozen easterobot generate /data
 fi
-uv run easterobot run --config /data/config.yml --env
+uv run --frozen easterobot run --config /data/config.yml --env

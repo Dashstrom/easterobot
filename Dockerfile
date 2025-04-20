@@ -17,9 +17,6 @@ RUN mkdir /data
 # Make it read-only
 RUN chown easterobot:easterobot /data
 
-# Use non-root user for security
-USER easterobot
-
 # Change the working directory to the `src` directory
 WORKDIR /src
 
@@ -32,11 +29,14 @@ RUN uv sync --frozen --no-install-project
 # Copy the project into the image
 COPY . .
 
+# Make script executable
+RUN chmod +x /src/entrypoint.sh
+
 # Sync the project
 RUN uv sync --frozen
 
-# Make script executable
-RUN chmod +x /src/entrypoint.sh
+# Use non-root user for security
+USER easterobot
 
 # Default command (use exec form for signal handling)
 CMD ["/src/entrypoint.sh"]
