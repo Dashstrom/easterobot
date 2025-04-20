@@ -13,7 +13,8 @@ from .base import Context, controlled_command, egg_command_group
 
 
 @egg_command_group.command(
-    name="edit", description="Editer le nombre d'œufs d'un membre"
+    name="edit",
+    description="Editer le nombre d'œufs d'un membre",
 )
 @controlled_command(cooldown=True, administrator=True)
 async def edit_command(

@@ -13,8 +13,8 @@ hunt:
   timeout: 300.0
   game: 0.6
   cooldown:
-    min: 1200.0
-    max: 3000.0
+    min: 600.0
+    max: 1800.0
   weights:
     base: 0.3
     egg: 0.4

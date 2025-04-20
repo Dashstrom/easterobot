@@ -14,7 +14,8 @@ from .base import Context, Interaction, controlled_command, egg_command_group
 
 
 @egg_command_group.command(
-    name="reset", description="Réinitialiser la chasse aux œufs"
+    name="reset",
+    description="Réinitialiser la chasse aux œufs"
 )
 @controlled_command(cooldown=True, administrator=True)
 async def reset_command(ctx: Context) -> None:

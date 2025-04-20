@@ -2,8 +2,8 @@
 FROM python:3.12-slim
 
 # Metadata for clarity and documentation
-LABEL maintainer="your_email@example.com"
-LABEL description="Docker image for easterobot using uv for dependency management"
+LABEL maintainer="dashstrom.pro@gmail.com"
+LABEL description="Docker image for easterobot, a discord bot for easter events"
 
 # Add the UV binary
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv

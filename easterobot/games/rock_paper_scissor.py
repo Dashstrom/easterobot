@@ -166,7 +166,7 @@ class RockPaperScissor(Game):
             if not self.timeout:
                 await self.set_winner(final_winner)
         else:
-            dt = self.start_timer(63)
+            dt = self.start_timer(32)
             embed.description += f"\n\n{info}\n\nFin du tour {dt}"
         embed.set_author(name=header, icon_url=icon_url)
         await self.message.edit(embed=embed, view=self.view, content="")

@@ -148,7 +148,8 @@ async def game_dual(  # noqa: C901, D103, PLR0912
 
 
 @egg_command_group.command(
-    name="connect4", description="Lancer une partie de puissance 4."
+    name="connect4",
+    description="Lancer une partie de puissance 4"
 )
 @controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def connect4_command(
@@ -161,7 +162,8 @@ async def connect4_command(
 
 
 @egg_command_group.command(
-    name="tictactoe", description="Lancer une partie de morpion."
+    name="tictactoe",
+    description="Lancer une partie de morpion"
 )
 @controlled_command(cooldown=True)
 async def tictactoe_command(
@@ -175,7 +177,7 @@ async def tictactoe_command(
 
 @egg_command_group.command(
     name="rockpaperscissor",
-    description="Lancer une partie de pierre papier ciseaux.",
+    description="Lancer une partie de pierre papier ciseaux",
 )
 @controlled_command(cooldown=True)
 async def rockpaperscissor_command(
