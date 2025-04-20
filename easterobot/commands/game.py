@@ -170,7 +170,7 @@ async def connect4_command(
 @controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def tictactoe_command(
     ctx: Context,
-    member: discord.Member,
+    member: Optional[discord.Member] = None,
     bet: app_commands.Range[int, 0] = 0,
 ) -> None:
     """Run a tictactoe."""
@@ -184,7 +184,7 @@ async def tictactoe_command(
 @controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def rockpaperscissor_command(
     ctx: Context,
-    member: discord.Member,
+    member: Optional[discord.Member] = None,
     bet: app_commands.Range[int, 0] = 0,
 ) -> None:
     """Run a rockpaperscissor."""

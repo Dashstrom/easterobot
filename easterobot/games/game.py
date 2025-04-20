@@ -89,7 +89,6 @@ class Game:
 
     async def set_winner(self, winner: Optional[discord.Member]) -> None:
         """Remove the game from the manager."""
-        await self.stop_timer()
         self.terminate = True
         self.winner = winner
         if self._cleanup is not None:
@@ -126,6 +125,7 @@ class Game:
                 await self._timeout_task
                 self._timeout_task = None
                 self._reset_countdown_event = asyncio.Event()
+            logger.info("Timer stopped for %s", self)
 
     async def _timeout_worker(self, seconds: float) -> None:
         """Timeout action."""
@@ -135,7 +135,7 @@ class Game:
         except asyncio.TimeoutError:
             if not event.is_set():
                 async with self.lock:
-                    logger.info("timeout for %s", self)
+                    logger.info("Timeout for %s", self)
                     await self.on_timeout()
 
     def __repr__(self) -> str:
@@ -293,8 +293,8 @@ class GameCog(commands.Cog):
         user_id: int,
     ) -> None:
         """Handle reaction."""
-        reaction = convert_emoji_reaction(emoji)
         try:
+            reaction = convert_emoji_reaction(emoji)
             await self.bot._connection.http.remove_reaction(  # noqa: SLF001
                 channel_id,
                 message_id,
@@ -303,7 +303,6 @@ class GameCog(commands.Cog):
             )
         except discord.Forbidden:
             logger.warning(
-                "Missing permission for remove %s from %s",
-                reaction,
+                "Missing permission for remove reaction from %s",
                 message_id,
             )
