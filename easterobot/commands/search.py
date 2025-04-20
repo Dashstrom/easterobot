@@ -68,20 +68,21 @@ async def search_command(ctx: Context) -> None:
     ratio = egg_count / egg_max if egg_max != 0 else 1.0
 
     discovered = ctx.client.config.commands.search.discovered
-    prob_d = (discovered.max - discovered.min) * (1 - ratio) + discovered.min
+    prob_d = (discovered.max - discovered.min) * ratio + discovered.min
     if ctx.client.config.in_sleep_hours():
         prob_d /= ctx.client.config.sleep.divide_discovered
 
+    logger.info("user has %s eggs", egg_count)
     sample_d = RAND.random()
-    if prob_d > sample_d or egg_count < discovered.shield:
+    if prob_d < sample_d or egg_count <= discovered.shield:
         sample_s = RAND.random()
         spotted = ctx.client.config.commands.search.spotted
-        prob_s = (spotted.max - spotted.min) * ratio + spotted.min
+        prob_s = (spotted.max - spotted.min) * (1 - ratio) + spotted.min
         if ctx.client.config.in_sleep_hours():
             prob_s /= ctx.client.config.sleep.divide_discovered
-        logger.info("discovered: %.2f > %.2f", prob_d, sample_d)
-        if prob_s > sample_s and egg_count > spotted.shield:
-            logger.info("spotted: %.2f > %.2f", prob_s, sample_s)
+        logger.info("discovered: expect over %.2f got %.2f", prob_d, sample_d)
+        if prob_s < sample_s and egg_count > spotted.shield:
+            logger.info("spotted: expect over %.2f got %.2f", prob_s, sample_s)
 
             async def send_method(
                 *args: Any, **kwargs: Any
@@ -95,7 +96,11 @@ async def search_command(ctx: Context) -> None:
                 send_method=send_method,
             )
         else:
-            logger.info("found: %.2f > %.2f", prob_s, sample_s)
+            logger.info(
+                "not spotted: expect lower then %.2f got %.2f",
+                prob_s,
+                sample_s,
+            )
             emoji = ctx.client.egg_emotes.rand()
             async with AsyncSession(ctx.client.engine) as session:
                 session.add(
