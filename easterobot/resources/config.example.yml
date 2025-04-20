@@ -4,6 +4,7 @@ use_logging_file: true
 working_directory: null
 admins: []
 resources: null
+message_content: true
 logs:
   path: ./logs
   level: INFO

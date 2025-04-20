@@ -272,6 +272,7 @@ class MConfig(msgspec.Struct, dict=True):
     appear: RandomItem[str]
     action: RandomItem[MText]
     commands: MCommands
+    message_content: bool = True
     token: Optional[Union[str, msgspec.UnsetType]] = msgspec.UNSET
     _resources: Optional[Union[pathlib.Path, msgspec.UnsetType]] = (
         msgspec.field(name="resources", default=msgspec.UNSET)

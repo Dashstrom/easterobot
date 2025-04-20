@@ -37,6 +37,7 @@ T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 INTENTS = discord.Intents.default()
+INTENTS.message_content = True
 
 
 class Easterobot(discord.ext.commands.Bot):
@@ -46,15 +47,21 @@ class Easterobot(discord.ext.commands.Bot):
 
     def __init__(self, config: MConfig) -> None:
         """Initialise Easterbot."""
+        # Initialize intents
+        intents = discord.Intents.default()
+        if config.message_content:
+            intents.message_content = True
+
+        # Initialize Bot
         super().__init__(
             command_prefix=".",
             description="Bot discord pour faire la chasse aux œufs",
             activity=discord.Game(name="rechercher des œufs"),
             intents=INTENTS,
         )
-        self.config = config
 
         # Attributes
+        self.config = config
         self.app_commands: list[discord.app_commands.AppCommand] = []
         self.app_emojis: dict[str, discord.Emoji] = {}
 

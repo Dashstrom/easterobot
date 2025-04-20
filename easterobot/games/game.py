@@ -236,7 +236,7 @@ class GameCog(commands.Cog):
         no_btn.callback = no  # type: ignore[method-assign,assignment]
         view.add_item(yes_btn)
         view.add_item(no_btn)
-        now = datetime.datetime.now() + datetime.timedelta(seconds=600)  # noqa: DTZ005
+        now = datetime.datetime.now() + datetime.timedelta(seconds=300)  # noqa: DTZ005
         dt = format_dt(now, style="R")
         result = await ctx.response.send_message(
             f"{member.mention}, {ctx.user.mention} "
@@ -249,7 +249,7 @@ class GameCog(commands.Cog):
             error_message = f"Invalid kind of message: {message!r}"
             raise TypeError(error_message)
         with contextlib.suppress(asyncio.TimeoutError):
-            accept = await asyncio.wait_for(future, timeout=600)
+            accept = await asyncio.wait_for(future, timeout=300)
         if not accept:
             await message.edit(
                 content=(
