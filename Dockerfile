@@ -29,7 +29,9 @@ RUN uv sync --frozen --no-install-project
 # Copy the project into the image
 COPY . .
 
-# Make script executable
+# Fix permissions
+RUN find /src -type d -exec chmod 755 {} \;
+RUN find /src -type f -exec chmod 644 {} \;
 RUN chmod +x /src/entrypoint.sh
 
 # Sync the project

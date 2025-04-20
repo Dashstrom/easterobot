@@ -83,6 +83,11 @@ from `PyPI <https://pypi.org/project>`_
     cd easterobot
     echo "DISCORD_TOKEN=YOU_MUST_PUT_YOUR_TOKEN_HERE" > .env
 
+    # Can be unsafe
+    chmod -R 700 .
+    mkdir data
+    chmod 777 data
+
     # Run the docker container
     docker compose up -d
 

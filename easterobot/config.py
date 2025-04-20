@@ -30,7 +30,7 @@ V = TypeVar("V")
 Members = Union[discord.Member, list[discord.Member]]
 
 HERE = pathlib.Path(__file__).parent.resolve()
-RESOURCES = pathlib.Path(__file__).parent.resolve() / "resources"
+RESOURCES = HERE / "resources"
 DEFAULT_CONFIG_PATH = pathlib.Path("config.yml")
 EXAMPLE_CONFIG_PATH = RESOURCES / "config.example.yml"
 
