@@ -38,6 +38,7 @@ jobs:
       - name: Run tests
         run: uv run poe test
   docker:
+    name: Docker build
     runs-on: ubuntu-latest
 
     steps:
@@ -48,4 +49,4 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build services with Docker Compose
-        run: docker-compose -f docker-compose.yml build
+        run: docker compose -f docker-compose.yml build
