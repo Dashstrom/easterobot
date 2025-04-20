@@ -23,7 +23,7 @@ logger = logging.getLogger("easterobot")
 
 @egg_command_group.command(
     name="search",
-    description="Rechercher un œuf"
+    description="Rechercher un œuf",
 )
 @controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def search_command(ctx: Context) -> None:
@@ -37,7 +37,7 @@ async def search_command(ctx: Context) -> None:
                 "La chasse aux œufs n'est pas activée dans ce salon",
                 ephemeral=True,
             )
-            return
+            raise InterruptedCommandError
     try:
         await ctx.response.defer(ephemeral=False)
     except discord.errors.NotFound as err:

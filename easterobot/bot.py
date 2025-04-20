@@ -1,7 +1,6 @@
 """Main program."""
 
 import logging
-import logging.config
 import pathlib
 import shutil
 from getpass import getpass
@@ -37,7 +36,7 @@ from .config import (
 T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
-INTENTS = discord.Intents.all()
+INTENTS = discord.Intents.default()
 
 
 class Easterobot(discord.ext.commands.Bot):

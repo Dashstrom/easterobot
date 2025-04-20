@@ -9,9 +9,9 @@ from .base import Context, controlled_command, egg_command_group
 
 @egg_command_group.command(
     name="help",
-    description="Obtenir l'aide des commandes"
+    description="Obtenir l'aide des commandes",
 )
-@controlled_command(cooldown=True)
+@controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def help_command(ctx: Context) -> None:
     """Help command."""
     emb = embed(
@@ -33,4 +33,4 @@ async def help_command(ctx: Context) -> None:
                 value=f"{option.description}",
                 inline=False,
             )
-    await ctx.response.send_message(embed=emb, ephemeral=True)
+    await ctx.response.send_message(embed=emb)

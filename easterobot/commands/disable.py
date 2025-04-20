@@ -10,7 +10,7 @@ from .base import Context, controlled_command, egg_command_group
 
 @egg_command_group.command(
     name="disable",
-    description="Désactiver la chasse aux œufs dans le salon"
+    description="Désactiver la chasse aux œufs dans le salon",
 )
 @controlled_command(cooldown=True, manage_channels=True)
 async def disable_command(ctx: Context) -> None:

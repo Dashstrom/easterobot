@@ -150,7 +150,7 @@ class HuntCog(commands.Cog):
         emb = embed(
             title="Un œuf a été découvert !",
             description=description
-            + f"\n\nTirage du vinqueur : <t:{next_hunt:.0f}:R>",
+            + f"\n\nTirage du vainqueur : <t:{next_hunt:.0f}:R>",
             thumbnail=emoji.url,
         )
 

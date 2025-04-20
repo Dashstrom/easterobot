@@ -11,7 +11,7 @@ database: sqlite+aiosqlite://%(data)s/easterobot.db
 group: egg
 hunt:
   timeout: 300.0
-  game: 0.6
+  game: 0.75
   cooldown:
     min: 600.0
     max: 1800.0

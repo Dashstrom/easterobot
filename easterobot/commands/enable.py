@@ -10,7 +10,7 @@ from .base import Context, controlled_command, egg_command_group
 
 @egg_command_group.command(
     name="enable",
-    description="Activer la chasse dans le salon"
+    description="Activer la chasse dans le salon",
 )
 @controlled_command(
     cooldown=True,

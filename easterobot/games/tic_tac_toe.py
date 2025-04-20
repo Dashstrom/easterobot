@@ -44,7 +44,7 @@ class TicTacToe(Game):
         await self.update()
         for emoji in EMOJIS:
             await self.message.add_reaction(emoji)
-        self.start_timer(60)
+        await self.start_timer(31)
 
     async def update(self) -> None:
         """Update the message."""
@@ -85,7 +85,7 @@ class TicTacToe(Game):
         content += footer
 
         if not self.terminate:
-            now = datetime.datetime.now() + datetime.timedelta(seconds=32)  # noqa: DTZ005
+            now = datetime.datetime.now() + datetime.timedelta(seconds=31)  # noqa: DTZ005
             content += f"\n\nFin du tour {format_dt(now, style='R')}"
 
         embed = discord.Embed(description=content, color=self.color(user))
@@ -142,7 +142,7 @@ class TicTacToe(Game):
                 await self.set_winner(None)
             else:
                 self.turn += 1
-                self.start_timer(30)
+                await self.start_timer(31)
             await self.update()
 
     @override

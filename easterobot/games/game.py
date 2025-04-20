@@ -59,8 +59,11 @@ class Game:
         self._cleanup: Optional[AsyncCallback] = None
         self._completion: Optional[AsyncCallback] = None
         self._end_event = asyncio.Event()
+
+        # timeout
         self._reset_countdown_event = asyncio.Event()
         self._timeout_task: Optional[asyncio.Task[None]] = None
+        self._timeout_lock: asyncio.Lock = asyncio.Lock()
 
     async def set_completion(self, callback: AsyncCallback) -> None:
         """Get the current state for a player."""
@@ -86,6 +89,7 @@ class Game:
 
     async def set_winner(self, winner: Optional[discord.Member]) -> None:
         """Remove the game from the manager."""
+        await self.stop_timer()
         self.terminate = True
         self.winner = winner
         if self._cleanup is not None:
@@ -94,20 +98,24 @@ class Game:
             await self._completion()
         self._end_event.set()
 
-    def start_timer(self, seconds: float) -> str:
+    async def start_timer(self, seconds: float) -> str:
         """Start the timer for turn."""
-        now = datetime.datetime.now() + datetime.timedelta(seconds=seconds)  # noqa: DTZ005
-        dt = format_dt(now, style="R")
-        self._timeout_task = asyncio.create_task(self._timeout_worker(seconds))
-        return dt
+        async with self._timeout_lock:
+            now = datetime.datetime.now() + datetime.timedelta(seconds=seconds)  # noqa: DTZ005
+            dt = format_dt(now, style="R")
+            self._timeout_task = asyncio.create_task(
+                self._timeout_worker(seconds)
+            )
+            return dt
 
     async def stop_timer(self) -> None:
         """Stop the timer and wait it end."""
-        if self._timeout_task:
-            self._reset_countdown_event.set()
-            await self._timeout_task
-            self._timeout_task = None
-            self._reset_countdown_event = asyncio.Event()
+        async with self._timeout_lock:
+            if self._timeout_task:
+                self._reset_countdown_event.set()
+                await self._timeout_task
+                self._timeout_task = None
+                self._reset_countdown_event = asyncio.Event()
 
     async def _timeout_worker(self, seconds: float) -> None:
         """Timeout action."""

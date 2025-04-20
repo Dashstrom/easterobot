@@ -53,7 +53,7 @@ class Connect(Game):
         await self.update()
         for emoji in EMOJIS[: self.cols]:
             await self.message.add_reaction(emoji)
-        self.start_timer(60)
+        await self.start_timer(61)
 
     async def update(self) -> None:
         """Update the text."""
@@ -81,7 +81,7 @@ class Connect(Game):
             for x in reversed(range(self.rows))
         )
         content += footer
-        now = datetime.datetime.now() + datetime.timedelta(seconds=62)  # noqa: DTZ005
+        now = datetime.datetime.now() + datetime.timedelta(seconds=61)  # noqa: DTZ005
         if not self.terminate:
             content += f"\n\nFin du tour {format_dt(now, style='R')}"
         embed = discord.Embed(description=content, color=self.color(player))
@@ -166,7 +166,7 @@ class Connect(Game):
                 await self.set_winner(None)
             else:
                 self.turn += 1
-                self.start_timer(60)
+                await self.start_timer(61)
             await self.update()
 
     @override

@@ -1,5 +1,6 @@
 """TicTacToe."""
 
+import asyncio
 from functools import partial
 from typing import Optional
 
@@ -76,7 +77,10 @@ class RockPaperScissor(Game):
 
             # One button has been pressed
             if update:
-                await interaction.response.defer()
+                await asyncio.gather(
+                    self.stop_timer(),
+                    interaction.response.defer(),
+                )
                 await self.update()
             else:
                 await interaction.response.send_message(
@@ -166,7 +170,7 @@ class RockPaperScissor(Game):
             if not self.timeout:
                 await self.set_winner(final_winner)
         else:
-            dt = self.start_timer(32)
+            dt = self.start_timer(31)
             embed.description += f"\n\n{info}\n\nFin du tour {dt}"
         embed.set_author(name=header, icon_url=icon_url)
         await self.message.edit(embed=embed, view=self.view, content="")
