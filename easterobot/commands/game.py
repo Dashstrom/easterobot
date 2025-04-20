@@ -150,7 +150,7 @@ async def game_dual(  # noqa: C901, D103, PLR0912
 @egg_command_group.command(
     name="connect4", description="Lancer une partie de puissance 4."
 )
-@controlled_command(cooldown=True)
+@controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def connect4_command(
     ctx: Context,
     member: Optional[discord.Member] = None,

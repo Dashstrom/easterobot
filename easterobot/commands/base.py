@@ -5,10 +5,10 @@ import functools
 import logging
 from collections.abc import Coroutine
 from time import time
-from typing import Any, Callable, TypeVar, Union, cast
+from typing import Any, Callable, Optional, TypeVar, Union, cast
 
 import discord
-from discord import app_commands
+from discord import Permissions, app_commands
 from sqlalchemy import and_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing_extensions import Concatenate, ParamSpec
@@ -54,19 +54,22 @@ Interaction = discord.Interaction[Easterobot]
 Coro = Coroutine[Any, Any, T]
 
 
-def controlled_command(
-    *, cooldown: bool = True, **perms: bool
+def controlled_command(  # noqa: C901, PLR0915
+    *,
+    cooldown: bool = True,
+    channel_permissions: Optional[dict[str, bool]] = None,
+    **perms: bool,
 ) -> Callable[
     [Callable[Concatenate[Context, P], Coro[None]]],
     Callable[Concatenate[Interaction, P], Coro[None]],
 ]:
     """Add a cooldown and permission check."""
 
-    def decorator(
+    def decorator(  # noqa: C901
         f: Callable[Concatenate[Context, P], Coro[None]],
     ) -> Callable[Concatenate[Interaction, P], Coro[None]]:
         @functools.wraps(f)
-        async def decorated(
+        async def decorated(  # noqa: C901, PLR0911, PLR0912
             interaction: Interaction, *args: P.args, **kwargs: P.kwargs
         ) -> None:
             # Check if interaction is valid
@@ -90,6 +93,28 @@ def controlled_command(
             if not isinstance(interaction.user, discord.Member):
                 logger.warning("No channel provided %s", interaction)
                 return
+
+            # Check bot can speak
+            if channel_permissions:
+                client_perms = discord.Permissions()
+                if interaction.client.user:
+                    client_member = interaction.guild.get_member(
+                        interaction.client.user.id
+                    )
+                    if client_member is not None:
+                        client_perms = interaction.channel.permissions_for(
+                            client_member
+                        )
+                needed_channel_perms = Permissions(**channel_permissions)
+                if not client_perms.is_superset(needed_channel_perms):
+                    logger.warning(
+                        "%s failed for wrong channel permissions", event_repr
+                    )
+                    await interaction.response.send_message(
+                        "Le bot n'a pas la permission",
+                        ephemeral=True,
+                    )
+                    return
 
             # Compute needed permissions
             needed_perms = discord.Permissions(**perms)

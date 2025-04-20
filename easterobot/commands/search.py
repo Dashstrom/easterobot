@@ -22,7 +22,7 @@ logger = logging.getLogger("easterobot")
 
 
 @egg_command_group.command(name="search", description="Rechercher un œuf")
-@controlled_command(cooldown=True)
+@controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def search_command(ctx: Context) -> None:
     """Search command."""
     async with AsyncSession(ctx.client.engine) as session:

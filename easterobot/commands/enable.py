@@ -11,7 +11,11 @@ from .base import Context, controlled_command, egg_command_group
 @egg_command_group.command(
     name="enable", description="Activer la chasse dans le salon"
 )
-@controlled_command(cooldown=True, manage_channels=True)
+@controlled_command(
+    cooldown=True,
+    channel_permissions={"send_messages": True},
+    manage_channels=True,
+)
 async def enable_command(
     ctx: Context,
 ) -> None:
