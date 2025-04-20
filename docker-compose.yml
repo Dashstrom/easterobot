@@ -1,6 +1,6 @@
 services:
   bot:
-    container_name: easterobot_bot
+    container_name: bot
     stdin_open: true
     tty: true
     build:

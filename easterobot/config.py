@@ -5,12 +5,14 @@ import logging.config
 import os
 import pathlib
 import random
+import re
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from collections.abc import Iterable
 from typing import (
     Any,
     Generic,
+    List,
     Literal,
     Optional,
     TypeVar,
@@ -80,7 +82,7 @@ class ConjugableText(Serializable[str]):
     def gender(member: discord.Member) -> Literal["man", "woman"]:
         """Get the gender of a people."""
         if any(
-            marker in role.name.casefold()
+            marker in tokenize(role.name)
             for role in member.roles
             for marker in (
                 "woman",
@@ -88,6 +90,7 @@ class ConjugableText(Serializable[str]):
                 "femme",
                 "fille",
                 "elle",
+                "elles",
                 "her",
                 "she",
             )
@@ -463,3 +466,24 @@ def agree(
     if amount is None or amount in (-1, 0, 1):
         return singular.format(amount, *args)
     return plural.format(amount, *args)
+
+
+RE_VALID = re.compile(r"[^a-zA-Z0-9éàèê]")
+
+
+def tokenize(text: str) -> List[str]:
+    """Get token from text.
+
+    Examples:
+        >>> tokenize("Activités manuelles")
+        ['activités', 'manuelles']
+        >>> tokenize("Elle")
+        ['elle']
+        >>> tokenize("Iel/Iels")
+        ['iel', 'iels']
+        >>> tokenize("🦉 Elle")
+        ['elle']
+    """
+    text = text.casefold()
+    text = RE_VALID.sub(" ", text)
+    return text.strip().split()

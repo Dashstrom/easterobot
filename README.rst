@@ -83,7 +83,7 @@ from `PyPI <https://pypi.org/project>`_
     cd easterobot
     echo "DISCORD_TOKEN=YOU_MUST_PUT_YOUR_TOKEN_HERE" > .env
 
-    # Can be unsafe
+    # Can be unsafe (and for each update)
     chmod -R 700 .
     mkdir data -p
     chmod 777 data
@@ -96,6 +96,10 @@ from `PyPI <https://pypi.org/project>`_
 
     # Remove the container (not the data)
     docker compose down --rmi all
+
+    # Update
+    git reset --hard HEAD
+    git pull
 
 Configuration directory
 #######################
