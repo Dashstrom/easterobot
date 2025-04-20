@@ -130,21 +130,23 @@ async def game_dual(  # noqa: C901, D103, PLR0912
                 await session.commit()
 
             # Play the game
-            game = cls(ctx.user, member, msg)
-            await ctx.client.game.run(game)
-            winner = await game.wait_winner()
-
-            # Give eggs to the winner or remove previous one
-            async with lock:
-                for e in e1:
-                    e.lock = False
-                    if winner:
-                        e.user_id = winner.id
-                for e in e2:
-                    e.lock = False
-                    if winner:
-                        e.user_id = winner.id
-                await session.commit()
+            winner = None
+            try:
+                game = cls(ctx.user, member, msg)
+                await ctx.client.game.run(game)
+                winner = await game.wait_winner()
+            finally:
+                # Give eggs to the winner or remove previous one
+                async with lock:
+                    for e in e1:
+                        e.lock = False
+                        if winner:
+                            e.user_id = winner.id
+                    for e in e2:
+                        e.lock = False
+                        if winner:
+                            e.user_id = winner.id
+                    await session.commit()
 
 
 @egg_command_group.command(

@@ -84,9 +84,7 @@ from `PyPI <https://pypi.org/project>`_
     echo "DISCORD_TOKEN=YOU_MUST_PUT_YOUR_TOKEN_HERE" > .env
 
     # Can be unsafe (and for each update)
-    chmod -R 700 .
-    mkdir data -p
-    chmod 777 data
+    chmod -R 700 . && mkdir data -p && chmod 777 data
 
     # Run the docker container
     docker compose up -d
@@ -98,8 +96,10 @@ from `PyPI <https://pypi.org/project>`_
     docker compose down --rmi all
 
     # Update
-    git reset --hard HEAD
-    git pull
+    git reset --hard HEAD && git pull
+
+    # One-line update
+    docker compose down --rmi all && git reset --hard HEAD && git pull && chmod -R 700 . && mkdir data -p && chmod 777 data
 
 Configuration directory
 #######################

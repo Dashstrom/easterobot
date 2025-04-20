@@ -111,7 +111,11 @@ class Game:
     async def stop_timer(self) -> None:
         """Stop the timer and wait it end."""
         async with self._timeout_lock:
-            if self._timeout_task:
+            if (
+                self._timeout_task
+                and not self._timeout_task.done()
+                and not self._timeout_task.cancelled()
+            ):
                 self._reset_countdown_event.set()
                 await self._timeout_task
                 self._timeout_task = None
