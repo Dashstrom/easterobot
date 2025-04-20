@@ -97,12 +97,18 @@ class RockPaperScissor(Game):
         self.view.add_item(scissor_btn)
         await self.update()
 
-    async def update(self) -> None:  # noqa: PLR0912, PLR0915
+    async def update(self) -> None:  # noqa: C901, PLR0912, PLR0915
         """Update the current display."""
         embed = discord.Embed(color=0xF2BC32)
         # Both player have played
         header = "Partie en cours"
-        if self.play1 is None:
+        if self.play1 is None and self.play2 is None:
+            icon_url = self.bot.app_emojis["wait"].url
+            info = (
+                f"En attente de {self.player1.mention} "
+                f"et {self.player2.mention} ..."
+            )
+        elif self.play1 is None:
             icon_url = self.player1.display_avatar.url
             info = f"En attente de {self.player1.mention} ..."
         elif self.play2 is None:

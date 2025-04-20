@@ -101,6 +101,11 @@ class Game:
     async def start_timer(self, seconds: float) -> str:
         """Start the timer for turn."""
         async with self._timeout_lock:
+            logger.info(
+                "Start timer of %s seconds for %s",
+                seconds,
+                self,
+            )
             now = datetime.datetime.now() + datetime.timedelta(seconds=seconds)  # noqa: DTZ005
             dt = format_dt(now, style="R")
             self._timeout_task = asyncio.create_task(
@@ -111,6 +116,7 @@ class Game:
     async def stop_timer(self) -> None:
         """Stop the timer and wait it end."""
         async with self._timeout_lock:
+            logger.info("Stop timer for %s", self)
             if (
                 self._timeout_task
                 and not self._timeout_task.done()
@@ -129,13 +135,14 @@ class Game:
         except asyncio.TimeoutError:
             if not event.is_set():
                 async with self.lock:
+                    logger.info("timeout for %s", self)
                     await self.on_timeout()
 
     def __repr__(self) -> str:
         """Get game representation."""
         return (
             f"<{self.__class__.__qualname__} "
-            f"id={self.id!r} message={self.message!r} "
+            f"id={str(self.id)!r} message={self.message.id!r} "
             f"terminate={self.terminate!r} winner={self.winner!r}"
             ">"
         )
@@ -164,13 +171,13 @@ class GameCog(commands.Cog):
         from easterobot.games.tic_tac_toe import TicTacToe
 
         cls = RAND.choice([Connect4, TicTacToe, RockPaperScissor])
-        now = datetime.datetime.now() + datetime.timedelta(seconds=63)  # noqa: DTZ005
+        now = datetime.datetime.now() + datetime.timedelta(seconds=61)  # noqa: DTZ005
         dt = format_dt(now, style="R")
         msg = await channel.send(
             f"{user1.mention} et {user2.mention} vont s'affronter {dt} ...",
             reference=reference,
         )
-        await asyncio.sleep(63)
+        await asyncio.sleep(61)
         game: Game = cls(user1, user2, msg)  # type: ignore[operator]
         await self.run(game)
         return await game.wait_winner()

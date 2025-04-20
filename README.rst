@@ -99,7 +99,7 @@ from `PyPI <https://pypi.org/project>`_
     git reset --hard HEAD && git pull
 
     # One-line update
-    docker compose down --rmi all && git reset --hard HEAD && git pull && chmod -R 700 . && mkdir data -p && chmod 777 data
+    docker compose down --rmi all && git reset --hard HEAD && git pull && chmod -R 700 . && mkdir data -p && chmod 777 data && docker compose up -d
 
 Configuration directory
 #######################
