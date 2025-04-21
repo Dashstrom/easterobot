@@ -35,18 +35,20 @@ commands:
       max: 0.8
     spotted:
       shield: 10
-      min: 0.4
-      max: 0.7
+      min: 0.333
+      max: 0.666
   top:
-    cooldown: 10.0
+    cooldown: 30.0
   connect4:
     cooldown: 120.0
   rockpaperscissor:
     cooldown: 120.0
   tictactoe:
     cooldown: 120.0
+  info:
+    cooldown: 30.0
   basket:
-    cooldown: 10.0
+    cooldown: 30.0
   reset:
     cooldown: 120.0
   enable:

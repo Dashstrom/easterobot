@@ -12,6 +12,7 @@ from easterobot.commands.game import (
     tictactoe_command,
 )
 from easterobot.commands.help import help_command
+from easterobot.commands.info import info_command
 from easterobot.commands.reset import reset_command
 from easterobot.commands.search import search_command
 from easterobot.commands.top import top_command
@@ -24,6 +25,7 @@ __all__ = [
     "egg_command_group",
     "enable_command",
     "help_command",
+    "info_command",
     "reset_command",
     "rockpaperscissor_command",
     "search_command",

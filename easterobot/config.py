@@ -205,11 +205,19 @@ class MDiscovered(msgspec.Struct):
     min: float
     max: float
 
+    def probability(self, luck: float) -> float:
+        """Get discover probability."""
+        return (self.max - self.min) * luck + self.min
+
 
 class MSpotted(msgspec.Struct):
     shield: int
     min: float
     max: float
+
+    def probability(self, luck: float) -> float:
+        """Get discover probability."""
+        return (self.max - self.min) * (1 - luck) + self.min
 
 
 class SearchCommand(MCommand):
@@ -250,6 +258,7 @@ class MCommands(msgspec.Struct, forbid_unknown_fields=True):
     help: MCommand
     edit: MCommand
     connect4: MCommand
+    info: MCommand
     tictactoe: MCommand
     rockpaperscissor: MCommand
 
@@ -401,6 +410,14 @@ class MConfig(msgspec.Struct, dict=True):
                 defaults=defaults,
             )
             self.__logging_flag = True
+
+    def __str__(self) -> str:
+        """Represent the Configuration."""
+        return f"<Config {str(self.working_directory)!r}>"
+
+    def __repr__(self) -> str:
+        """Represent the Configuration."""
+        return f"<Config {str(self.working_directory)!r}>"
 
 
 def _dec_hook(typ: type[T], obj: Any) -> T:

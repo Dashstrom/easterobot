@@ -4,10 +4,10 @@ import logging
 from typing import Any
 
 import discord
-from sqlalchemy import and_, func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from easterobot.config import RAND, agree
+from easterobot.config import agree
 from easterobot.hunts.hunt import embed
 from easterobot.models import Egg, Hunt
 
@@ -45,44 +45,15 @@ async def search_command(ctx: Context) -> None:
     name = ctx.user.display_name
 
     async with AsyncSession(ctx.client.engine) as session:
-        egg_max = await session.scalar(
-            select(
-                func.count().label("max"),
-            )
-            .where(Egg.guild_id == ctx.guild_id)
-            .group_by(Egg.user_id)
-            .order_by(func.count().label("max").desc())
-            .limit(1)
+        luck = await ctx.client.hunt.get_luck(
+            guild_id=ctx.guild_id,
+            user_id=ctx.user.id,
+            session=session,
+            sleep_hours=ctx.client.config.in_sleep_hours(),
         )
-        egg_max = egg_max or 0
-        egg_count = await session.scalar(
-            select(func.count().label("count")).where(
-                and_(
-                    Egg.guild_id == ctx.guild.id,
-                    Egg.user_id == ctx.user.id,
-                )
-            )
-        )
-        if egg_count is None:
-            egg_count = 0
-    ratio = egg_count / egg_max if egg_max != 0 else 1.0
 
-    discovered = ctx.client.config.commands.search.discovered
-    prob_d = (discovered.max - discovered.min) * ratio + discovered.min
-    if ctx.client.config.in_sleep_hours():
-        prob_d /= ctx.client.config.sleep.divide_discovered
-
-    logger.info("user has %s eggs", egg_count)
-    sample_d = RAND.random()
-    if prob_d < sample_d or egg_count <= discovered.shield:
-        sample_s = RAND.random()
-        spotted = ctx.client.config.commands.search.spotted
-        prob_s = (spotted.max - spotted.min) * (1 - ratio) + spotted.min
-        if ctx.client.config.in_sleep_hours():
-            prob_s /= ctx.client.config.sleep.divide_discovered
-        logger.info("discovered: expect over %.2f got %.2f", prob_d, sample_d)
-        if prob_s < sample_s and egg_count > spotted.shield:
-            logger.info("spotted: expect over %.2f got %.2f", prob_s, sample_s)
+    if luck.sample_discovered():
+        if luck.sample_spotted():
 
             async def send_method(
                 *args: Any, **kwargs: Any
@@ -96,11 +67,6 @@ async def search_command(ctx: Context) -> None:
                 send_method=send_method,
             )
         else:
-            logger.info(
-                "not spotted: expect lower then %.2f got %.2f",
-                prob_s,
-                sample_s,
-            )
             emoji = ctx.client.egg_emotes.rand()
             async with AsyncSession(ctx.client.engine) as session:
                 session.add(
@@ -117,7 +83,7 @@ async def search_command(ctx: Context) -> None:
                 "%s (%s) got an egg for a total %s in %s",
                 ctx.user,
                 ctx.user.id,
-                agree("{0} egg", "{0} eggs", egg_count),
+                agree("{0} egg", "{0} eggs", luck.egg_count),
                 ctx.channel.jump_url,
             )
             await ctx.followup.send(
@@ -125,15 +91,14 @@ async def search_command(ctx: Context) -> None:
                     title=f"{name} récupère un œuf",
                     description=ctx.client.config.hidden(ctx.user),
                     thumbnail=emoji.url,
-                    egg_count=egg_count + 1,
+                    egg_count=luck.egg_count + 1,
                 )
             )
     else:
-        logger.info("failed: %.2f > %.2f", prob_d, sample_d)
         await ctx.followup.send(
             embed=embed(
                 title=f"{name} repart bredouille",
                 description=ctx.client.config.failed(ctx.user),
-                egg_count=egg_count,
+                egg_count=luck.egg_count,
             )
         )

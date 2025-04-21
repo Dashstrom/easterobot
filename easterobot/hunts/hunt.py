@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import time
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Iterable, Sequence
 from datetime import datetime, timezone
 from typing import (
     Any,
@@ -21,16 +21,128 @@ from easterobot.config import (
     RAND,
     agree,
 )
+from easterobot.hunts.luck import HuntLuck
 from easterobot.models import Egg, Hunt
+from easterobot.query import QueryManager
 
 logger = logging.getLogger(__name__)
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-class HuntCog(commands.Cog):
+class HuntQuery(QueryManager):
+    async def unlock_all_eggs(self, session: AsyncSession) -> None:
+        """Unlock all eggs."""
+        await session.execute(update(Egg).where(Egg.lock).values(lock=False))
+
+    async def get_egg_count_for_members(
+        self,
+        session: AsyncSession,
+        guild_id: int,
+        user_ids: Iterable[int],
+    ) -> dict[int, int]:
+        """Get egg count for members."""
+        res = await session.execute(
+            select(Egg.user_id, func.count().label("count"))
+            .where(
+                and_(
+                    Egg.guild_id == guild_id,
+                    Egg.user_id.in_(user_ids),
+                )
+            )
+            .group_by(Egg.user_id)
+        )
+        return dict(res.all())  # type: ignore[arg-type]
+
+    async def get_hunt(
+        self,
+        session: AsyncSession,
+        guild_id: int,
+        channel_id: int,
+    ) -> Optional[Hunt]:
+        """Get hunt."""
+        hunt = await session.scalar(
+            select(Hunt).where(
+                and_(
+                    Hunt.guild_id == guild_id,
+                    Hunt.channel_id == channel_id,
+                )
+            )
+        )
+        return hunt  # noqa: RET504
+
+    async def get_hunts_after(
+        self,
+        session: AsyncSession,
+        after: float,
+    ) -> Sequence[Hunt]:
+        """Get all hunts after a given datetime."""
+        res = await session.scalars(
+            select(Hunt).where(Hunt.next_egg <= after),
+        )
+        return res.all()
+
+    async def get_max_eggs(
+        self,
+        session: AsyncSession,
+        guild_id: int,
+    ) -> int:
+        """Get the maximum number of eggs."""
+        egg_max = await session.scalar(
+            select(
+                func.count().label("max"),
+            )
+            .where(Egg.guild_id == guild_id)
+            .group_by(Egg.user_id)
+            .order_by(func.count().label("max").desc())
+            .limit(1)
+        )
+        return egg_max or 0
+
+    async def get_eggs(
+        self,
+        session: AsyncSession,
+        guild_id: int,
+        user_id: int,
+    ) -> int:
+        """Get eggs of player."""
+        eggs = await session.scalar(
+            select(func.count().label("count")).where(
+                and_(
+                    Egg.guild_id == guild_id,
+                    Egg.user_id == user_id,
+                )
+            )
+        )
+        return eggs or 0
+
+    async def get_luck(
+        self,
+        session: AsyncSession,
+        guild_id: int,
+        user_id: int,
+        *,
+        sleep_hours: bool = False,
+    ) -> HuntLuck:
+        """Get the luck of a member."""
+        luck = 1.0
+        egg_count = await self.get_eggs(session, guild_id, user_id)
+        if egg_count != 0:
+            egg_max = await self.get_max_eggs(session, guild_id)
+            if egg_max != 0:
+                luck = 1 - egg_count / egg_max
+        return HuntLuck(
+            egg_count=egg_count,
+            luck=luck,
+            sleep_hours=sleep_hours,
+            config=self.config,
+        )
+
+
+class HuntCog(commands.Cog, HuntQuery):
     def __init__(self, bot: Easterobot) -> None:
         """Instantiate HuntCog."""
         self.bot = bot
+        super().__init__(self.bot.config)
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
@@ -38,9 +150,7 @@ class HuntCog(commands.Cog):
         # Unlock all eggs
         logger.info("Unlock all previous eggs")
         async with AsyncSession(self.bot.engine) as session:
-            await session.execute(
-                update(Egg).where(Egg.lock).values(lock=False)
-            )
+            await self.unlock_all_eggs(session)
             await session.commit()
 
         # Start hunt
@@ -179,35 +289,20 @@ class HuntCog(commands.Cog):
 
         # Get if hunt is valid
         async with AsyncSession(self.bot.engine) as session:
-            has_hunt = await session.scalar(
-                select(Hunt).where(
-                    and_(
-                        Hunt.guild_id == guild.id,
-                        Hunt.channel_id == channel.id,
-                    )
-                )
-            )
+            hunt = await self.get_hunt(session, guild.id, channel.id)
 
-        # The egg was not collected
-        if not hunters or not has_hunt:
-            button.label = "L'œuf n'a pas été ramassé"
-            button.style = discord.ButtonStyle.danger
-            logger.info("No Hunter for %s", message_url)
-        else:
-            # Process the winner
-            async with AsyncSession(self.bot.engine) as session:
+            # The egg was not collected
+            if not hunters or not hunt:
+                button.label = "L'œuf n'a pas été ramassé"
+                button.style = discord.ButtonStyle.danger
+                logger.info("No Hunter for %s", message_url)
+            else:
                 # Get the count of egg by user
-                res = await session.execute(
-                    select(Egg.user_id, func.count().label("count"))
-                    .where(
-                        and_(
-                            Egg.guild_id == guild.id,
-                            Egg.user_id.in_(hunter.id for hunter in hunters),
-                        )
-                    )
-                    .group_by(Egg.user_id)
+                eggs = await self.get_egg_count_for_members(
+                    session,
+                    guild_id=guild.id,
+                    user_ids=[hunter.id for hunter in hunters],
                 )
-                eggs: dict[int, int] = dict(res.all())  # type: ignore[arg-type]
                 logger.info("Winner draw for %s", message_url)
 
                 ranked_hunters = self.rank_players(hunters, eggs)
@@ -219,7 +314,6 @@ class HuntCog(commands.Cog):
                     loser = ranked_hunters[1]
 
                     if RAND.random() < self.bot.config.hunt.game:
-                        # TODO(dashstrom): edit timer during dual
                         # Update button
                         button.label = "Duel en cours ..."
                         button.style = discord.ButtonStyle.gray
@@ -250,54 +344,56 @@ class HuntCog(commands.Cog):
                     )
                     await session.commit()
 
-            # Show the embed to loser
-            if loser:
-                loser_name = loser.display_name
-                if len(hunters) == 2:  # noqa: PLR2004
-                    text = f"{loser_name} rate un œuf"
-                else:
-                    text = agree(
-                        "{1} et {0} autre chasseur ratent un œuf",
-                        "{1} et {0} autres chasseurs ratent un œuf",
-                        len(hunters) - 2,
-                        loser_name,
+                # Show the embed to loser
+                if loser:
+                    loser_name = loser.display_name
+                    if len(hunters) == 2:  # noqa: PLR2004
+                        text = f"{loser_name} rate un œuf"
+                    else:
+                        text = agree(
+                            "{1} et {0} autre chasseur ratent un œuf",
+                            "{1} et {0} autres chasseurs ratent un œuf",
+                            len(hunters) - 2,
+                            loser_name,
+                        )
+                    emb = embed(
+                        title=text,
+                        description=action.fail.text(loser),
+                        image=action.fail.gif,
                     )
-                emb = embed(
-                    title=text,
-                    description=action.fail.text(loser),
-                    image=action.fail.gif,
-                )
-                await channel.send(
-                    embed=emb,
-                    reference=message,
-                    delete_after=60,
-                )
+                    await channel.send(
+                        embed=emb,
+                        reference=message,
+                        delete_after=300,
+                    )
 
-            if winner:
-                # Send embed for the winner
-                winner_eggs = eggs.get(winner.id, 0) + 1
-                emb = embed(
-                    title=f"{winner.display_name} récupère un œuf",
-                    description=action.success.text(winner),
-                    image=action.success.gif,
-                    thumbnail=emoji.url,
-                    egg_count=winner_eggs,
-                )
-                await channel.send(embed=emb, reference=message)
+                if winner:
+                    # Send embed for the winner
+                    winner_eggs = eggs.get(winner.id, 0) + 1
+                    emb = embed(
+                        title=f"{winner.display_name} récupère un œuf",
+                        description=action.success.text(winner),
+                        image=action.success.gif,
+                        thumbnail=emoji.url,
+                        egg_count=winner_eggs,
+                    )
+                    await channel.send(embed=emb, reference=message)
 
-                # Update button
-                button.label = f"L'œuf a été ramassé par {winner.display_name}"
-                button.style = discord.ButtonStyle.success
-                logger.info(
-                    "Winner is %s (%s) with %s",
-                    winner,
-                    winner.id,
-                    agree("{0} egg", "{0} eggs", winner_eggs),
-                )
-            else:
-                button.label = "L'œuf a été cassé"
-                button.style = discord.ButtonStyle.danger
-                logger.info("No winner %s", message_url)
+                    # Update button
+                    button.label = (
+                        f"L'œuf a été ramassé par {winner.display_name}"
+                    )
+                    button.style = discord.ButtonStyle.success
+                    logger.info(
+                        "Winner is %s (%s) with %s",
+                        winner,
+                        winner.id,
+                        agree("{0} egg", "{0} eggs", winner_eggs),
+                    )
+                else:
+                    button.label = "L'œuf a été cassé"
+                    button.style = discord.ButtonStyle.danger
+                    logger.info("No winner %s", message_url)
 
         # Remove emoji and edit view
         button.emoji = None
@@ -365,14 +461,11 @@ class HuntCog(commands.Cog):
     async def loop_hunt(self) -> None:
         """Manage the schedule of run."""
         # Create a async session
-        async with AsyncSession(
-            self.bot.engine, expire_on_commit=False
-        ) as session:
+        async with AsyncSession(self.bot.engine) as session:
             # Find hunt with next egg available
             now = time.time()
-            hunts = (
-                await session.scalars(select(Hunt).where(Hunt.next_egg <= now))
-            ).all()
+            hunts = await self.get_hunts_after(session, now)
+            hunt_ids = [hunt.channel_id for hunt in hunts]
 
             # For each hunt, set the next run and store the channel ids
             if hunts:
@@ -389,7 +482,6 @@ class HuntCog(commands.Cog):
                     )
                     hunt.next_egg = next_egg
                 await session.commit()
-            hunt_ids = [hunt.channel_id for hunt in hunts]
 
         # Call start_hunt for each hunt
         if hunt_ids:

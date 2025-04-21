@@ -52,6 +52,9 @@ class Easterobot(discord.ext.commands.Bot):
         if config.message_content:
             intents.message_content = True
 
+        # Remove warning about VoiceClient
+        discord.VoiceClient.warn_nacl = False
+
         # Initialize Bot
         super().__init__(
             command_prefix=".",
@@ -95,9 +98,9 @@ class Easterobot(discord.ext.commands.Bot):
         cls,
         destination: Union[Path, str],
         *,
-        token: Optional[str],
-        env: bool,
-        interactive: bool,
+        token: Optional[str] = None,
+        env: bool = False,
+        interactive: bool = False,
     ) -> "Easterobot":
         """Generate all data."""
         destination = Path(destination).resolve()
