@@ -38,9 +38,9 @@ async def test_luck(session: AsyncSession, config: MConfig) -> None:
             )
         await session.commit()
     for user_id, egg_count, luck, discovered, spotted in (
-        (USER_ID_1, 0, 1.0, 0.8, 0.333),
-        (USER_ID_2, 4, 0.5, 0.65, 0.4995),
-        (USER_ID_3, 8, 0.0, 0.5, 0.666),
+        (USER_ID_1, 0, 1.0, 0.9, 0.333),
+        (USER_ID_2, 4, 0.5, 0.75, 0.4995),
+        (USER_ID_3, 8, 0.0, 0.6, 0.666),
     ):
         member_luck = await hunt.get_luck(session, GUILD_ID, user_id)
         assert member_luck.egg_count == egg_count

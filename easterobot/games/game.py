@@ -169,10 +169,10 @@ class GameCog(commands.Cog):
         cls = RAND.choice([Connect4, TicTacToe, RockPaperScissor])
         msg = await channel.send(
             f"{user1.mention} et {user2.mention} "
-            f"vont s'affronter {in_seconds(61)} ...",
+            f"vont s'affronter {in_seconds(121)} ...",
             reference=reference,
         )
-        await asyncio.sleep(61)
+        await asyncio.sleep(121)
         game: Game = cls(user1, user2, msg)  # type: ignore[operator]
         await self.run(game)
         return await game.wait_winner()
@@ -234,7 +234,7 @@ class GameCog(commands.Cog):
         no_btn.callback = no  # type: ignore[method-assign,assignment]
         view.add_item(yes_btn)
         view.add_item(no_btn)
-        seconds = 300
+        seconds = 600
         result = await ctx.response.send_message(
             f"{member.mention}, {ctx.user.mention} "
             f"vous demande en duel pour `{bet}` œufs ⚔️"

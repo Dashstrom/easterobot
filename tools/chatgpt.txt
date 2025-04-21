@@ -1,7 +1,7 @@
-Dans le but de faire des réponses à des actions d'utilisateur dans un jeu,
+En tant qu'expert en humour, dans le but de faire des réponses à des actions d'utilisateur dans un jeu,
 Génère moi pleins phrases courte pour dire qu'il n'y a pas d'œufs de Pâque après qu'un utilisateur en ai recherché.
 Parle à la deuxième personne du singulier.
-Utilise un ton humoristique.
+Utilise un ton humoristique, notament au cholzat fondu, oeuf perdu ou tout autre action qui aurais empécher la personne de trouver l'oeuf.
 
 Dans le but de faire des réponses à des actions d'utilisateur dans un jeu,
 Génère moi des phrases pour dire qu'un utilisateur à trouvé un œuf de pâque.
