@@ -1,6 +1,6 @@
 [project]
 name = "easterobot"
-version = "1.3.1"
+version = "1.3.2"
 description = "Discord bot for Easter."
 authors = [
     { name = "Dashstrom", email = "dashstrom.pro@gmail.com" }
@@ -231,7 +231,7 @@ imports = ["shutil", "sys", "pathlib"]
 
 [tool.pytest.ini_options]
 log_cli = true
-log_cli_level = "INFO"
+log_cli_level = "WARNING"
 addopts = "-vvv --doctest-modules --ignore=easterobot/alembic"
 doctest_optionflags = "DONT_ACCEPT_TRUE_FOR_1 NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL ELLIPSIS"
 #asyncio_mode = "auto"

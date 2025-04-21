@@ -321,35 +321,35 @@ action:
       gif: https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMTh2ZjFrdDdpN2h3aXZtYWxtcmdmNGI2ZWoyczg5b3d4Y2c0N2pwbiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3otPoxbuCuvXTbICfm/giphy.gif
     fail:
       text: "On a connu des morts de hamster plus originales, la peur de perdre l'œuf l’a emporté."
-      gif: https://tenor.com/view/hamster-ayasan-gif-24417559
+      gif: https://c.tenor.com/9t7q9vCcYmMAAAAd/tenor.gif
   - text: "Pinguiner pour l'œuf"
     success:
       text: "I'm fast as fuck, boy. {Iel} court en s'enfuyant avec l'œuf."
       gif: https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExYXBrcmQwemt3Y2x1NXdrcnV0aWZxcWZrMGtzYXV4NTBrZGFhYnFhOSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/y5xRFqfdkgEXS/giphy.gif
     fail:
       text: "Saboté par un autre pingouin. {Iel} prend une petite baignade."
-      gif: https://tenor.com/view/penguin-slap-gif-5263949288532448516
+      gif: https://c.tenor.com/SQ1N_QKllQQAAAAd/tenor.gif
   - text: "Invoquer un chat pour l'œuf"
     success:
-      text: "Oh waw, quel maniement félin de l'œuf !"
-      gif: https://tenor.com/view/happy-easter-images2022-cute-cat-gif-25406467
+      text: Oh waw, quel maniement félin de l'œuf !
+      gif: https://c.tenor.com/vwfpPXNTDPEAAAAd/tenor.gif
     fail:
       text: "{Iel} n'est pas tombé{e} sur le chat le plus adroit du quartier, {iel} tombe fatalement."
-      gif: https://tenor.com/view/cat-meme-fall-down-sink-counter-gif-2237760511603157439
-  - text: "Boire l'œuf ?"
+      gif: https://c.tenor.com/Hw4fVEKAqb8AAAAd/tenor.gif
+  - text: Boire l'œuf ?
     success:
       text: "Effectivement, quand ils sont solides, ça a plus de chances d'être des œufs. {Iel} récupère un œuf."
-      gif: https://tenor.com/view/sml-junior-oh-man-guys-i-found-so-many-eggs-finding-eggs-gif-25432207
+      gif: https://c.tenor.com/cqBCSM5N55UAAAAd/tenor.gif
     fail:
       text: "Mmhh, effectivement, un œuf, ça ne se boit pas. Sa vision double l'empêche d'attraper l'œuf."
       gif: https://gifdb.com/images/high/easter-bunny-bud-light-6y0qi1qackuq0ijb.webp
-  - text: "Poler pour l'oeuf"
+  - text: "Poler pour l'œuf"
     success:
       text: "Quelle adresse, {iel} séduit le lapin de Pâques et obtient un œuf"
-      gif: https://tenor.com/view/easter-happyeaster-eastersunday-easterbunny-lol-gif-4003716
+      gif: https://c.tenor.com/aThWCOLIhvwAAAAd/tenor.gif
     fail:
       text: "Oulà, je n'aurais pas aimé être à sa place."
-      gif: https://tenor.com/view/pole-whoops-fall-oh-no-face-plant-gif-14246225
+      gif: https://c.tenor.com/WQV-9F8Wt7QAAAAd/tenor.gif
   - text: "Ramasser calmement l'œuf"
     success:
       text: "Sa sagesse lui a permis d'arriver en vie jusqu'à l'œuf."

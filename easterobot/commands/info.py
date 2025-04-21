@@ -51,9 +51,9 @@ async def info_command(
                 title=f"Informations sur {hunter.display_name}",
                 description=(
                     f"Classement : {hunter_rank.badge}\n"
-                    f"Nombre d'oeufs : `{hunter_rank.eggs}`\n"
+                    f"Nombre d'œufs : `{hunter_rank.eggs}`\n"
                     f"Chance brute : `{member_luck.luck:.0%}`\n"
-                    f"Chance de trouver un oeuf : `{member_luck.discovered:.0%}`\n"
+                    f"Chance de trouver un œuf : `{member_luck.discovered:.0%}`\n"
                     f"Chance de se faire voler : `{member_luck.spotted:.0%}`"
                 ),
             ),

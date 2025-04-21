@@ -18,6 +18,8 @@ class HuntLuck:
     @property
     def discovered(self) -> float:
         """Discovered probability."""
+        if self.egg_count <= self.config.commands.search.discovered.shield:
+            return 1.0
         prob = self.config.commands.search.discovered.probability(self.luck)
         if self.sleep_hours:
             prob /= self.config.sleep.divide_discovered
@@ -26,6 +28,8 @@ class HuntLuck:
     @property
     def spotted(self) -> float:
         """Spotted probability."""
+        if self.egg_count <= self.config.commands.search.spotted.shield:
+            return 0.0
         prob = self.config.commands.search.spotted.probability(self.luck)
         if self.sleep_hours:
             prob /= self.config.sleep.divide_spotted
@@ -33,21 +37,22 @@ class HuntLuck:
 
     def sample_discovered(self) -> bool:
         """Get if player get detected."""
-        if self.egg_count <= self.config.commands.search.discovered.shield:
-            logger.info("discovered: shield with %s eggs", self.egg_count)
-            return True
         sample = RAND.random()
+        discovered = self.discovered
         logger.info(
-            "discovered: expect over %.2f got %.2f",
-            self.discovered,
+            "discovered: expect over %.4f got %.4f",
+            discovered,
             sample,
         )
-        return self.discovered > sample
+        return discovered > sample
 
     def sample_spotted(self) -> bool:
         """Get if player get spotted."""
-        if self.egg_count <= self.config.commands.search.spotted.shield:
-            logger.info("spotted: shield with %s eggs", self.egg_count)
-            return True
         sample = RAND.random()
-        return self.spotted < sample
+        spotted = self.spotted
+        logger.info(
+            "spotted: expect over %.4f got %.4f",
+            spotted,
+            sample,
+        )
+        return spotted > sample

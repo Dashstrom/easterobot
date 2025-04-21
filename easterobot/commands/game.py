@@ -91,13 +91,13 @@ async def game_dual(  # noqa: C901, D103, PLR0912
         )
         if len(e1) < bet:
             await ctx.response.send_message(
-                "Vous n'avez pas assez d'oeufs",
+                "Vous n'avez pas assez d'œufs",
                 ephemeral=True,
             )
             return
         if len(e2) < bet:
             await ctx.response.send_message(
-                f"{member.mention} n'a pas assez d'oeufs",
+                f"{member.mention} n'a pas assez d'œufs",
                 ephemeral=True,
             )
             return
@@ -113,7 +113,7 @@ async def game_dual(  # noqa: C901, D103, PLR0912
                 )
                 if len(e1) < bet:
                     await ctx.response.send_message(
-                        "Vous n'avez plus assez d'oeufs",
+                        "Vous n'avez plus assez d'œufs",
                         ephemeral=True,
                     )
                     return
@@ -121,7 +121,7 @@ async def game_dual(  # noqa: C901, D103, PLR0912
                     e.lock = True
                 if len(e2) < bet:
                     await ctx.response.send_message(
-                        f"{member.mention} n'a plus assez d'oeufs",
+                        f"{member.mention} n'a plus assez d'œufs",
                         ephemeral=True,
                     )
                     return
