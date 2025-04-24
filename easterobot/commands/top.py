@@ -58,9 +58,7 @@ class PaginationRanking(discord.ui.View):
         emb = embed(
             title="Chasse aux œufs",
             description=text,
-            footer=(
-                f"Page {self._page + 1}/{count_page or 1}"
-            ),
+            footer=(f"Page {self._page + 1}/{count_page or 1}"),
         )
         if hasattr(self, "embed"):
             emb.colour = self.embed.colour
