@@ -272,7 +272,7 @@ class HuntCog(commands.Cog, HuntQuery):
         emb = embed(
             title="Un œuf a été découvert !",
             description=description
-            + f"\n\nTirage du vainqueur : <t:{next_hunt:.0f}:R>",
+            + f"\n\n-# Tirage du vainqueur <t:{next_hunt:.0f}:R>",
             thumbnail=emoji.url,
         )
 
