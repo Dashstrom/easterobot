@@ -105,7 +105,7 @@ class EggLocker(AbstractAsyncContextManager["EggLocker"]):
             egg_count,
         )
         if len(eggs) < egg_count:
-            egg_text = agree("œeuf", "œeufs", len(eggs))
+            egg_text = agree("œuf", "œufs", len(eggs))
             error_message = (
                 f"{member.mention} n'a plus que {len(eggs)} {egg_text} "
                 f"disponible sur les {egg_count} demandés"
@@ -153,7 +153,7 @@ class EggLocker(AbstractAsyncContextManager["EggLocker"]):
             member = member_ids[user_id]
             required = members[member]
             if egg_count < required:
-                egg_text = agree("œeuf", "œeufs", egg_count)
+                egg_text = agree("œuf", "œufs", egg_count)
                 error_message = (
                     f"{member.mention} n'a que {egg_count} {egg_text} "
                     f"disponible sur les {required} demandés"

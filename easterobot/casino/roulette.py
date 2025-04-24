@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from easterobot.bot import Easterobot
 from easterobot.config import RAND, agree
 from easterobot.locker import EggLocker
+from easterobot.utils import in_seconds
 
 if TYPE_CHECKING:
     from easterobot.models import Egg
@@ -200,22 +201,23 @@ class RouletteManager:
             ) as session,
             EggLocker(session, guild.id) as locker,
         ):
+            timeout = self.bot.config.casino.roulette.duration
             roulette = Roulette(locker)
             embed = discord.Embed(
                 description=(
-                    "# Événement Casino : Roulette"
+                    "# Roulette lapinique"
                     "\nLe Casino vous ouvre exceptionnellement ses portes. "
                     "Devant vous se trouve un élégant croupier lapin. "
                     "Il vous fixe droit dans les yeux "
                     "et prononce de simples mots en langue lapinique. "
                     "Magiquement, vous semblez comprendre : 'Faites vos jeux'."
                     "\n\n-# Faites attention, "
-                    "il annoncera sans doute la fin d'ici peu."
+                    f"il annoncera sans doute la fin {in_seconds(timeout)}."
                 ),
                 color=0x00FF00,
             )
             text = discord.Embed(
-                description="### Annonces du croupier\n> Faites vos jeux",
+                description="# Annonces du croupier\n> Faites vos jeux",
                 color=0x00FF00,
             )
             assert text.description is not None  # noqa: S101
@@ -235,7 +237,7 @@ class RouletteManager:
                     embeds=[embed, text],
                     view=view,
                 )
-            await sleep(self.bot.config.casino.roulette.duration)
+            await sleep(timeout)
             text.description += "\n> Les jeux sont faits"
             await message.edit(embeds=[embed, text])
             await sleep(20)
@@ -252,10 +254,10 @@ class RouletteManager:
 
         messages = []
         for member, bet in result.winners.items():
-            egg_text = agree("œeuf", "œufs", bet.bet)
+            egg_text = agree("œuf", "œufs", bet.bet)
             messages.append(f"{member.mention} gagne {bet.bet} {egg_text}")
         for member, bet in result.losers.items():
-            egg_text = agree("œeuf", "œufs", bet.bet)
+            egg_text = agree("œuf", "œufs", bet.bet)
             messages.append(f"{member.mention} perd {bet.bet} {egg_text}")
         if messages:
             await sleep(5)

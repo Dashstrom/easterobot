@@ -176,6 +176,7 @@ class HuntCog(commands.Cog, HuntQuery):
         description: str,
         *,
         member_id: Optional[int] = None,
+        casino: bool = False,
         send_method: Optional[
             Callable[..., Awaitable[discord.Message]]
         ] = None,
@@ -188,11 +189,12 @@ class HuntCog(commands.Cog, HuntQuery):
         guild = channel.guild
 
         # Random casino events
-        casino_event = self.bot.config.casino.sample_event()
-        if casino_event:
-            manager = RouletteManager(self.bot)
-            await manager.run(channel)
-            return
+        if casino:
+            casino_event = self.bot.config.casino.sample_event()
+            if casino_event:
+                manager = RouletteManager(self.bot)
+                await manager.run(channel)
+                return
 
         # Get from config
         action = self.bot.config.action.rand()
@@ -294,7 +296,6 @@ class HuntCog(commands.Cog, HuntQuery):
 
         # Disable button and view after hunt
         button.disabled = True
-        delete_after: Optional[int] = None
         view.stop()
         await message.edit(view=view)  # Send the stop info
 
@@ -306,7 +307,6 @@ class HuntCog(commands.Cog, HuntQuery):
             if not hunters or not hunt:
                 button.label = "L'œuf n'a pas été ramassé"
                 button.style = discord.ButtonStyle.danger
-                delete_after = 300
                 logger.info("No Hunter for %s", message_url)
             else:
                 # Get the count of egg by user
@@ -413,11 +413,7 @@ class HuntCog(commands.Cog, HuntQuery):
 
         # Remove emoji and edit view
         button.emoji = None
-        if delete_after:
-            message.content += (
-                f"\n\n-# Ce message disparaîtra {in_seconds(delete_after)}"
-            )
-        await message.edit(view=view, delete_after=delete_after)
+        await message.edit(view=view)
 
     def rank_players(
         self, hunters: list[discord.Member], eggs: dict[int, int]
@@ -508,7 +504,11 @@ class HuntCog(commands.Cog, HuntQuery):
             try:
                 await asyncio.gather(
                     *[
-                        self.start_hunt(hunt_id, self.bot.config.appear.rand())
+                        self.start_hunt(
+                            hunt_id,
+                            self.bot.config.appear.rand(),
+                            casino=True,
+                        )
                         for hunt_id in hunt_ids
                     ]
                 )
