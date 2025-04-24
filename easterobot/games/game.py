@@ -175,11 +175,12 @@ class GameCog(commands.Cog):
         await asyncio.sleep(270)
         await msg.reply(
             content=(
-                f"{user1.mention}, {user1.mention} vont commencer le duel "
+                f"{user1.mention} et {user1.mention} vont commencer le duel "
                 f"{in_seconds(30)}"
             ),
             delete_after=30,
         )
+        await asyncio.sleep(30)
         game: Game = cls(user1, user2, msg)  # type: ignore[operator]
         await self.run(game)
         return await game.wait_winner()
