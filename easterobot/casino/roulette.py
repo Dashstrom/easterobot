@@ -201,7 +201,7 @@ class RouletteManager:
             ) as session,
             EggLocker(session, guild.id) as locker,
         ):
-            timeout = self.bot.config.casino.roulette.duration
+            timeout = self.bot.config.casino.roulette.duration + 40
             roulette = Roulette(locker)
             embed = discord.Embed(
                 description=(
@@ -255,7 +255,9 @@ class RouletteManager:
         messages = []
         for member, bet in result.winners.items():
             egg_text = agree("œuf", "œufs", bet.bet)
-            messages.append(f"{member.mention} gagne {bet.bet} {egg_text}")
+            messages.append(
+                f"{member.mention} repart avec {bet.eggs} {egg_text}"
+            )
         for member, bet in result.losers.items():
             egg_text = agree("œuf", "œufs", bet.bet)
             messages.append(f"{member.mention} perd {bet.bet} {egg_text}")
