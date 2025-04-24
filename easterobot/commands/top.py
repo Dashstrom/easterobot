@@ -43,7 +43,7 @@ class PaginationRanking(discord.ui.View):
 
     @page.setter
     def page(self, n: int) -> None:
-        self._page = n
+        self._page = min(max(n, 0), self._ranking.count_page(PAGE_SIZE) - 1)
         self._update()
 
     def _update(self) -> None:
@@ -74,7 +74,7 @@ class PaginationRanking(discord.ui.View):
         button: discord.ui.Button["PaginationRanking"],  # noqa: ARG002
     ) -> None:
         """Get previous page."""
-        self._page = max(self._page - 1, 0)
+        self.page -= 1
         await interaction.response.edit_message(view=self, embed=self.embed)
 
     @discord.ui.button(label=">", style=discord.ButtonStyle.gray)
@@ -84,7 +84,7 @@ class PaginationRanking(discord.ui.View):
         button: discord.ui.Button["PaginationRanking"],  # noqa: ARG002
     ) -> None:
         """Get next page."""
-        self._page = min(self._page + 1, self._ranking.count_page(self._limit))
+        self.page += 1
         await interaction.response.edit_message(view=self, embed=self.embed)
 
 

@@ -194,7 +194,10 @@ class RouletteManager:
         if guild is None:
             raise ValueError
         async with (
-            AsyncSession(self.bot.engine) as session,
+            AsyncSession(
+                self.bot.engine,
+                expire_on_commit=False,
+            ) as session,
             EggLocker(session, guild.id) as locker,
         ):
             roulette = Roulette(locker)

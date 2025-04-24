@@ -59,7 +59,10 @@ async def game_dual(  # noqa: D103, PLR0912
         return
 
     # Check if user has enough eggs for ask
-    async with AsyncSession(ctx.client.engine) as session:
+    async with AsyncSession(
+        ctx.client.engine,
+        expire_on_commit=False,
+    ) as session:
         locker = EggLocker(session, ctx.guild.id)
         try:
             await locker.pre_check({member: bet, ctx.user: bet})
