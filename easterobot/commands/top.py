@@ -1,55 +1,93 @@
 """Command top."""
 
 import logging
-from math import floor
-from typing import Optional
+from typing import TYPE_CHECKING
 
 import discord
-from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from easterobot.hunts.hunt import embed
 from easterobot.hunts.rank import Ranking
-from easterobot.models import Egg
 
-from .base import Context, Interaction, controlled_command, egg_command_group
+from .base import Context, controlled_command, egg_command_group
+
+if TYPE_CHECKING:
+    from easterobot.bot import Easterobot
 
 PAGE_SIZE = 10
 logger = logging.getLogger(__name__)
 
 
-async def embed_rank(
-    ctx: Context,
-    page: int,
-    colour: Optional[discord.Colour] = None,
-) -> tuple[discord.Embed, bool]:
-    """Embed for rank."""
-    async with AsyncSession(ctx.client.engine) as session:
-        ranking = await Ranking.from_guild(session, ctx.guild_id)
-        hunters = ranking.page(page, limit=PAGE_SIZE)
-        morsels: list[str] = []
+class PaginationRanking(discord.ui.View):
+    embed: discord.Embed
+
+    def __init__(
+        self,
+        *,
+        ranking: Ranking,
+        page: int = 0,
+        limit: int = PAGE_SIZE,
+        timeout: int = 180,
+    ) -> None:
+        """Instantiate PaginationRanking."""
+        super().__init__(timeout=timeout)
+        self._page = 0
+        self._limit = limit
+        self._ranking = ranking
+        self.page = page
+
+    @property
+    def page(self) -> int:
+        """Current page."""
+        return self._page
+
+    @page.setter
+    def page(self, n: int) -> None:
+        self._page = n
+        self._update()
+
+    def _update(self) -> None:
+        count_page = self._ranking.count_page(PAGE_SIZE)
+        self.previous.disabled = self._page <= 0
+        self.next.disabled = self._page >= count_page - 1
+        hunters = self._ranking.page(self._page, limit=PAGE_SIZE)
         if hunters:
-            morsels.extend(hunter.record for hunter in hunters)
+            text = "\n".join(hunter.record for hunter in hunters)
         else:
-            morsels.append("\n:spider_web: Personne n'a d'œuf")
-        total = await session.scalar(
-            select(func.count(distinct(Egg.user_id)).label("count")).where(
-                Egg.guild_id == ctx.guild_id
-            )
+            text = "\n:spider_web: Personne n'a d'œuf"
+        emb = embed(
+            title="Chasse aux œufs",
+            description=text,
+            footer=(
+                f"Page {self._page + 1}/{count_page or 1}"
+            ),
         )
-        if total is None:
-            total = 0
-            logger.warning("No total egg !")
-        total = floor(total / PAGE_SIZE)
-    text = "\n".join(morsels)
-    emb = embed(
-        title="Chasse aux œufs",
-        description=text,
-        footer=f"Page {page + 1}/{total + 1}",
+        if hasattr(self, "embed"):
+            emb.colour = self.embed.colour
+        self.embed = emb
+
+    @discord.ui.button(
+        label="<",
+        style=discord.ButtonStyle.gray,
     )
-    if colour is not None:
-        emb.colour = colour
-    return emb, page >= total
+    async def previous(
+        self,
+        interaction: discord.Interaction["Easterobot"],
+        button: discord.ui.Button["PaginationRanking"],  # noqa: ARG002
+    ) -> None:
+        """Get previous page."""
+        self._page = max(self._page - 1, 0)
+        await interaction.response.edit_message(view=self, embed=self.embed)
+
+    @discord.ui.button(label=">", style=discord.ButtonStyle.gray)
+    async def next(
+        self,
+        interaction: discord.Interaction["Easterobot"],
+        button: discord.ui.Button["PaginationRanking"],  # noqa: ARG002
+    ) -> None:
+        """Get next page."""
+        self._page = min(self._page + 1, self._ranking.count_page(self._limit))
+        await interaction.response.edit_message(view=self, embed=self.embed)
 
 
 @egg_command_group.command(
@@ -60,35 +98,7 @@ async def top_command(ctx: Context) -> None:
     """Top command."""
     await ctx.response.defer(ephemeral=True)
 
-    view = discord.ui.View(timeout=None)
-    previous_page: discord.ui.Button[discord.ui.View] = discord.ui.Button(
-        label="<", style=discord.ButtonStyle.gray, disabled=True
-    )
-    view.add_item(previous_page)
-    next_page: discord.ui.Button[discord.ui.View] = discord.ui.Button(
-        label=">", style=discord.ButtonStyle.gray
-    )
-    view.add_item(next_page)
-    page = 0
-
-    async def edit(interaction: Interaction) -> None:
-        previous_page.disabled = page <= 0
-        emb, next_page.disabled = await embed_rank(
-            ctx, page, base_embed.colour
-        )
-        await interaction.response.edit_message(view=view, embed=emb)
-
-    async def previous_callback(interaction: Interaction) -> None:
-        nonlocal page
-        page = max(page - 1, 0)
-        await edit(interaction)
-
-    async def next_callback(interaction: Interaction) -> None:
-        nonlocal page
-        page += 1
-        await edit(interaction)
-
-    previous_page.callback = previous_callback  # type: ignore[assignment]
-    next_page.callback = next_callback  # type: ignore[assignment]
-    base_embed, next_page.disabled = await embed_rank(ctx, page)
-    await ctx.followup.send(embed=base_embed, ephemeral=True, view=view)
+    async with AsyncSession(ctx.client.engine) as session:
+        ranking = await Ranking.from_guild(session, ctx.guild_id)
+    view = PaginationRanking(ranking=ranking, timeout=180)
+    await ctx.followup.send(embed=view.embed, ephemeral=True, view=view)

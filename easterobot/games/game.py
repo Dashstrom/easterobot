@@ -169,10 +169,17 @@ class GameCog(commands.Cog):
         cls = RAND.choice([Connect4, TicTacToe, RockPaperScissor])
         msg = await channel.send(
             f"{user1.mention} et {user2.mention} "
-            f"vont s'affronter {in_seconds(121)} ...",
+            f"vont s'affronter {in_seconds(300)} ...",
             reference=reference,
         )
-        await asyncio.sleep(121)
+        await asyncio.sleep(270)
+        await msg.reply(
+            content=(
+                f"{user1.mention}, {user1.mention} vont commencer le duel "
+                f"{in_seconds(30)}"
+            ),
+            delete_after=30,
+        )
         game: Game = cls(user1, user2, msg)  # type: ignore[operator]
         await self.run(game)
         return await game.wait_winner()
@@ -234,7 +241,7 @@ class GameCog(commands.Cog):
         no_btn.callback = no  # type: ignore[method-assign,assignment]
         view.add_item(yes_btn)
         view.add_item(no_btn)
-        seconds = 600
+        seconds = 300
         result = await ctx.response.send_message(
             f"{member.mention}, {ctx.user.mention} "
             f"vous demande en duel pour `{bet}` œufs ⚔️"
@@ -283,9 +290,10 @@ class GameCog(commands.Cog):
             raise TypeError(error_message)
         await result.resource.reply(
             f"{ctx.user.mention}, {member.mention} a accepté le duel ⚔️"
-            f"\n-# Ce message disparaîtra {in_seconds(30)}",
+            f"\n-# Début du duel {in_seconds(30)}",
             delete_after=30,
         )
+        await asyncio.sleep(30)
         return result.resource
 
     @commands.Cog.listener()

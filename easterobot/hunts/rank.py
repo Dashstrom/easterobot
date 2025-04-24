@@ -51,6 +51,23 @@ class Ranking:
             return []
         return self.hunters[limit * n : limit * (n + 1)]
 
+    def count_page(self, n: int) -> int:
+        """Count the number of page.
+
+        Example:
+        >>> Ranking([Hunter(1, 1, 3), Hunter(2, 2, 2)]).count_page(10)
+        1
+        >>> Ranking([]).count_page(10)
+        0
+        >>> Ranking([Hunter(i, i, 20 - i) for i in range(10)]).count_page(10)
+        1
+        >>> Ranking([Hunter(i, i, 20 - i) for i in range(11)]).count_page(10)
+        2
+        """
+        if not self.hunters:
+            return 0
+        return (len(self.hunters) - 1) // n + 1
+
     def get(self, member_id: int) -> Hunter:
         """Get a hunter."""
         for hunter in self.hunters:

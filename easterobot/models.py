@@ -37,6 +37,15 @@ class Egg(Base):
         guild_id = self.guild_id or "@me"
         return f"{DISCORD_URL}/{guild_id}/{self.channel_id}/{self.id}"
 
+    def duplicate(self) -> "Egg":
+        """Duplicate the egg."""
+        return Egg(
+            guild_id=self.guild_id,
+            channel_id=self.channel_id,
+            user_id=self.user_id,
+            emoji_id=self.emoji_id,
+        )
+
 
 class Hunt(Base):
     __tablename__ = "hunt"

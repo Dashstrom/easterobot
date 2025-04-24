@@ -17,6 +17,7 @@ from sqlalchemy import and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from easterobot.bot import Easterobot
+from easterobot.casino.roulette import RouletteManager
 from easterobot.config import (
     RAND,
     agree,
@@ -24,6 +25,7 @@ from easterobot.config import (
 from easterobot.hunts.luck import HuntLuck
 from easterobot.models import Egg, Hunt
 from easterobot.query import QueryManager
+from easterobot.utils import in_seconds
 
 logger = logging.getLogger(__name__)
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -155,6 +157,7 @@ class HuntCog(commands.Cog, HuntQuery):
 
         # Start hunt
         logger.info("Start hunt handler")
+        # TODO(dashstrom): rework this
         pending_hunts: set[asyncio.Task[Any]] = set()
         while True:
             if pending_hunts:
@@ -183,6 +186,13 @@ class HuntCog(commands.Cog, HuntQuery):
         if not channel:
             return
         guild = channel.guild
+
+        # Random casino events
+        casino_event = self.bot.config.casino.sample_event()
+        if casino_event:
+            manager = RouletteManager(self.bot)
+            await manager.run(channel)
+            return
 
         # Get from config
         action = self.bot.config.action.rand()
@@ -284,6 +294,7 @@ class HuntCog(commands.Cog, HuntQuery):
 
         # Disable button and view after hunt
         button.disabled = True
+        delete_after: Optional[int] = None
         view.stop()
         await message.edit(view=view)  # Send the stop info
 
@@ -295,6 +306,7 @@ class HuntCog(commands.Cog, HuntQuery):
             if not hunters or not hunt:
                 button.label = "L'œuf n'a pas été ramassé"
                 button.style = discord.ButtonStyle.danger
+                delete_after = 300
                 logger.info("No Hunter for %s", message_url)
             else:
                 # Get the count of egg by user
@@ -358,7 +370,11 @@ class HuntCog(commands.Cog, HuntQuery):
                         )
                     emb = embed(
                         title=text,
-                        description=action.fail.text(loser),
+                        description=(
+                            action.fail.text(loser)
+                            + "\n\n-# Ce message disparaîtra "
+                            + in_seconds(300)
+                        ),
                         image=action.fail.gif,
                     )
                     await channel.send(
@@ -397,7 +413,11 @@ class HuntCog(commands.Cog, HuntQuery):
 
         # Remove emoji and edit view
         button.emoji = None
-        await message.edit(view=view)
+        if delete_after:
+            message.content += (
+                f"\n\n-# Ce message disparaîtra {in_seconds(delete_after)}"
+            )
+        await message.edit(view=view, delete_after=delete_after)
 
     def rank_players(
         self, hunters: list[discord.Member], eggs: dict[int, int]

@@ -124,6 +124,21 @@ class ConjugableText(Serializable[str]):
         return text.replace("{user}", f"<@{member.id}>")
 
 
+class CasinoEvent(msgspec.Struct):
+    duration: float
+
+
+class MCasino(msgspec.Struct):
+    probability: float
+    roulette: CasinoEvent
+
+    def sample_event(self) -> Optional[CasinoEvent]:
+        """Get a random event."""
+        if self.probability < RAND.random():
+            return None
+        return self.roulette
+
+
 class RandomItem(
     Serializable[list[T]],  # Stored form
 ):
@@ -282,6 +297,7 @@ class MConfig(msgspec.Struct, dict=True):
     database: str
     group: str
     hunt: MHunt
+    casino: MCasino
     conjugation: Conjugation
     failed: RandomConjugableText
     hidden: RandomConjugableText
@@ -314,16 +330,27 @@ class MConfig(msgspec.Struct, dict=True):
             "%(data)s", "/" + self.working_directory.as_posix()
         )
 
+    def is_sleep_hours(self, hour: time) -> bool:
+        """Get if bot is currently in sleep mode.
+
+        Examples:
+            >>> config.is_sleep_hours(time(hour=0, minute=59))
+            False
+            >>> config.is_sleep_hours(time(hour=2))
+            True
+            >>> config.is_sleep_hours(time(hour=1))
+            True
+        """
+        if self.sleep.start < self.sleep.end:
+            return self.sleep.start <= hour < self.sleep.end
+        if self.sleep.start > self.sleep.end:
+            return self.sleep.end > hour or self.sleep.start <= hour
+        return False
+
     def in_sleep_hours(self) -> bool:
         """Get if bot is currently in sleep mode."""
         hour = datetime.now(tz=timezone.utc).time()
-        if self.sleep.start < self.sleep.end:
-            if self.sleep.start < hour < self.sleep.end:
-                return True
-        elif self.sleep.start > self.sleep.end:  # noqa: SIM102
-            if not self.sleep.start < hour < self.sleep.end:
-                return True
-        return False
+        return self.is_sleep_hours(hour)
 
     def verified_token(self) -> str:
         """Get the safe token."""
@@ -409,7 +436,6 @@ class MConfig(msgspec.Struct, dict=True):
                 disable_existing_loggers=False,
                 defaults=defaults,
             )
-            self.__logging_flag = True
 
     def __str__(self) -> str:
         """Represent the Configuration."""

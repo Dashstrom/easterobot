@@ -5,7 +5,6 @@ from typing import Callable, Optional
 
 import discord
 from discord import app_commands
-from sqlalchemy import and_, func, not_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from easterobot.config import RAND
@@ -14,36 +13,12 @@ from easterobot.games.game import Game
 from easterobot.games.rock_paper_scissor import RockPaperScissor
 from easterobot.games.tic_tac_toe import TicTacToe
 from easterobot.hunts.rank import Ranking
-from easterobot.models import Egg
+from easterobot.locker import EggLocker, EggLockerError
 
 from .base import Context, controlled_command, egg_command_group
 
-lock = asyncio.Lock()
 
-
-async def get_unlocked_eggs(
-    session: AsyncSession, member: discord.Member, counter: int
-) -> list[Egg]:
-    """Get the count of unlocked eggs."""
-    return list(
-        (
-            await session.scalars(
-                select(Egg)
-                .where(
-                    and_(
-                        Egg.guild_id == member.guild.id,
-                        Egg.user_id == member.id,
-                        not_(Egg.lock),
-                    )
-                )
-                .order_by(func.random())  # Randomize
-                .limit(counter)
-            )
-        ).all()
-    )
-
-
-async def game_dual(  # noqa: C901, D103, PLR0912
+async def game_dual(  # noqa: D103, PLR0912
     ctx: Context,
     member: Optional[discord.Member],
     bet: int,
@@ -85,68 +60,40 @@ async def game_dual(  # noqa: C901, D103, PLR0912
 
     # Check if user has enough eggs for ask
     async with AsyncSession(ctx.client.engine) as session:
-        e1, e2 = await asyncio.gather(
-            get_unlocked_eggs(session, ctx.user, bet),
-            get_unlocked_eggs(session, member, bet),
-        )
-        if len(e1) < bet:
-            await ctx.response.send_message(
-                "Vous n'avez pas assez d'œufs",
-                ephemeral=True,
-            )
-            return
-        if len(e2) < bet:
-            await ctx.response.send_message(
-                f"{member.mention} n'a pas assez d'œufs",
-                ephemeral=True,
-            )
+        locker = EggLocker(session, ctx.guild.id)
+        try:
+            await locker.pre_check({member: bet, ctx.user: bet})
+        except EggLockerError as err:
+            await ctx.response.send_message(str(err), ephemeral=True)
             return
 
-    msg = await ctx.client.game.ask_dual(ctx, member, bet=bet)
-    if msg:
-        # Check if user still have enough eggs and lock them
-        async with AsyncSession(ctx.client.engine) as session:
-            async with lock:
-                e1, e2 = await asyncio.gather(
-                    get_unlocked_eggs(session, ctx.user, bet),
-                    get_unlocked_eggs(session, member, bet),
-                )
-                if len(e1) < bet:
-                    await ctx.response.send_message(
-                        "Vous n'avez plus assez d'œufs",
-                        ephemeral=True,
-                    )
+        msg = await ctx.client.game.ask_dual(ctx, member, bet=bet)
+        if msg:
+            # Unlock all egg at end
+            async with locker:
+                # Lock the egg of player
+                try:
+                    async with locker.transaction():
+                        e1, e2 = await asyncio.gather(
+                            locker.get(member, bet), locker.get(ctx.user, bet)
+                        )
+                except EggLockerError as err:
+                    await msg.reply(str(err), delete_after=30)
                     return
-                for e in e1:
-                    e.lock = True
-                if len(e2) < bet:
-                    await ctx.response.send_message(
-                        f"{member.mention} n'a plus assez d'œufs",
-                        ephemeral=True,
-                    )
-                    return
-                for e in e2:
-                    e.lock = True
-                await session.commit()
 
-            # Play the game
-            winner = None
-            try:
-                game = cls(ctx.user, member, msg)
+                p1, p2 = ctx.user, member
+                if RAND.choice([True, False]):
+                    p2, p1 = p1, p2
+                game = cls(p1, p2, msg)
                 await ctx.client.game.run(game)
                 winner = await game.wait_winner()
-            finally:
-                # Give eggs to the winner or remove previous one
-                async with lock:
-                    for e in e1:
-                        e.lock = False
-                        if winner:
-                            e.user_id = winner.id
-                    for e in e2:
-                        e.lock = False
-                        if winner:
-                            e.user_id = winner.id
-                    await session.commit()
+                if winner:
+                    for eggs in [e1, e2]:
+                        for egg in eggs:
+                            egg.user_id = winner.id
+
+                # Send change
+                await session.commit()
 
 
 @egg_command_group.command(

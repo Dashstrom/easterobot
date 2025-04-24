@@ -1,7 +1,6 @@
 """Module for reset command."""
 
 import asyncio
-from typing import cast
 
 import discord
 from sqlalchemy import and_, delete
@@ -9,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from easterobot.hunts.hunt import embed
 from easterobot.models import Cooldown, Egg, Hunt
+from easterobot.utils import in_seconds
 
 from .base import Context, Interaction, controlled_command, egg_command_group
 
@@ -95,21 +95,18 @@ async def reset_command(ctx: Context) -> None:
 
     cancel.callback = cancel_callback  # type: ignore[assignment]
     confirm.callback = confirm_callback  # type: ignore[assignment]
-    message = cast(
-        discord.WebhookMessage,
-        await ctx.followup.send(
-            embed=embed(
-                title="Demande de réinitialisation",
-                description=(
-                    "L'ensemble des salons, œufs "
-                    "et temps d'attentes vont être réinitialisatiés."
-                ),
-                # TODO(dashstrom): add timer
-                footer="Vous avez 30 secondes pour confirmer",
+    message = await ctx.followup.send(
+        embed=embed(
+            title="Demande de réinitialisation",
+            description=(
+                "L'ensemble des salons, œufs "
+                "et temps d'attentes vont être réinitialisatiés."
+                f"\n\n-# Vous devez confirmer {in_seconds(30)}"
             ),
-            ephemeral=True,
-            view=view,
         ),
+        ephemeral=True,
+        view=view,
+        wait=True,
     )
     await asyncio.sleep(30.0)
     if not done:

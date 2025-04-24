@@ -11,11 +11,15 @@ logs:
 database: sqlite+aiosqlite://%(data)s/easterobot.db
 group: egg
 sleep:
-  start: '23:00:00'
-  end: '09:00:00'
+  start: '01:00:00'
+  end: '10:00:00'
   divide_hunt: 2
   divide_discovered: 2
   divide_spotted: 1.5
+casino:
+  probability: 0.05
+  roulette:
+    duration: 300
 hunt:
   timeout: 300.0
   cooldown:

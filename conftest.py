@@ -8,15 +8,16 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
-from easterobot import __author__
 from easterobot.bot import Easterobot
 from easterobot.config import MConfig
 
 
 @pytest.fixture(autouse=True)
-def _add_author(doctest_namespace: dict[str, Any]) -> None:
+def _add_bot(doctest_namespace: dict[str, Any], bot: Easterobot) -> None:
     """Update doctest namespace."""
-    doctest_namespace["author"] = __author__
+    doctest_namespace["bot"] = bot
+    doctest_namespace["engine"] = bot.engine
+    doctest_namespace["config"] = bot.config
 
 
 @pytest.fixture
