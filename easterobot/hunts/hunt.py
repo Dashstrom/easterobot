@@ -265,14 +265,11 @@ class HuntCog(commands.Cog, HuntQuery):
         # Set the button callback
         button.callback = button_callback  # type: ignore[method-assign]
 
-        # Set next hunt
-        next_hunt = time.time() + timeout
-
         # Create and embed
         emb = embed(
             title="Un œuf a été découvert !",
             description=description
-            + f"\n\n-# Tirage du vainqueur <t:{next_hunt:.0f}:R>",
+            + f"\n\n-# Tirage du vainqueur {in_seconds(timeout)}",
             thumbnail=emoji.url,
         )
 
