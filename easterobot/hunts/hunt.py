@@ -212,6 +212,7 @@ class HuntCog(commands.Cog, HuntQuery):
         # Start hunt
         logger.info("Start hunt in %s", channel.jump_url)
         timeout = self.bot.config.hunt.timeout + 1
+        has_game = False
         view = discord.ui.View(timeout=timeout)
         button: discord.ui.Button[Any] = discord.ui.Button(
             label=label,
@@ -321,7 +322,6 @@ class HuntCog(commands.Cog, HuntQuery):
                 else:
                     winner = ranked_hunters[0]
                     loser = ranked_hunters[1]
-                    has_game = True
 
                     if RAND.random() < self.bot.config.hunt.game:
                         # Update button
