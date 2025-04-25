@@ -41,9 +41,9 @@ class TicTacToe(Game):
     async def on_start(self) -> None:
         """Run."""
         await self.update()
+        await self.start_timer(31)
         for emoji in EMOJIS:
             await self.message.add_reaction(emoji)
-        await self.start_timer(31)
 
     async def update(self) -> None:
         """Update the message."""

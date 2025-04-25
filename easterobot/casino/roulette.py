@@ -119,7 +119,7 @@ class Roulette:
                 else:
                     futures.append(self.locker.delete(eggs))
                     losers[member] = play
-        await asyncio.gather(*futures)
+            await asyncio.gather(*futures)
         return RouletteResult(
             draw=ball,
             losers=losers,

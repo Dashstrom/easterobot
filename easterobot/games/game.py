@@ -175,7 +175,7 @@ class GameCog(commands.Cog):
         await asyncio.sleep(270)
         await msg.reply(
             content=(
-                f"{user1.mention} et {user1.mention} vont commencer le duel "
+                f"{user1.mention} et {user2.mention} vont commencer le duel "
                 f"{in_seconds(30)}"
             ),
             delete_after=30,

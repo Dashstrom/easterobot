@@ -182,7 +182,7 @@ class RockPaperScissor(Game):
         await self.message.edit(
             embed=embed,
             view=self.view,
-            content=(f"-# {self.player1.mention} {self.player2.mention}"),
+            content=f"-# {self.player1.mention} {self.player2.mention}",
         )
 
     def compute_winner(

@@ -100,7 +100,7 @@ class HuntQuery(QueryManager):
         )
         return egg_max or 0
 
-    async def get_eggs(
+    async def get_egg_count(
         self,
         session: AsyncSession,
         guild_id: int,
@@ -127,7 +127,7 @@ class HuntQuery(QueryManager):
     ) -> HuntLuck:
         """Get the luck of a member."""
         luck = 1.0
-        egg_count = await self.get_eggs(session, guild_id, user_id)
+        egg_count = await self.get_egg_count(session, guild_id, user_id)
         if egg_count != 0:
             egg_max = await self.get_max_eggs(session, guild_id)
             if egg_max != 0:
@@ -321,9 +321,11 @@ class HuntCog(commands.Cog, HuntQuery):
                 else:
                     winner = ranked_hunters[0]
                     loser = ranked_hunters[1]
+                    has_game = True
 
                     if RAND.random() < self.bot.config.hunt.game:
                         # Update button
+                        has_game = True
                         button.label = "Duel en cours ..."
                         button.style = discord.ButtonStyle.gray
 
@@ -381,8 +383,17 @@ class HuntCog(commands.Cog, HuntQuery):
                     )
 
                 if winner:
-                    # Send embed for the winner
-                    winner_eggs = eggs.get(winner.id, 0) + 1
+                    # Get egg count (or the new counter if game)
+                    if has_game:
+                        winner_eggs = await self.get_egg_count(
+                            session,
+                            winner.guild.id,
+                            winner.id,
+                        )
+                    else:
+                        winner_eggs = eggs.get(winner.id, 0) + 1
+
+                    # Send the winner embed winner
                     emb = embed(
                         title=f"{winner.display_name} récupère un œuf",
                         description=action.success.text(winner),
