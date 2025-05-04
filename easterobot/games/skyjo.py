@@ -642,8 +642,8 @@ class Skyjo(Game):
         """Run."""
         self.emojis = {
             **EMOJIS_MAPPER,
-            self.bot.app_emojis["eleven"]._to_partial(): 10,  # noqa: SLF001
-            self.bot.app_emojis["twelve"]._to_partial(): 11,  # noqa: SLF001
+            self.bot.app_emojis["s11"]._to_partial(): 10,  # noqa: SLF001
+            self.bot.app_emojis["s12"]._to_partial(): 11,  # noqa: SLF001
         }
         self.cards = {
             i: self.bot.app_emojis[  # noqa: SLF001
