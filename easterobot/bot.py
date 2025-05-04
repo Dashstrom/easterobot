@@ -18,6 +18,7 @@ import discord.app_commands
 import discord.ext.commands
 from alembic.command import upgrade
 from sqlalchemy.ext.asyncio import create_async_engine
+from typing_extensions import override
 
 if TYPE_CHECKING:
     from easterobot.games.game import GameCog
@@ -45,6 +46,7 @@ class Easterobot(discord.ext.commands.Bot):
     owner: discord.User
     game: "GameCog"
     hunt: "HuntCog"
+    init_finished: asyncio.Event
 
     def __init__(self, config: MConfig) -> None:
         """Initialise Easterbot."""
@@ -68,7 +70,6 @@ class Easterobot(discord.ext.commands.Bot):
         self.config = config
         self.app_commands: list[discord.app_commands.AppCommand] = []
         self.app_emojis: dict[str, discord.Emoji] = {}
-        self.init_finished = asyncio.Event()
 
         # Configure logging
         self.config.configure_logging()
@@ -168,6 +169,11 @@ class Easterobot(discord.ext.commands.Bot):
     def auto_run(self) -> None:
         """Run the bot with the given token."""
         self.run(token=self.config.verified_token())
+
+    @override
+    async def start(self, token: str, *, reconnect: bool = True) -> None:
+        self.init_finished = asyncio.Event()
+        await super().start(token=token, reconnect=reconnect)
 
     async def on_ready(self) -> None:
         """Handle ready event, can be trigger many time if disconnected."""
