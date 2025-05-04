@@ -172,6 +172,7 @@ class Easterobot(discord.ext.commands.Bot):
 
     @override
     async def start(self, token: str, *, reconnect: bool = True) -> None:
+        """Add event for starting."""
         self.init_finished = asyncio.Event()
         await super().start(token=token, reconnect=reconnect)
 
