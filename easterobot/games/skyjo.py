@@ -15,10 +15,6 @@ from easterobot.commands.base import Interaction
 from easterobot.config import RAND
 from easterobot.games.game import Button, Game, Player
 
-EMOJI_ARR = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
-EMOJIS_MAPPER = {
-    discord.PartialEmoji(name=e): i for i, e in enumerate(EMOJI_ARR)
-}
 CARDS = {-2: 5, -1: 10, 0: 15, **{i: 10 for i in range(1, 13)}}
 logger = logging.getLogger(__name__)
 COLORS = [
@@ -640,11 +636,6 @@ class Skyjo(Game):
 
     async def on_start(self) -> None:
         """Run."""
-        self.emojis = {
-            **EMOJIS_MAPPER,
-            self.bot.app_emojis["s11"]._to_partial(): 10,  # noqa: SLF001
-            self.bot.app_emojis["s12"]._to_partial(): 11,  # noqa: SLF001
-        }
         self.cards = {
             i: self.bot.app_emojis[  # noqa: SLF001
                 self.card_value_to_emoji_name(i)
@@ -767,6 +758,7 @@ class Skyjo(Game):
             embed.add_field(
                 name=p.member.display_name,
                 value=f"-# {score} points\n{grid}",
+                inline=False,
             )
 
         # Update view

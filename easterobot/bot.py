@@ -213,6 +213,8 @@ class Easterobot(discord.ext.commands.Bot):
             for emoji in await self.fetch_application_emojis()
         }
         emotes_path = (self.config.resources / "emotes").resolve()
+        # TODO(dashstrom): remove old one !
+        # TODO(dashstrom): cache emoji synced !
         self.app_emojis = {}
         for emote in emotes_path.glob("**/*"):
             if not emote.is_file():
