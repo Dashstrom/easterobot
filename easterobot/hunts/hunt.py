@@ -149,6 +149,9 @@ class HuntCog(commands.Cog, HuntQuery):
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         """Handle ready event, can be trigger many time if disconnected."""
+        # Wait main finish
+        await self.bot.init_finished.wait()
+
         # Unlock all eggs
         logger.info("Unlock all previous eggs")
         async with AsyncSession(self.bot.engine) as session:
@@ -279,18 +282,18 @@ class HuntCog(commands.Cog, HuntQuery):
             message = await channel.send(embed=emb, view=view)
         else:
             message = await send_method(embed=emb, view=view)
+            message = await message.channel.fetch_message(message.id)
 
         # TODO(dashstrom): channel is wrong due to the send message !
         # TODO(dashstrom): Why wait if timeout ???
         # Wait the end of the hunt
         message_url = f"{channel.jump_url}/{message.id}"
-        async with channel.typing():
-            try:
-                await asyncio.wait_for(
-                    view.wait(), timeout=self.bot.config.hunt.timeout
-                )
-            except asyncio.TimeoutError:
-                logger.info("End hunt for %s", message_url)
+        try:
+            await asyncio.wait_for(
+                view.wait(), timeout=self.bot.config.hunt.timeout
+            )
+        except asyncio.TimeoutError:
+            logger.info("End hunt for %s", message_url)
 
         # Disable button and view after hunt
         button.disabled = True

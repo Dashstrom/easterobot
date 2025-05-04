@@ -1,11 +1,12 @@
 """Connect4 and Connect3."""
 
-from functools import partial
+import asyncio
 from typing import Optional
 
 import discord
 from typing_extensions import override
 
+from easterobot.bot import Easterobot
 from easterobot.games.game import Game, Player
 from easterobot.utils import in_seconds
 
@@ -22,36 +23,38 @@ EMOJIS_MAPPER = {
     "🔟": 9,
 }
 EMOJIS = tuple(EMOJIS_MAPPER)
+ROWS = 6
+COLS = 7
+WIN_COUNT = 4
 
 
-class Connect(Game):
-    def __init__(  # noqa: PLR0913
+class Connect4(Game):
+    def __init__(
         self,
-        player1: discord.Member,
-        player2: discord.Member,
+        bot: Easterobot,
         message: discord.Message,
-        rows: int,
-        cols: int,
-        win_count: int,
+        *members: discord.Member,
+        rows: int = ROWS,
+        cols: int = COLS,
+        win_count: int = WIN_COUNT,
     ) -> None:
         """Instantiate Connect4."""
         self.grid: list[list[Optional[Player]]] = [
             [None] * rows for _ in range(cols)
         ]
         self.timeout = False
-        self.player1 = Player(player1, 1)
-        self.player2 = Player(player2, 2)
         self.rows = rows
         self.cols = cols
         self.win_count = win_count
         self.turn = 0
-        super().__init__(message)
+        super().__init__(bot, message, *members)
 
     async def on_start(self) -> None:
         """Run."""
         await self.update()
         await self.start_timer(61)
         for emoji in EMOJIS[: self.cols]:
+            await asyncio.sleep(0.1)
             await self.message.add_reaction(emoji)
 
     async def update(self) -> None:
@@ -64,12 +67,12 @@ class Connect(Game):
             player: Optional[Player] = self.current
         elif self.winner:
             forfait = "par forfait " if self.timeout else ""
-            footer = f"\n## Gagnant {forfait}{self.winner.mention} 🎉"
+            footer = f"\n## Gagnant {forfait}{self.winner.member.mention} 🎉"
             player = self.current
         else:
             footer = (
-                f"\n## Égalité entre {self.player1.member.mention} "
-                f"et {self.player2.member.mention} 🤝"
+                f"\n## Égalité entre {self.players[0].member.mention} "
+                f"et {self.players[1].member.mention} 🤝"
             )
             player = None
         content = label
@@ -93,10 +96,7 @@ class Connect(Game):
         )
         self.message = await self.message.edit(
             embed=embed,
-            content=(
-                f"-# {self.player1.member.mention} "
-                f"{self.player2.member.mention}"
-            ),
+            content=f"-# {' '.join(p.member.mention for p in self.players)}",
             view=None,
         )
 
@@ -116,15 +116,15 @@ class Connect(Game):
     @property
     def current(self) -> Player:
         """Get the current member playing."""
-        return [self.player1, self.player2][self.turn % 2]
+        return self.players[self.turn % 2]
 
     def piece(self, member: Optional[Player]) -> str:
         """Get the current member playing."""
         if member is None:
             return "⚪"
-        if member == self.player1:
+        if member == self.players[0]:
             return "🔴"
-        if member == self.player2:
+        if member == self.players[1]:
             return "🟡"
         error_message = f"Invalid member: {member!r}"
         raise ValueError(error_message)
@@ -133,9 +133,9 @@ class Connect(Game):
         """Get the current player playing."""
         if player is None:
             return discord.Colour.from_str("#d4d5d6")  # Grey
-        if player == self.player1:
+        if player == self.players[0]:
             return discord.Colour.from_str("#ca2a3e")  # Red
-        if player == self.player2:
+        if player == self.players[1]:
             return discord.Colour.from_str("#e9bb51")  # Yellow
         error_message = f"Invalid player: {player!r}"
         raise ValueError(error_message)
@@ -160,7 +160,7 @@ class Connect(Game):
             else:
                 return  # Can't be placed
             if winner:
-                await self.set_winner(player.member)
+                await self.set_winner(player)
             elif all(  # Draw case
                 self.grid[col][-1] is not None for col in range(self.cols)
             ):
@@ -174,7 +174,7 @@ class Connect(Game):
     async def on_timeout(self) -> None:
         self.turn += 1
         self.timeout = True
-        await self.set_winner(self.current.member)
+        await self.set_winner(self.current)
         await self.update()
 
     def _is_winner(self, col: int, row: int, player: Player) -> bool:
@@ -202,6 +202,3 @@ class Connect(Game):
             c += dx
             r += dy
         return count
-
-
-Connect4 = partial(Connect, rows=6, cols=7, win_count=4)

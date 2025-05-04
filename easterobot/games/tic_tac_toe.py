@@ -1,10 +1,12 @@
 """TicTacToe."""
 
+import asyncio
 from typing import Optional
 
 import discord
 from typing_extensions import override
 
+from easterobot.bot import Easterobot
 from easterobot.games.game import Game, Player
 from easterobot.utils import in_seconds
 
@@ -25,17 +27,15 @@ EMOJIS = tuple(EMOJIS_MAPPER)
 class TicTacToe(Game):
     def __init__(
         self,
-        player1: discord.Member,
-        player2: discord.Member,
+        bot: Easterobot,
         message: discord.Message,
+        *members: discord.Member,
     ) -> None:
         """Initialize grid."""
         self.grid: list[Optional[Player]] = [None] * 9
         self.timeout = False
-        self.player1 = Player(player1, 1)
-        self.player2 = Player(player2, 2)
         self.turn = 0
-        super().__init__(message)
+        super().__init__(bot, message, *members)
 
     @override
     async def on_start(self) -> None:
@@ -43,6 +43,7 @@ class TicTacToe(Game):
         await self.update()
         await self.start_timer(31)
         for emoji in EMOJIS:
+            await asyncio.sleep(0.1)
             await self.message.add_reaction(emoji)
 
     async def update(self) -> None:
@@ -55,13 +56,13 @@ class TicTacToe(Game):
             user: Optional[Player] = self.current
         elif self.winner:
             forfait = "par forfait " if self.timeout else ""
-            footer = f"\n## Gagnant {forfait}{self.winner.mention} 🎉"
+            footer = f"\n## Gagnant {forfait}{self.winner.member.mention} 🎉"
             user = self.current
         else:
             footer = (
                 "\n## Égalité entre "
-                f"{self.player1.member.mention} "
-                f"et {self.player2.member.mention} 🤝"
+                f"{self.players[0].member.mention} "
+                f"et {self.players[1].member.mention} 🤝"
             )
             user = None
 
@@ -72,9 +73,9 @@ class TicTacToe(Game):
             for col in range(3):
                 index = row * 3 + col
                 player = self.grid[index]
-                if player == self.player1:
+                if player == self.players[0]:
                     piece = "❌"
-                elif player == self.player2:
+                elif player == self.players[1]:
                     piece = "⭕"
                 else:
                     piece = EMOJIS[index]
@@ -98,8 +99,8 @@ class TicTacToe(Game):
         self.message = await self.message.edit(
             embed=embed,
             content=(
-                f"-# {self.player1.member.mention} "
-                f"{self.player2.member.mention}"
+                f"-# {self.players[0].member.mention} "
+                f"{self.players[1].member.mention}"
             ),
             view=None,
         )
@@ -116,15 +117,15 @@ class TicTacToe(Game):
     @property
     def current(self) -> Player:
         """Get current member."""
-        return [self.player1, self.player2][self.turn % 2]
+        return [self.players[0], self.players[1]][self.turn % 2]
 
     def color(self, player: Optional[Player]) -> Optional[discord.Colour]:
         """Color of the embed."""
         if player is None:
             return discord.Colour.from_str("#d4d5d6")
-        if player == self.player1:
+        if player == self.players[0]:
             return discord.Colour.from_str("#F17720")
-        if player == self.player2:
+        if player == self.players[1]:
             return discord.Colour.from_str("#0474BA")
         error_message = f"Invalid player: {player!r}"
         raise ValueError(error_message)
@@ -138,7 +139,7 @@ class TicTacToe(Game):
             self.grid[index] = player
 
             if self._is_winner(player):
-                await self.set_winner(player.member)
+                await self.set_winner(player)
             elif all(cell is not None for cell in self.grid):
                 await self.set_winner(None)
             else:
@@ -150,7 +151,7 @@ class TicTacToe(Game):
     async def on_timeout(self) -> None:
         self.turn += 1
         self.timeout = True
-        await self.set_winner(self.current.member)
+        await self.set_winner(self.current)
         await self.update()
 
     def _is_winner(self, player: Player) -> bool:

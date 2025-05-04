@@ -113,3 +113,4 @@ config.yml
 logs
 *.db
 /bot
+/skyjo

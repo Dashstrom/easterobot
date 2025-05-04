@@ -49,6 +49,8 @@ commands:
     cooldown: 120.0
   tictactoe:
     cooldown: 120.0
+  skyjo:
+    cooldown: 120.0
   info:
     cooldown: 30.0
   basket:

@@ -1,5 +1,6 @@
 """Main program."""
 
+import asyncio
 import logging
 import pathlib
 import shutil
@@ -67,6 +68,7 @@ class Easterobot(discord.ext.commands.Bot):
         self.config = config
         self.app_commands: list[discord.app_commands.AppCommand] = []
         self.app_emojis: dict[str, discord.Emoji] = {}
+        self.init_finished = asyncio.Event()
 
         # Configure logging
         self.config.configure_logging()
@@ -196,6 +198,7 @@ class Easterobot(discord.ext.commands.Bot):
             self.user,
             getattr(self.user, "id", "unknown"),
         )
+        self.init_finished.set()
 
     async def _load_emojis(self) -> None:
         emojis = {
@@ -221,4 +224,5 @@ class Easterobot(discord.ext.commands.Bot):
                 self.app_emojis[name] = emoji
             else:
                 logger.info("Load emoji %s", name)
-                self.app_emojis[name] = emojis[name]
+                emoji = emojis[name]
+                self.app_emojis[name] = emoji

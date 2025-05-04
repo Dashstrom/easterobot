@@ -7,6 +7,7 @@ from typing import Optional
 import discord
 from typing_extensions import override
 
+from easterobot.bot import Easterobot
 from easterobot.commands.base import Interaction
 from easterobot.games.game import Button, Game
 
@@ -21,9 +22,9 @@ class RockPaperScissor(Game):
 
     def __init__(
         self,
-        player1: discord.Member,
-        player2: discord.Member,
+        bot: Easterobot,
         message: discord.Message,
+        *members: discord.Member,
         win_count: int = 3,
         max_turn: int = 10,
     ) -> None:
@@ -31,12 +32,10 @@ class RockPaperScissor(Game):
         self.timeout = False
         self.max_turn = max_turn
         self.win_count = win_count
-        self.player1 = player1
-        self.player2 = player2
         self.play1: Optional[str] = None
         self.play2: Optional[str] = None
         self.history: list[tuple[str, str]] = []
-        super().__init__(message)
+        super().__init__(bot, message, *members)
 
     @override
     async def on_start(self) -> None:
@@ -64,14 +63,15 @@ class RockPaperScissor(Game):
             label: str,
         ) -> None:
             update = False
+            user = interaction.user
 
             # Player 1 click on button
-            if interaction.user == self.player1 and self.play1 is None:
+            if user == self.players[0].member and self.play1 is None:
                 self.play1 = label
                 update = True
 
             # Player 2 click on button
-            elif interaction.user == self.player2 and self.play2 is None:
+            elif user == self.players[1].member and self.play2 is None:
                 self.play2 = label
                 update = True
 
@@ -105,15 +105,15 @@ class RockPaperScissor(Game):
         if self.play1 is None and self.play2 is None:
             icon_url = self.bot.app_emojis["wait"].url
             info = (
-                f"En attente de {self.player1.mention} "
-                f"et {self.player2.mention} ..."
+                f"En attente de {self.players[0].member.mention} "
+                f"et {self.players[1].member.mention} ..."
             )
         elif self.play1 is None:
-            icon_url = self.player1.display_avatar.url
-            info = f"En attente de {self.player1.mention} ..."
+            icon_url = self.players[0].member.display_avatar.url
+            info = f"En attente de {self.players[0].member.mention} ..."
         elif self.play2 is None:
-            icon_url = self.player2.display_avatar.url
-            info = f"En attente de {self.player2.mention} ..."
+            icon_url = self.players[1].member.display_avatar.url
+            info = f"En attente de {self.players[1].member.mention} ..."
         else:
             # Play and fight
             self.history.append((self.play1, self.play2))
@@ -121,8 +121,8 @@ class RockPaperScissor(Game):
             self.play2 = None
             icon_url = self.bot.app_emojis["wait"].url
             info = (
-                f"En attente de {self.player1.mention} "
-                f"et {self.player2.mention} ..."
+                f"En attente de {self.players[0].member.mention} "
+                f"et {self.players[1].member.mention} ..."
             )
         pt1 = 0
         pt2 = 0
@@ -132,10 +132,10 @@ class RockPaperScissor(Game):
             i2 = EMOJIS.index(play2)
             if i1 == (i2 - 1) % 3:
                 pt1 += 1
-                text = self.player1.mention
+                text = self.players[0].member.mention
             elif i1 == (i2 + 1) % 3:
                 pt2 += 1
-                text = self.player2.mention
+                text = self.players[1].member.mention
             else:
                 text = "**égalité**"
             morsels.append(
@@ -154,21 +154,21 @@ class RockPaperScissor(Game):
             if self.timeout:
                 final_winner = self.winner
             elif pt1 < pt2:
-                final_winner = self.player2
+                final_winner = self.players[1]
             elif pt2 < pt1:
-                final_winner = self.player1
+                final_winner = self.players[0]
             else:
                 final_winner = None
             if final_winner:
                 forfait = "par forfait " if self.timeout else ""
                 embed.description += (
-                    f"## Gagnant {forfait}{final_winner.mention} 🎉"
+                    f"## Gagnant {forfait}{final_winner.member.mention} 🎉"
                 )
-                icon_url = final_winner.display_avatar.url
+                icon_url = final_winner.member.display_avatar.url
             else:
                 embed.description += (
-                    f"## Égalité entre {self.player1.mention} "
-                    f"et {self.player2.mention} 🤝"
+                    f"## Égalité entre {self.players[0].member.mention} "
+                    f"et {self.players[1].member.mention} 🤝"
                 )
                 icon_url = self.bot.app_emojis["end"].url
             self.view.stop()
@@ -182,7 +182,10 @@ class RockPaperScissor(Game):
         await self.message.edit(
             embed=embed,
             view=self.view,
-            content=f"-# {self.player1.mention} {self.player2.mention}",
+            content=(
+                f"-# {self.players[0].member.mention} "
+                f"{self.players[1].member.mention}"
+            ),
         )
 
     def compute_winner(
@@ -192,9 +195,9 @@ class RockPaperScissor(Game):
         i1 = EMOJIS.index(play1)
         i2 = EMOJIS.index(play2)
         if i1 == (i2 + 1) % 3:
-            return self.player1
+            return self.players[0].member
         if i1 == (i2 - 1) % 3:
-            return self.player2
+            return self.players[1].member
         return None  # Draw
 
     def color(
@@ -203,9 +206,9 @@ class RockPaperScissor(Game):
         """Color of the embed."""
         if member is None:
             return discord.Colour.from_str("#d4d5d6")
-        if member == self.player1:
+        if member == self.players[0]:
             return discord.Colour.from_str("#ca2a3e")
-        if member == self.player2:
+        if member == self.players[1]:
             return discord.Colour.from_str("#5865F2")
         error_message = f"Invalid member: {member!r}"
         raise ValueError(error_message)
@@ -214,7 +217,7 @@ class RockPaperScissor(Game):
     async def on_timeout(self) -> None:
         self.timeout = True
         if self.play1 is None:
-            await self.set_winner(self.player2)
+            await self.set_winner(self.players[1])
         if self.play2 is None:
-            await self.set_winner(self.player1)
+            await self.set_winner(self.players[0])
         await self.update()

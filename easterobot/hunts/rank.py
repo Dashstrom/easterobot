@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, not_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from easterobot.config import agree
@@ -79,15 +79,20 @@ class Ranking:
     async def from_guild(
         session: AsyncSession,
         guild_id: int,
+        *,
+        unlock_only: bool = False,
     ) -> "Ranking":
         """Get ranks by page."""
+        where = Egg.guild_id == guild_id
+        if unlock_only:
+            where = and_(where, not_(Egg.lock))
         query = (
             select(
                 Egg.user_id,
                 func.rank().over(order_by=func.count().desc()).label("row"),
                 func.count().label("count"),
             )
-            .where(Egg.guild_id == guild_id)
+            .where(where)
             .group_by(Egg.user_id)
             .order_by(func.count().desc())
         )

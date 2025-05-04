@@ -273,6 +273,7 @@ class MCommands(msgspec.Struct, forbid_unknown_fields=True):
     help: MCommand
     edit: MCommand
     connect4: MCommand
+    skyjo: MCommand
     info: MCommand
     tictactoe: MCommand
     rockpaperscissor: MCommand
