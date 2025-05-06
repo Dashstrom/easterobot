@@ -343,7 +343,7 @@ class HuntCog(commands.Cog, HuntQuery):
                         if duel_winner is None:
                             winner = None
                             loser = None
-                        elif duel_winner == loser:
+                        elif duel_winner.member == loser:
                             winner, loser = loser, winner
 
                 if winner:

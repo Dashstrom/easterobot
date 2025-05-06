@@ -160,7 +160,7 @@ class Connect4(Game):
             else:
                 return  # Can't be placed
             if winner:
-                await self.set_winner(player)
+                await self.set_winner(winner)
             elif all(  # Draw case
                 self.grid[col][-1] is not None for col in range(self.cols)
             ):
