@@ -247,8 +247,8 @@ class GameCog(commands.Cog):
         bet: int,
     ) -> Optional[discord.Message]:
         """Send basic message for initialization."""
-        event = asyncio.Event()
         pending_members = list(members)
+        event = asyncio.Event()
         accepted_members: list[discord.Member] = [ctx.user]
         cancel_by: Optional[discord.Member] = None
 

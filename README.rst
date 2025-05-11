@@ -106,24 +106,28 @@ Configuration directory
 
 ..  code-block:: text
 
-  data                        Root directory
-  ├── .gitignore              Avoid pushing sensitive data
-  ├── config.yml              Configuration file
-  ├── easterobot.db           Database
-  ├── logs                    Logging directory
-  │   ├── easterobot.log      Latest log file
-  │   └── easterobot.log.1    Rotating log file
-  └── resources               Resource directory
-      ├── config.example.yml  An example of config
-      ├── credits.txt         Credits of emotes
-      ├── emotes              Directory loaded as application emotes
-      │   ├── eggs            Directory for eggs
-      │   |   └── egg_01.png  Emoji to use for egg
-      │   └── icons           Misc emotes to load
-      │       └── arrow.png   Emoji used in messages
-      ├── logging.conf        Logging configuration
-      ├── alembic.ini         Configure for alembic
-      └── logo.png            Logo used by the bot
+  data                          Root directory
+  ├── .gitignore                Avoid pushing sensitive data
+  ├── config.yml                Configuration file
+  ├── easterobot.db             Database
+  ├── logs                      Logging directory
+  │   ├── easterobot.log        Latest log file
+  │   └── easterobot.log.1      Rotating log file
+  └── resources                 Resource directory
+      ├── config.example.yml    An example of config
+      ├── credits.txt           Credits of emotes
+      ├── emotes                Directory loaded as application emotes
+      │   ├── eggs              Directory for eggs
+      │   |   └── egg_01.png    Emoji to use for egg
+      │   ├── icons             Misc emotes to load
+      │   │   └── arrow.png     Emoji used in messages
+      │   ├── placements        Directory for emoji used in grid
+      │   │   └── s1.png        Single blue emoji with one on it
+      │   └── skyjo             Skyjo cards
+      │       └── skyjo_m1.png  Card with minus -1 with deep blue
+      ├── logging.conf          Logging configuration
+      ├── alembic.ini           Configure for alembic
+      └── logo.png              Logo used by the bot
 
 Development
 ###########

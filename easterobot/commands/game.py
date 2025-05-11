@@ -1,6 +1,7 @@
 """Module for disable hunt."""
 
 import asyncio
+from contextlib import suppress
 from typing import Optional
 
 import discord
@@ -54,15 +55,18 @@ async def game_dual(  # noqa: D103
     cls: type[Game],
     *members: discord.Member,
 ) -> None:
+    set_members = set(members)
+    with suppress(KeyError):
+        set_members.remove(ctx.user)
     min_player = cls.minimum_player()
     max_player = cls.maximum_player()
-    if min_player > len(members) + 1:
+    if min_player > len(set_members) + 1:
         await ctx.response.send_message(
             f"Vous devez être au minimum {min_player} joueurs",
             ephemeral=True,
         )
         return
-    if max_player < len(members) + 1:
+    if max_player < len(set_members) + 1:
         await ctx.response.send_message(
             f"Vous devez être au maximum {min_player} joueurs",
             ephemeral=True,
@@ -77,13 +81,13 @@ async def game_dual(  # noqa: D103
         locker = EggLocker(session, ctx.guild.id)
         try:
             await locker.pre_check(
-                {ctx.user: bet, **{m: bet for m in members}}
+                {ctx.user: bet, **{m: bet for m in set_members}}
             )
         except EggLockerError as err:
             await ctx.response.send_message(str(err), ephemeral=True)
             return
 
-        msg = await ctx.client.game.ask_dual(ctx, members, bet=bet)
+        msg = await ctx.client.game.ask_dual(ctx, set_members, bet=bet)
         if msg:
             # Unlock all egg at end
             async with locker:
@@ -92,13 +96,13 @@ async def game_dual(  # noqa: D103
                     async with locker.transaction():
                         all_eggs = await asyncio.gather(
                             locker.get(ctx.user, bet),
-                            *[locker.get(m, bet) for m in members],
+                            *[locker.get(m, bet) for m in set_members],
                         )
                 except EggLockerError as err:
                     await msg.reply(str(err), delete_after=30)
                     return
 
-                players = [ctx.user, *members]
+                players = [ctx.user, *set_members]
                 RAND.shuffle(players)
                 game = cls(ctx.client, msg, *players)
                 await ctx.client.game.run(game)

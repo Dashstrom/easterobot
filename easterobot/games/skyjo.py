@@ -785,13 +785,13 @@ class Skyjo(Game):
         """Get all score."""
         scores = {}
         for p, grid in self.grids.items():
-            scores[p] = grid.value
             grid.return_all_card()
+            scores[p] = grid.value
         finish_player = self.finish_player
         if finish_player:
             finish_score = scores[finish_player]
             for p, value in scores.items():
-                if p != finish_player and value <= finish_score:
+                if p != finish_player and value < finish_score:
                     scores[finish_player] *= 2
                 break
         return scores
