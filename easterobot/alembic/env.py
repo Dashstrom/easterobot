@@ -1,4 +1,4 @@
-"""Environnement."""
+"""Setup alembic environnement."""  # noqa: INP001
 
 import asyncio
 

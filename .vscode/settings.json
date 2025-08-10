@@ -95,6 +95,15 @@
     "typehints",
     "undoc",
     "viewcode",
-    "webbrowser"
+    "doctest",
+    "noqa",
+    "webbrowser",
+    "commitizen",
+    "levelname",
+    "caplog",
+    "parseable",
+    "pypi",
+    "Dashstrom",
+    "easterobot"
   ]
 }

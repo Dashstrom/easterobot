@@ -45,4 +45,4 @@ def test_cli_version() -> None:
 
 def test_import() -> None:
     """Test if module entrypoint has correct imports."""
-    import easterobot.__main__  # NoQA: F401
+    import easterobot.__main__  # noqa: PLC0415, F401, RUF100

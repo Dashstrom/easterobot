@@ -1,5 +1,4 @@
 *
-!uv.lock
 !pyproject.toml
 !LICENSE
 !/easterobot/*.py
@@ -8,5 +7,5 @@
 !/easterobot/alembic/script.py.mako
 !/easterobot/py.typed
 !/easterobot/resources
-!README.rst
+!README.md
 !entrypoint.sh

@@ -1,0 +1,31 @@
+site_name: "easterobot"
+repo_url: "https://github.com/Dashstrom/easterobot"
+repo_name: "easterobot"
+site_author: "Dashstrom <dashstrom.pro@gmail.com>"
+copyright: "Copyright (c) 2024, Dashstrom <dashstrom.pro@gmail.com>"
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+nav:
+  - Home: index.md
+  - Developer Interface: developer_interface.md
+
+theme:
+  name: "readthedocs"
+  # logo: resources/logo.png
+
+plugins:
+  - search
+  - mkdocstrings:  # https://github.com/mkdocstrings/mkdocstrings
+      handlers:
+        python:
+          options:
+            show_signature_annotations: true
+            show_root_heading: true
+            separate_signature: true
+markdown_extensions:
+  - pymdownx.snippets: {}

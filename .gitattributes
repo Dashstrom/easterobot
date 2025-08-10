@@ -1,0 +1,3 @@
+tests/resources/** -text
+src/*/resources/** -test
+entrypoint.sh text eol=lf

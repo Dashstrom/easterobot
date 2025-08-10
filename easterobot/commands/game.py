@@ -1,118 +1,184 @@
-"""Module for disable hunt."""
+"""Discord bot games module.
+
+This module provides various game commands for the Easter bot including
+Connect4, Tic-Tac-Toe, Rock Paper Scissors, and Skyjo. All games support
+betting with eggs and can be played against specific members or random players.
+"""
 
 import asyncio
 from contextlib import suppress
-from typing import Optional
 
 import discord
 from discord import app_commands
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from easterobot.commands.base import (
+    Context,
+    controlled_command,
+    egg_command_group,
+)
 from easterobot.config import RAND
 from easterobot.games.connect4 import Connect4
 from easterobot.games.game import Game
-from easterobot.games.rock_paper_scissor import RockPaperScissor
+from easterobot.games.rock_paper_scissors import RockPaperScissors
 from easterobot.games.skyjo import Skyjo
 from easterobot.games.tic_tac_toe import TicTacToe
 from easterobot.hunts.rank import Ranking
 from easterobot.locker import EggLocker, EggLockerError
 
-from .base import Context, controlled_command, egg_command_group
 
-
-async def random_members(
+async def get_random_members(
     ctx: Context,
-    bet: int,
+    bet_amount: int,
 ) -> list[discord.Member]:
-    """Random members."""
-    # If no member choose a random play in the guild with enough egg
-    if bet == 0:
-        members = [
-            m for m in ctx.guild.members if m.id != ctx.user.id and not m.bot
+    """Get random eligible members for game participation.
+
+    If no bet is required, returns all non-bot members except the command user.
+    If a bet is required, returns members with sufficient eggs.
+
+    Args:
+        ctx: The command context containing guild and user information.
+        bet_amount: The number of eggs required to participate.
+
+    Returns:
+        A shuffled list of eligible members.
+    """
+    if bet_amount == 0:
+        # No bet required - include all non-bot members except command user
+        eligible_members = [
+            member
+            for member in ctx.guild.members
+            if member.id != ctx.user.id and not member.bot
         ]
     else:
-        # TODO(dashstrom): can chose member with locked eggs
+        # Bet required - check which members have sufficient eggs
+        # TODO(dashstrom): can choose member with locked eggs
         async with AsyncSession(ctx.client.engine) as session:
             ranking = await Ranking.from_guild(
                 session,
                 ctx.guild_id,
                 unlock_only=True,
             )
-        hunters = ranking.over(bet)
-        mapper_member = {m.id: m for m in ctx.guild.members}
-        members = [
-            mapper_member[h.member_id]
-            for h in hunters
-            if h.member_id != ctx.user.id and h.member_id in mapper_member
+
+        # Get hunters with enough eggs for the bet
+        qualified_hunters = ranking.over(bet_amount)
+        member_id_to_member = {
+            member.id: member for member in ctx.guild.members
+        }
+
+        # Filter out command user and ensure member is still in guild
+        eligible_members = [
+            member_id_to_member[hunter.member_id]
+            for hunter in qualified_hunters
+            if (
+                hunter.member_id != ctx.user.id
+                and hunter.member_id in member_id_to_member
+            )
         ]
-    RAND.shuffle(members)
-    return members
+
+    RAND.shuffle(eligible_members)
+    return eligible_members
 
 
-async def game_dual(  # noqa: D103
+async def start_game_duel(
     ctx: Context,
-    bet: int,
-    cls: type[Game],
-    *members: discord.Member,
+    bet_amount: int,
+    game_class: type[Game],
+    *opponents: discord.Member,
 ) -> None:
-    set_members = set(members)
+    """Start a game duel with specified opponents and bet amount.
+
+    Validates player count, checks egg balances, locks eggs for betting,
+    and runs the game. Winner takes all bet eggs.
+
+    Args:
+        ctx: The command context.
+        bet_amount: Number of eggs each player must bet.
+        game_class: The game class to instantiate.
+        *opponents: Variable number of opponent members.
+    """
+    # Remove command user from opponents set if present
+    opponent_set = set(opponents)
     with suppress(KeyError):
-        set_members.remove(ctx.user)
-    min_player = cls.minimum_player()
-    max_player = cls.maximum_player()
-    if min_player > len(set_members) + 1:
+        opponent_set.remove(ctx.user)
+
+    # Validate player count against game requirements
+    min_players = game_class.minimum_player_count()
+    max_players = game_class.maximum_player_count()
+    total_players = len(opponent_set) + 1  # +1 for command user
+
+    if min_players > total_players:
         await ctx.response.send_message(
-            f"Vous devez être au minimum {min_player} joueurs",
-            ephemeral=True,
-        )
-        return
-    if max_player < len(set_members) + 1:
-        await ctx.response.send_message(
-            f"Vous devez être au maximum {min_player} joueurs",
+            f"Vous devez être au minimum {min_players} joueurs",
             ephemeral=True,
         )
         return
 
-    # Check if user has enough eggs for ask
+    if max_players < total_players:
+        await ctx.response.send_message(
+            f"Vous devez être au maximum {max_players} joueurs",
+            ephemeral=True,
+        )
+        return
+
+    # Check if all players have enough eggs for the bet
     async with AsyncSession(
         ctx.client.engine,
         expire_on_commit=False,
     ) as session:
-        locker = EggLocker(session, ctx.guild.id)
+        egg_locker = EggLocker(session, ctx.guild.id)
+
         try:
-            await locker.pre_check(
-                {ctx.user: bet, **{m: bet for m in set_members}}
-            )
-        except EggLockerError as err:
-            await ctx.response.send_message(str(err), ephemeral=True)
+            # Pre-check all players have sufficient eggs
+            player_bets = {
+                ctx.user: bet_amount,
+                **dict.fromkeys(opponent_set, bet_amount),
+            }
+            await egg_locker.pre_check(player_bets)
+        except EggLockerError as error:
+            await ctx.response.send_message(str(error), ephemeral=True)
             return
 
-        msg = await ctx.client.game.ask_dual(ctx, set_members, bet=bet)
-        if msg:
-            # Unlock all egg at end
-            async with locker:
-                # Lock the egg of player
+        # Ask for game confirmation and get message
+        game_message = await ctx.client.game.request_duel(
+            ctx,
+            opponent_set,
+            bet_amount=bet_amount,
+        )
+        if game_message:
+            # Lock eggs and run the game
+            async with egg_locker:
                 try:
-                    async with locker.transaction():
-                        all_eggs = await asyncio.gather(
-                            locker.get(ctx.user, bet),
-                            *[locker.get(m, bet) for m in set_members],
+                    # Lock eggs for all players within a transaction
+                    async with egg_locker.transaction():
+                        all_player_eggs = await asyncio.gather(
+                            egg_locker.get(ctx.user, bet_amount),
+                            *[
+                                egg_locker.get(opponent, bet_amount)
+                                for opponent in opponent_set
+                            ],
                         )
-                except EggLockerError as err:
-                    await msg.reply(str(err), delete_after=30)
+                except EggLockerError as error:
+                    await game_message.reply(str(error), delete_after=30)
                     return
 
-                players = [ctx.user, *set_members]
-                RAND.shuffle(players)
-                game = cls(ctx.client, msg, *players)
-                await ctx.client.game.run(game)
-                winner = await game.wait_winner()
+                # Shuffle players and start the game
+                all_players = [ctx.user, *opponent_set]
+                RAND.shuffle(all_players)
+                game_instance = game_class(
+                    ctx.client, game_message, *all_players
+                )
+
+                await ctx.client.game.register_and_run_game(game_instance)
+                winner = await game_instance.wait_for_completion()
+
+                # Transfer all eggs to winner if there is one
                 if winner:
-                    for eggs in all_eggs:
-                        for egg in eggs:
+                    for player_eggs in all_player_eggs:
+                        for egg in player_eggs:
                             egg.user_id = winner.member.id
 
-                # Send change
+                # Commit all changes to database
                 await session.commit()
 
 
@@ -123,14 +189,22 @@ async def game_dual(  # noqa: D103
 @controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def connect4_command(
     ctx: Context,
-    member: Optional[discord.Member] = None,
+    member: discord.Member | None = None,
     bet: app_commands.Range[int, 0] = 0,
 ) -> None:
-    """Run a Connect4."""
-    members = (
-        (await random_members(ctx, bet))[:1] if member is None else [member]
+    """Start a Connect4 game against a specified or random opponent.
+
+    Args:
+        ctx: The command context.
+        member: Specific member to challenge. If None, selects random opponent.
+        bet: Number of eggs to bet on the game.
+    """
+    opponents = (
+        (await get_random_members(ctx, bet))[:1]
+        if member is None
+        else [member]
     )
-    await game_dual(ctx, bet, Connect4, *members)
+    await start_game_duel(ctx, bet, Connect4, *opponents)
 
 
 @egg_command_group.command(
@@ -140,31 +214,47 @@ async def connect4_command(
 @controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def tictactoe_command(
     ctx: Context,
-    member: Optional[discord.Member] = None,
+    member: discord.Member | None = None,
     bet: app_commands.Range[int, 0] = 0,
 ) -> None:
-    """Run a tictactoe."""
-    members = (
-        (await random_members(ctx, bet))[:1] if member is None else [member]
+    """Start a Tic-Tac-Toe game against a specified or random opponent.
+
+    Args:
+        ctx: The command context.
+        member: Specific member to challenge. If None, selects random opponent.
+        bet: Number of eggs to bet on the game.
+    """
+    opponents = (
+        (await get_random_members(ctx, bet))[:1]
+        if member is None
+        else [member]
     )
-    await game_dual(ctx, bet, TicTacToe, *members)
+    await start_game_duel(ctx, bet, TicTacToe, *opponents)
 
 
 @egg_command_group.command(
-    name="rockpaperscissor",
+    name="rockpaperscissors",
     description="Lancer une partie de pierre papier ciseaux",
 )
 @controlled_command(cooldown=True, channel_permissions={"send_messages": True})
-async def rockpaperscissor_command(
+async def rockpaperscissors_command(
     ctx: Context,
-    member: Optional[discord.Member] = None,
+    member: discord.Member | None = None,
     bet: app_commands.Range[int, 0] = 0,
 ) -> None:
-    """Run a rockpaperscissor."""
-    members = (
-        (await random_members(ctx, bet))[:1] if member is None else [member]
+    """Start a Rock Paper Scissors game against a specified or random opponent.
+
+    Args:
+        ctx: The command context.
+        member: Specific member to challenge. If None, selects random opponent.
+        bet: Number of eggs to bet on the game.
+    """
+    opponents = (
+        (await get_random_members(ctx, bet))[:1]
+        if member is None
+        else [member]
     )
-    await game_dual(ctx, bet, RockPaperScissor, *members)
+    await start_game_duel(ctx, bet, RockPaperScissors, *opponents)
 
 
 @egg_command_group.command(
@@ -172,21 +262,37 @@ async def rockpaperscissor_command(
     description="Lancer une partie de Skyjo",
 )
 @controlled_command(cooldown=True, channel_permissions={"send_messages": True})
-async def skyjo_command(  # noqa: PLR0913
+async def skyjo_command(
     ctx: Context,
-    member1: Optional[discord.Member] = None,
-    member2: Optional[discord.Member] = None,
-    member3: Optional[discord.Member] = None,
-    member4: Optional[discord.Member] = None,
-    member5: Optional[discord.Member] = None,
-    member6: Optional[discord.Member] = None,
-    member7: Optional[discord.Member] = None,
+    member1: discord.Member | None = None,
+    member2: discord.Member | None = None,
+    member3: discord.Member | None = None,
+    member4: discord.Member | None = None,
+    member5: discord.Member | None = None,
+    member6: discord.Member | None = None,
+    member7: discord.Member | None = None,
     bet: app_commands.Range[int, 0] = 0,
 ) -> None:
-    """Run a skyjo."""
-    members = [
-        m
-        for m in (
+    """Start a Skyjo game with specified members or random players.
+
+    If no members are specified, randomly selects 1-8 players for the game.
+    Skyjo supports multiple players unlike other games.
+
+    Args:
+        ctx: The command context.
+        member1: First optional member to include.
+        member2: Second optional member to include.
+        member3: Third optional member to include.
+        member4: Fourth optional member to include.
+        member5: Fifth optional member to include.
+        member6: Sixth optional member to include.
+        member7: Seventh optional member to include.
+        bet: Number of eggs to bet on the game.
+    """
+    # Collect all specified members
+    specified_members = [
+        member
+        for member in (
             member1,
             member2,
             member3,
@@ -195,10 +301,13 @@ async def skyjo_command(  # noqa: PLR0913
             member6,
             member7,
         )
-        if m
+        if member is not None
     ]
-    if not members:
-        player_count = RAND.randint(1, 8)
-        rand_members = await random_members(ctx, bet)
-        members = rand_members[:player_count]
-    await game_dual(ctx, bet, Skyjo, *members)
+
+    # If no members specified, select random players
+    if not specified_members:
+        random_player_count = RAND.randint(1, 8)
+        available_members = await get_random_members(ctx, bet)
+        specified_members = available_members[:random_player_count]
+
+    await start_game_duel(ctx, bet, Skyjo, *specified_members)

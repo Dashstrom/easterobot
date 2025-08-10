@@ -11,13 +11,8 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
-
       - name: Set up project and environment
         uses: ./.github/actions/setup-project
 
       - name: Run linting
-        run: uv run poe lint
+        run: uv run --no-sync poe lint

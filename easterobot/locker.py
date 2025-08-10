@@ -1,16 +1,21 @@
-"""Lock the module."""
+"""Locking mechanism for eggs in the database.
+
+This module provides asynchronous context management and helper
+functions for retrieving, locking, deleting, and updating `Egg`
+records in the database. It ensures that concurrent access to
+eggs within the same guild is properly synchronized.
+"""
 
 import asyncio
 import logging
 from collections.abc import AsyncIterator, Iterable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from types import TracebackType
-from typing import ClassVar, Optional, final
+from typing import ClassVar, final
 
 import discord
 from sqlalchemy import and_, func, not_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing_extensions import override
 
 from easterobot.config import agree
 from easterobot.models import Egg
@@ -22,9 +27,19 @@ async def fetch_unlocked_eggs(
     session: AsyncSession,
     guild_id: int,
     user_id: int,
-    counter: int,
+    limit_count: int,
 ) -> list[Egg]:
-    """Get the count of unlocked eggs."""
+    """Retrieve a random set of unlocked eggs for a specific user.
+
+    Args:
+        session: Active asynchronous SQLAlchemy session.
+        guild_id: The guild ID to search in.
+        user_id: The user ID whose eggs should be fetched.
+        limit_count: The maximum number of eggs to retrieve.
+
+    Returns:
+        A list of `Egg` objects matching the criteria.
+    """
     return list(
         (
             await session.scalars(
@@ -36,8 +51,8 @@ async def fetch_unlocked_eggs(
                         not_(Egg.lock),
                     )
                 )
-                .order_by(func.random())  # Randomize
-                .limit(counter)
+                .order_by(func.random())  # Randomize retrieval
+                .limit(limit_count)
             )
         ).all()
     )
@@ -48,7 +63,17 @@ async def fetch_unlocked_egg_count(
     guild_id: int,
     user_ids: Iterable[int],
 ) -> dict[int, int]:
-    """Get the count of unlocked eggs."""
+    """Retrieve the number of unlocked eggs for multiple users.
+
+    Args:
+        session: Active asynchronous SQLAlchemy session.
+        guild_id: The guild ID to search in.
+        user_ids: Iterable of user IDs to check.
+
+    Returns:
+        A dictionary mapping each user ID to their count of unlocked eggs.
+        Users with no eggs will have a count of 0.
+    """
     user_ids = list(user_ids)
     res = await session.execute(
         select(Egg.user_id, func.count().label("count"))
@@ -62,30 +87,37 @@ async def fetch_unlocked_egg_count(
         .group_by(Egg.user_id)
     )
     result = dict(res.all())  # type: ignore[arg-type]
-    for user_id in user_ids:
-        if user_id not in result:
-            result[user_id] = 0
+    for uid in user_ids:
+        if uid not in result:
+            result[uid] = 0
     return result
 
 
 class EggLockerError(Exception):
-    pass
+    """Raised when egg locking constraints cannot be met."""
 
 
 @final
 class EggLocker(AbstractAsyncContextManager["EggLocker"]):
-    # TODO(dashstrom): memory leak over time
+    """Synchronize egg operations for a specific guild."""
+
+    # One lock per guild to prevent concurrent modifications
     _guild_locks: ClassVar[dict[int, asyncio.Lock]] = {}
 
     def __init__(self, session: AsyncSession, guild_id: int) -> None:
-        """Init EggLocker."""
+        """Initialize the locker for a given guild.
+
+        Args:
+            session: Active asynchronous SQLAlchemy session.
+            guild_id: The guild ID to apply locking to.
+        """
         self._session = session
         self._guild_id = guild_id
         self._eggs: list[Egg] = []
 
     @asynccontextmanager
     async def transaction(self) -> AsyncIterator[None]:
-        """Return guild lock."""
+        """Acquire the guild lock and commit at the end of the block."""
         if self._guild_id not in self._guild_locks:
             self._guild_locks[self._guild_id] = asyncio.Lock()
         async with self._guild_locks[self._guild_id]:
@@ -97,7 +129,18 @@ class EggLocker(AbstractAsyncContextManager["EggLocker"]):
         member: discord.Member,
         egg_count: int,
     ) -> list[Egg]:
-        """Update the egg locker."""
+        """Lock a given number of unlocked eggs for a member.
+
+        Args:
+            member: The Discord member requesting eggs.
+            egg_count: Number of eggs to lock.
+
+        Returns:
+            A list of locked `Egg` objects.
+
+        Raises:
+            EggLockerError: If there are fewer eggs available than requested.
+        """
         eggs = await fetch_unlocked_eggs(
             self._session,
             self._guild_id,
@@ -106,16 +149,16 @@ class EggLocker(AbstractAsyncContextManager["EggLocker"]):
         )
         if len(eggs) < egg_count:
             egg_text = agree("œuf", "œufs", len(eggs))
-            error_message = (
+            msg = (
                 f"{member.mention} n'a plus que {len(eggs)} {egg_text} "
                 f"disponible sur les {egg_count} demandés"
             )
-            raise EggLockerError(error_message)
+            raise EggLockerError(msg)
         for egg in eggs:
             egg.lock = True
         self._eggs.extend(eggs)
         logger.info(
-            "Lock %s egg(s) of %s (%s)",
+            "Locked %s egg(s) for %s (%s)",
             len(eggs),
             member.name,
             member.id,
@@ -123,15 +166,23 @@ class EggLocker(AbstractAsyncContextManager["EggLocker"]):
         return eggs
 
     async def delete(self, eggs: Iterable[Egg]) -> None:
-        """Delete eggs."""
-        futures = []
+        """Remove eggs from the database and locker.
+
+        Args:
+            eggs: Iterable of `Egg` objects to delete.
+        """
+        tasks = []
         for egg in eggs:
             self._eggs.remove(egg)
-            futures.append(self._session.delete(egg))
-        await asyncio.gather(*futures)
+            tasks.append(self._session.delete(egg))
+        await asyncio.gather(*tasks)
 
     def update(self, eggs: Iterable[Egg]) -> None:
-        """Update eggs."""
+        """Add or update eggs in the locker and database session.
+
+        Args:
+            eggs: Iterable of `Egg` objects to add or update.
+        """
         for egg in eggs:
             self._eggs.append(egg)
             self._session.add(egg)
@@ -140,7 +191,14 @@ class EggLocker(AbstractAsyncContextManager["EggLocker"]):
         self,
         members: dict[discord.Member, int],
     ) -> None:
-        """Return the list of invalid user."""
+        """Ensure each member has enough unlocked eggs before locking.
+
+        Args:
+            members: Mapping of members to the number of eggs they need.
+
+        Raises:
+            EggLockerError: If any member has fewer eggs than required.
+        """
         if not members:
             return
         member_ids = {member.id: member for member in members}
@@ -149,30 +207,28 @@ class EggLocker(AbstractAsyncContextManager["EggLocker"]):
             self._guild_id,
             member_ids,
         )
-        for user_id, egg_count in counter.items():
+        for user_id, available in counter.items():
             member = member_ids[user_id]
             required = members[member]
-            if egg_count < required:
-                egg_text = agree("œuf", "œufs", egg_count)
-                error_message = (
-                    f"{member.mention} n'a que {egg_count} {egg_text} "
+            if available < required:
+                egg_text = agree("œuf", "œufs", available)
+                msg = (
+                    f"{member.mention} n'a que {available} {egg_text} "
                     f"disponible sur les {required} demandés"
                 )
-                raise EggLockerError(error_message)
+                raise EggLockerError(msg)
 
-    @override
     async def __aenter__(self) -> "EggLocker":
-        """Return `self` upon entering the runtime context."""
+        """Enter the async context and return this instance."""
         return self
 
-    @override
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
-    ) -> Optional[bool]:
-        """Raise any exception triggered within the runtime context."""
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> bool | None:
+        """Release all locks and rollback any changes on exit."""
         async with self.transaction():
             await self._session.rollback()
             for egg in self._eggs:

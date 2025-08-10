@@ -1,16 +1,28 @@
-"""Module to play roulette."""
+"""Roulette game module for Easterobot.
+
+This module implements a roulette mini-game where players bet virtual eggs
+on various outcomes. It manages bet tracking, payout calculation, and the
+full game flow including user interaction via Discord UI elements.
+
+Classes:
+    Play: Represents a specific roulette bet type and payout configuration.
+    RouletteResult: Stores the outcome of a roulette spin.
+    Roulette: Handles bet registration and winner determination.
+    BetView: Discord UI view for selecting bets.
+    RouletteManager: Orchestrates the entire roulette game session.
+"""
 
 import asyncio
 from asyncio import sleep
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 import discord
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from easterobot.bot import Easterobot
 from easterobot.config import RAND, agree
-from easterobot.locker import EggLocker
+from easterobot.locker import EggLocker, EggLockerError
 from easterobot.utils import in_seconds
 
 if TYPE_CHECKING:
@@ -19,6 +31,8 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True, order=True)
 class Play:
+    """Represents a bet option in roulette."""
+
     name: str
     emoji: str
     bet: int
@@ -27,7 +41,12 @@ class Play:
 
     @property
     def label(self) -> str:
-        """Returns the label of the bet."""
+        """Return a human-readable bet label.
+
+        Returns:
+            str: Bet description including amount and name, with plural
+            agreement.
+        """
         return agree(
             f"{self.bet} œuf sur {self.name}",
             f"{self.bet} œufs sur {self.name}",
@@ -36,21 +55,62 @@ class Play:
 
     @property
     def probability(self) -> float:
-        """Returns the winning probability."""
+        """Return the probability of winning this bet.
+
+        Returns:
+            float: Probability between 0 and 1.
+        """
         return len(self.slots) / 37
 
     @property
     def eggs(self) -> float:
-        """Returns the number of eggs won."""
+        """Return the total eggs won if this bet succeeds.
+
+        Returns:
+            float: Number of eggs awarded.
+        """
         return self.payout * self.bet
 
 
-# fmt: off
+# Predefined roulette bets with corresponding slots and payouts.
 plays = [
-    Play("noir", "⚫", 1, 2, frozenset({2, 4, 6, 8, 10, 11, 13, 15, 17, 20,
-                                       22, 24, 26, 28, 29, 31, 33, 35})),
-    Play("rouge", "🔴", 1, 2, frozenset({1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21,
-                                        23, 25, 27, 30, 32, 34, 36})),
+    Play(
+        "noir",
+        "⚫",
+        1,
+        2,
+        frozenset(
+            {
+                2,
+                4,
+                6,
+                8,
+                10,
+                11,
+                13,
+                15,
+                17,
+                20,
+                22,
+                24,
+                26,
+                28,
+                29,
+                31,
+                33,
+                35,
+            }
+        ),
+    ),
+    Play(
+        "rouge",
+        "🔴",
+        1,
+        2,
+        frozenset(
+            {1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36}
+        ),
+    ),
     Play("impaire", "1️⃣", 3, 2, frozenset(range(1, 37, 2))),
     Play("pair", "2️⃣", 3, 2, frozenset(range(2, 37, 2))),
     Play("manque", "⬅️", 5, 2, frozenset(range(1, 19))),
@@ -58,18 +118,23 @@ plays = [
     Play("zero", "0️⃣", 1, 36, frozenset({0})),
 ]
 play_mapper = {p.label: p for p in plays}
-# fmt: on
 
 
 @dataclass
 class RouletteResult:
+    """Stores the outcome of a roulette spin."""
+
     draw: int
     winners: dict[discord.Member, Play]
     losers: dict[discord.Member, Play]
 
     @property
     def label(self) -> str:
-        """Returns the name(s) of the winning bet(s)."""
+        """Return a human-readable description of winning bets.
+
+        Returns:
+            str: Names of winning plays, or a 'no win' message.
+        """
         winning_plays = sorted(set(self.winners.values()))
         if len(winning_plays) == 1:
             return winning_plays[0].name
@@ -84,14 +149,28 @@ class RouletteResult:
 
 
 class Roulette:
+    """Tracks bets and resolves roulette spins."""
+
     def __init__(self, locker: EggLocker) -> None:
-        """Initialize an empty bet tracker."""
+        """Initialize the roulette game state.
+
+        Args:
+            locker: EggLocker instance for managing eggs.
+        """
         self.bets: dict[discord.Member, Play] = {}
         self.eggs: dict[discord.Member, list[Egg]] = {}
         self.locker = locker
 
     async def bet(self, member: discord.Member, play: Play) -> None:
-        """Register a bet from a member."""
+        """Register a player's bet.
+
+        Args:
+            member: The player placing the bet.
+            play: The bet details.
+
+        Raises:
+            ValueError: If the player has already placed a bet.
+        """
         if member in self.eggs:
             raise ValueError
         async with self.locker.transaction():
@@ -100,7 +179,11 @@ class Roulette:
         self.bets[member] = play
 
     async def sample(self) -> "RouletteResult":
-        """Draw a number and determine winners/losers."""
+        """Spin the roulette wheel and determine winners/losers.
+
+        Returns:
+            RouletteResult: Outcome containing draw result and player statuses.
+        """
         ball = RAND.randint(0, 36)
         losers = {}
         winners = {}
@@ -120,23 +203,26 @@ class Roulette:
                     futures.append(self.locker.delete(eggs))
                     losers[member] = play
             await asyncio.gather(*futures)
-        return RouletteResult(
-            draw=ball,
-            losers=losers,
-            winners=winners,
-        )
+        return RouletteResult(draw=ball, losers=losers, winners=winners)
 
 
 class BetView(discord.ui.View):
+    """Interactive Discord view for placing bets."""
+
     def __init__(self, embed: discord.Embed, roulette: Roulette) -> None:
-        """Create an interactive view for placing bets."""
+        """Initialize the bet selection UI.
+
+        Args:
+            embed: Embed showing bet announcements.
+            roulette: Roulette game instance handling bets.
+        """
         super().__init__()
         self.embed = embed
         self.roulette = roulette
         self.already_interact: set[discord.Member] = set()
 
     def disable(self) -> None:
-        """Disable the selection UI."""
+        """Disable bet selection and stop interaction."""
         self.select_bet.disabled = True  # type: ignore[attr-defined]
         self.stop()
 
@@ -159,7 +245,12 @@ class BetView(discord.ui.View):
         interaction: discord.Interaction["Easterobot"],
         select: discord.ui.Select["BetView"],
     ) -> None:
-        """Handle the player's bet selection."""
+        """Handle bet selection by a player.
+
+        Args:
+            interaction: Discord interaction triggered by the selection.
+            select: The dropdown menu object representing bet choices.
+        """
         user = interaction.user
         if not isinstance(user, discord.Member) or interaction.message is None:
             await interaction.response.defer()
@@ -172,7 +263,15 @@ class BetView(discord.ui.View):
             return
         self.already_interact.add(user)
         bet = play_mapper[select.values[0]]
-        await self.roulette.bet(user, bet)
+        try:
+            await self.roulette.bet(user, bet)
+        except EggLockerError:
+            self.already_interact.remove(user)
+            await interaction.response.send_message(
+                "Vous n'avez pas assez d'œufs disponibles !",
+                ephemeral=True,
+            )
+            return
         embeds = interaction.message.embeds
         assert self.embed.description is not None  # noqa: S101
         self.embed.description += (
@@ -182,15 +281,28 @@ class BetView(discord.ui.View):
 
 
 class RouletteManager:
+    """Manages the flow of a roulette game session."""
+
     def __init__(self, bot: Easterobot) -> None:
-        """Main manager for roulette game logic."""
+        """Initialize the roulette manager.
+
+        Args:
+            bot: Instance of Easterobot.
+        """
         self.bot = bot
 
     async def run(
         self,
-        source: Union[discord.Message, discord.TextChannel],
+        source: discord.Message | discord.TextChannel,
     ) -> None:
-        """Run a full roulette session."""
+        """Execute a complete roulette session.
+
+        Args:
+            source: Message or channel where the game will take place.
+
+        Raises:
+            ValueError: If the game is started outside of a guild.
+        """
         guild = source.guild
         if guild is None:
             raise ValueError

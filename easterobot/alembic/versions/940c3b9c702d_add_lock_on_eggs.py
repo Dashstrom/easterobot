@@ -4,19 +4,18 @@ Revision ID: 940c3b9c702d
 Revises: 2f0d4305e320
 Create Date: 2025-04-19 12:52:02.245048
 
-"""
+"""  # noqa: INP001
 
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "940c3b9c702d"
-down_revision: Union[str, None] = "2f0d4305e320"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "2f0d4305e320"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

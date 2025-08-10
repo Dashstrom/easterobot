@@ -1,4 +1,10 @@
-"""Main program."""
+"""Main program for Easterobot.
+
+This module defines the `Easterobot` Discord bot class, which manages the
+bot lifecycle, configuration, database connections, and integration with
+game and hunt cogs. It also handles emoji loading, command syncing, and
+guild logging.
+"""
 
 import asyncio
 import logging
@@ -6,19 +12,13 @@ import pathlib
 import shutil
 from getpass import getpass
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-    TypeVar,
-    Union,
-)
+from typing import TYPE_CHECKING, TypeVar
 
 import discord
 import discord.app_commands
 import discord.ext.commands
 from alembic.command import upgrade
 from sqlalchemy.ext.asyncio import create_async_engine
-from typing_extensions import override
 
 if TYPE_CHECKING:
     from easterobot.games.game import GameCog
@@ -43,42 +43,42 @@ INTENTS.message_content = True
 
 
 class Easterobot(discord.ext.commands.Bot):
+    """Main Easterobot Discord bot class."""
+
     owner: discord.User
     game: "GameCog"
     hunt: "HuntCog"
     init_finished: asyncio.Event
 
     def __init__(self, config: MConfig) -> None:
-        """Initialise Easterbot."""
-        # Initialize intents
+        """Initialize the Easterobot instance.
+
+        Args:
+            config: Loaded bot configuration.
+        """
         intents = discord.Intents.default()
         if config.message_content:
             intents.message_content = True
 
-        # Remove warning about VoiceClient
+        # Suppress NaCl warnings for voice
         discord.VoiceClient.warn_nacl = False
 
-        # Initialize Bot
         super().__init__(
             command_prefix=".",
-            description="Bot discord pour faire la chasse aux œufs",
+            description="Bot Discord pour faire la chasse aux œufs",
             activity=discord.Game(name="rechercher des œufs"),
             intents=INTENTS,
         )
 
-        # Attributes
-        self.config = config
         self.app_commands: list[discord.app_commands.AppCommand] = []
         self.app_emojis: dict[str, discord.Emoji] = {}
-
-        # Configure logging
+        self.config = config
         self.config.configure_logging()
 
-        # Update database
+        # Ensure database schema is up-to-date
         upgrade(self.config.alembic_config(), "head")
 
-        # Open database
-        logger.info("Open database %s", self.config.database_uri)
+        logger.info("Opening database %s", self.config.database_uri)
         self.engine = create_async_engine(
             self.config.database_uri,
             echo=False,
@@ -87,30 +87,50 @@ class Easterobot(discord.ext.commands.Bot):
     @classmethod
     def from_config(
         cls,
-        path: Union[str, Path] = DEFAULT_CONFIG_PATH,
+        path: str | Path = DEFAULT_CONFIG_PATH,
         *,
-        token: Optional[str] = None,
+        token: str | None = None,
         env: bool = False,
     ) -> "Easterobot":
-        """Instantiate Easterobot from config."""
+        """Create an instance from a configuration file.
+
+        Args:
+            path: Path to the configuration file.
+            token: Bot token override.
+            env: If True, load configuration from environment variables.
+
+        Returns:
+            An initialized `Easterobot` instance.
+        """
         config = load_config_from_path(path, token=token, env=env)
         return Easterobot(config)
 
     @classmethod
     def generate(
         cls,
-        destination: Union[Path, str],
+        destination: Path | str,
         *,
-        token: Optional[str] = None,
+        token: str | None = None,
         env: bool = False,
         interactive: bool = False,
     ) -> "Easterobot":
-        """Generate all data."""
+        """Generate a new bot configuration and resources.
+
+        Args:
+            destination: Directory where the bot's data will be created.
+            token: Bot token override.
+            env: If True, load configuration from environment variables.
+            interactive: If True, prompt user for the bot token.
+
+        Returns:
+            An initialized `Easterobot` instance.
+        """
         destination = Path(destination).resolve()
         destination.mkdir(parents=True, exist_ok=True)
         config_data = EXAMPLE_CONFIG_PATH.read_bytes()
         config = load_config_from_buffer(config_data, token=token, env=env)
         config.attach_default_working_directory(destination)
+
         if interactive:
             while True:
                 try:
@@ -118,10 +138,14 @@ class Easterobot(discord.ext.commands.Bot):
                     break
                 except (ValueError, TypeError):
                     config.token = getpass("Token: ")
+
+        # Create resources directory
         config._resources = pathlib.Path("resources")  # noqa: SLF001
         shutil.copytree(
             RESOURCES, destination / "resources", dirs_exist_ok=True
         )
+
+        # Save configuration
         config_path = destination / "config.yml"
         config_path.write_bytes(dump_yaml(config))
         (destination / ".gitignore").write_bytes(b"*\n")
@@ -129,9 +153,16 @@ class Easterobot(discord.ext.commands.Bot):
 
     def is_super_admin(
         self,
-        user: Union[discord.User, discord.Member],
+        user: discord.User | discord.Member,
     ) -> bool:
-        """Get if user is admin."""
+        """Check whether a user is a super admin.
+
+        Args:
+            user: The Discord user or member to check.
+
+        Returns:
+            True if the user is a super admin, False otherwise.
+        """
         return (
             user.id in self.config.admins
             or user.id in (self.owner.id, self.owner_id)
@@ -141,8 +172,15 @@ class Easterobot(discord.ext.commands.Bot):
     async def resolve_channel(
         self,
         channel_id: int,
-    ) -> Optional[discord.TextChannel]:
-        """Resolve channel."""
+    ) -> discord.TextChannel | None:
+        """Get a text channel by its ID.
+
+        Args:
+            channel_id: ID of the channel to fetch.
+
+        Returns:
+            The corresponding text channel, or None if unavailable.
+        """
         channel = self.get_channel(channel_id)
         if channel is None:
             try:
@@ -153,9 +191,8 @@ class Easterobot(discord.ext.commands.Bot):
             return None
         return channel
 
-    # Method that loads cogs
     async def setup_hook(self) -> None:
-        """Setup hooks."""
+        """Load bot extensions (commands, games, hunts)."""
         await self.load_extension(
             "easterobot.commands", package="easterobot.commands.__init__"
         )
@@ -167,19 +204,25 @@ class Easterobot(discord.ext.commands.Bot):
         )
 
     def auto_run(self) -> None:
-        """Run the bot with the given token."""
+        """Start the bot using the verified token."""
         self.run(token=self.config.verified_token())
 
-    @override
     async def start(self, token: str, *, reconnect: bool = True) -> None:
-        """Add event for starting."""
+        """Start the bot and initialize the ready event.
+
+        Args:
+            token: Bot authentication token.
+            reconnect: Whether to automatically reconnect on disconnect.
+        """
         self.init_finished = asyncio.Event()
         await super().start(token=token, reconnect=reconnect)
 
     async def on_ready(self) -> None:
-        """Handle ready event, can be trigger many time if disconnected."""
-        # Sync bot commands
-        logger.info("Syncing command")
+        """Handle the bot ready event.
+
+        This may trigger multiple times if the bot reconnects.
+        """
+        logger.info("Syncing commands...")
         await self.tree.sync()
         self.app_commands = await self.tree.fetch_commands()
 
@@ -200,29 +243,35 @@ class Easterobot(discord.ext.commands.Bot):
         # Log all available guilds
         async for guild in self.fetch_guilds():
             logger.info("Guild %s (%s)", guild, guild.id)
+
+        # Log user
         logger.info(
-            "Logged on as %s (%s) !",
+            "Logged in as %s (%s)",
             self.user,
             getattr(self.user, "id", "unknown"),
         )
+
+        # Set init event as finished
         self.init_finished.set()
 
     async def _load_emojis(self) -> None:
+        """Load or create application emojis from resource files."""
         emojis = {
             emoji.name: emoji
             for emoji in await self.fetch_application_emojis()
         }
         emotes_path = (self.config.resources / "emotes").resolve()
-        # TODO(dashstrom): remove old one !
-        # TODO(dashstrom): cache emoji synced !
+
+        # TODO(dashstrom): Remove outdated emojis.
+        # TODO(dashstrom): Implement emoji caching.
         self.app_emojis = {}
         for emote in emotes_path.glob("**/*"):
             if not emote.is_file():
                 continue
             name = emote.stem
-            if emote.stem not in emojis:
+            if name not in emojis:
                 logger.info(
-                    "Missing emoji %s, create emoji on application",
+                    "Missing emoji %s, creating on application...",
                     name,
                 )
                 image_data = emote.read_bytes()
@@ -232,6 +281,5 @@ class Easterobot(discord.ext.commands.Bot):
                 )
                 self.app_emojis[name] = emoji
             else:
-                logger.info("Load emoji %s", name)
-                emoji = emojis[name]
-                self.app_emojis[name] = emoji
+                logger.info("Loaded emoji %s", name)
+                self.app_emojis[name] = emojis[name]

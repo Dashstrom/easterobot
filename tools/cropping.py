@@ -4,7 +4,7 @@ import argparse
 import pathlib
 from collections import deque
 from collections.abc import Iterator, Sequence
-from typing import Optional
+from typing import cast
 
 import cv2
 import numpy as np
@@ -55,14 +55,17 @@ def extract(
 
 
 def cropping(
-    source: str, destination: str, skip: Optional[list[str]] = None
+    source: str, destination: str, skip: list[str] | None = None
 ) -> None:
     """Extract and crop all sub images in a transparent image."""
     if not skip:
         skip = []
     src_path = pathlib.Path(source)
     dst_path = pathlib.Path(destination)
-    src = cv2.imread(src_path.as_posix(), cv2.IMREAD_UNCHANGED)
+    src = cast(
+        "npt.NDArray[np.uint8]",
+        cv2.imread(src_path.as_posix(), cv2.IMREAD_UNCHANGED),
+    )
     dst_path.mkdir(parents=True, exist_ok=True)
     counter = 0
     for i, im in enumerate(extract(src)):
@@ -77,7 +80,7 @@ def cropping(
         counter += 1
 
 
-def entrypoint(argv: Optional[Sequence[str]] = None) -> None:
+def entrypoint(argv: Sequence[str] | None = None) -> None:
     """Entrypoint for command line interface."""
     parser = argparse.ArgumentParser(
         description="Extract and crop all sub images in a transparent image",

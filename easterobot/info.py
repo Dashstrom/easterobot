@@ -1,28 +1,30 @@
-"""Module holding metadata."""
+"""Metadata for easterobot."""
 
-import logging
 from importlib.metadata import Distribution
 
-logger = logging.getLogger(__name__)
-_DISTRIBUTION = Distribution.from_name(
-    "easterobot",
-)
+# fmt: off
+__project__ = "easterobot"
+
+_DISTRIBUTION = Distribution.from_name(__project__)
 _METADATA = _DISTRIBUTION.metadata
-if len(_METADATA) != 0:
-    if "Author" in _METADATA:
-        __author__ = str(_METADATA["Author"])
-        __email__ = str(_METADATA["Author-email"])
-    else:
-        __author__, __email__ = _METADATA["Author-email"][:-1].split(" <", 1)
-    __version__ = _METADATA["Version"]
-    __summary__ = _METADATA["Summary"]
-else:
-    logger.warning("Cannot load package metadata, please reinstall !")
 
-    __author__ = "Unknown"
-    __email__ = "Unknown"
-    __version__ = "Unknown"
-    __summary__ = "Unknown"
+if "Author" in _METADATA:  # pragma: no cover
+    __author__ = str(_METADATA["Author"])
+    __email__ = str(_METADATA["Author-email"])
+else:  # pragma: no cover
+    __author__, __email__ = _METADATA["Author-email"][:-1].split(" <", 1)
+if "Maintainer" in _METADATA:  # pragma: no cover
+    __maintainer__ = str(_METADATA["Maintainer"])
+    __maintainer_email__ = str(_METADATA["Maintainer-email"])
+else:  # pragma: no cover
+    __maintainer__, __maintainer_email__ = _METADATA["Maintainer-email"][:-1].split(" <", 1)
+if "License-Expression" in _METADATA:  # pragma: no cover
+    __license__: str = _METADATA["License-Expression"]
+else:  # pragma: no cover
+    __license__ = _METADATA["License"]
 
-__copyright__ = f"{__author__} <{__email__}>"
+__version__: str = _METADATA["Version"]
+__summary__: str = _METADATA["Summary"]
+__copyright__ = "Copyright (c) 2024, Dashstrom <dashstrom.pro@gmail.com>"
 __issues__ = "https://github.com/Dashstrom/easterobot/issues"
+# fmt: on

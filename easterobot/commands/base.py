@@ -1,53 +1,70 @@
-"""Base module for command."""
+"""Base module for Discord slash commands.
+
+This module provides decorators and utilities for implementing controlled
+slash commands with cooldowns, permission checks, and error handling.
+It includes the main command group for easter egg hunt commands
+and base types for interactions.
+"""
 
 import asyncio
 import functools
 import logging
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
 from time import time
-from typing import Any, Callable, Optional, TypeVar, Union, cast
+from typing import Any, Concatenate, ParamSpec, TypeVar, cast
 
 import discord
 from discord import Permissions, app_commands
 from sqlalchemy import and_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing_extensions import Concatenate, ParamSpec
 
 from easterobot.bot import Easterobot
 from easterobot.models import Cooldown
 
+# Main command group for all easter egg related commands
 egg_command_group = app_commands.Group(
     name="egg",
     description="Commandes en lien avec Pâque",
     guild_only=True,
 )
+
 logger = logging.getLogger(__name__)
+
+# Lock to prevent race conditions in cooldown checks
 cooldown_lock = asyncio.Lock()
 
 
 class InterruptedCommandError(Exception):
-    pass
+    """Raised when a command is interrupted and should reset cooldown."""
 
 
-InteractionChannel = Union[
-    discord.VoiceChannel,
-    discord.StageChannel,
-    discord.TextChannel,
-    discord.Thread,
-    discord.DMChannel,
-    discord.GroupChannel,
-]
+# Type alias for all possible Discord interaction channels
+InteractionChannel = (
+    discord.VoiceChannel
+    | discord.StageChannel
+    | discord.TextChannel
+    | discord.Thread
+    | discord.DMChannel
+    | discord.GroupChannel
+)
 
 
 class Context(discord.Interaction[Easterobot]):
+    """Enhanced Discord interaction context with guaranteed attributes.
+
+    This context ensures that user, command, channel, and guild information
+    is always available, making command handlers more reliable.
+    """
+
     user: discord.Member
-    command: "app_commands.Command[Any, ..., Any]"  # type: ignore[assignment]
+    command: "app_commands.Command[Any, ..., Any]"  # type: ignore[assignment,unused-ignore]
     channel: InteractionChannel
     channel_id: int
     guild: discord.Guild
     guild_id: int
 
 
+# Type variables and aliases for generic function signatures
 P = ParamSpec("P")
 T = TypeVar("T")
 Interaction = discord.Interaction[Easterobot]
@@ -57,22 +74,35 @@ Coro = Coroutine[Any, Any, T]
 def controlled_command(  # noqa: C901, PLR0915
     *,
     cooldown: bool = True,
-    channel_permissions: Optional[dict[str, bool]] = None,
-    **perms: bool,
+    channel_permissions: dict[str, bool] | None = None,
+    **user_permissions: bool,
 ) -> Callable[
     [Callable[Concatenate[Context, P], Coro[None]]],
     Callable[Concatenate[Interaction, P], Coro[None]],
 ]:
-    """Add a cooldown and permission check."""
+    """Decorator that adds cooldown and permission checks to slash commands.
+
+    Provides comprehensive validation including guild-only enforcement,
+    user and bot permission checks, cooldown management, and error handling.
+    Super admins can bypass cooldowns and most permission checks.
+
+    Args:
+        cooldown: Whether to enforce command cooldowns.
+        channel_permissions: Bot permissions required in the channel.
+        **user_permissions: User permissions required to run the command.
+
+    Returns:
+        Decorated command function with all validations applied.
+    """
 
     def decorator(  # noqa: C901
-        f: Callable[Concatenate[Context, P], Coro[None]],
+        command_function: Callable[Concatenate[Context, P], Coro[None]],
     ) -> Callable[Concatenate[Interaction, P], Coro[None]]:
-        @functools.wraps(f)
-        async def decorated(  # noqa: C901, PLR0911, PLR0912
+        @functools.wraps(command_function)
+        async def decorated_command(  # noqa: C901, PLR0911, PLR0912
             interaction: Interaction, *args: P.args, **kwargs: P.kwargs
         ) -> None:
-            # Check if interaction is valid
+            # Validate interaction has required command information
             if not isinstance(interaction.command, app_commands.Command):
                 logger.warning("No command provided %s", interaction)
                 return
@@ -80,35 +110,42 @@ def controlled_command(  # noqa: C901, PLR0915
                 logger.warning("No channel provided %s", interaction)
                 return
 
-            # Preformat event repr
-            event_repr = (
+            # Create readable event identifier for logging
+            event_identifier = (
                 f"/{interaction.command.qualified_name} by {interaction.user} "
                 f"({interaction.user.id}) in {interaction.channel.jump_url}"
             )
 
-            # Check if in guild
+            # Enforce guild-only usage
             if interaction.guild is None or interaction.guild_id is None:
-                logger.warning("Must be use in a guild !")
+                logger.warning("Command must be used in a guild!")
                 return
             if not isinstance(interaction.user, discord.Member):
-                logger.warning("No channel provided %s", interaction)
+                logger.warning("User must be guild member %s", interaction)
                 return
 
-            # Check bot can speak
+            # Check if bot has required channel permissions
             if channel_permissions:
-                client_perms = discord.Permissions()
+                bot_channel_permissions = discord.Permissions()
                 if interaction.client.user:
-                    client_member = interaction.guild.get_member(
+                    bot_member = interaction.guild.get_member(
                         interaction.client.user.id
                     )
-                    if client_member is not None:
-                        client_perms = interaction.channel.permissions_for(
-                            client_member
+                    if bot_member is not None:
+                        bot_channel_permissions = (
+                            interaction.channel.permissions_for(bot_member)
                         )
-                needed_channel_perms = Permissions(**channel_permissions)
-                if not client_perms.is_superset(needed_channel_perms):
+
+                required_channel_permissions = Permissions(
+                    **channel_permissions
+                )
+                if not bot_channel_permissions.is_superset(
+                    required_channel_permissions
+                ):
                     logger.warning(
-                        "%s failed for wrong channel permissions", event_repr
+                        "%s failed due to insufficient "
+                        "bot channel permissions",
+                        event_identifier,
                     )
                     await interaction.response.send_message(
                         "Le bot n'a pas la permission",
@@ -116,80 +153,118 @@ def controlled_command(  # noqa: C901, PLR0915
                     )
                     return
 
-            # Compute needed permissions
-            needed_perms = discord.Permissions(**perms)
-            have_perms = interaction.user.guild_permissions.is_superset(
-                needed_perms
+            # Check user permissions (can be bypassed by super admins)
+            required_user_permissions = discord.Permissions(**user_permissions)
+            user_has_permissions = (
+                interaction.user.guild_permissions.is_superset(
+                    required_user_permissions
+                )
             )
-            is_super_admin = interaction.client.is_super_admin(
+            is_super_administrator = interaction.client.is_super_admin(
                 interaction.user
             )
-            if not have_perms and not is_super_admin:
-                logger.warning("%s failed for wrong permissions", event_repr)
+
+            if not user_has_permissions and not is_super_administrator:
+                logger.warning(
+                    "%s failed due to insufficient user permissions",
+                    event_identifier,
+                )
                 await interaction.response.send_message(
                     "Vous n'avez pas la permission",
                     ephemeral=True,
                 )
                 return
 
-            # Check command cooldown
-            cmd = interaction.command.name
-            if cooldown and not is_super_admin:
-                available_at = None
+            # Handle command cooldown (super admins bypass cooldowns)
+            command_name = interaction.command.name
+            if cooldown and not is_super_administrator:
+                cooldown_expires_at = None
                 async with (
-                    AsyncSession(interaction.client.engine) as session,
-                    cooldown_lock,  # We must use lock for avoid race condition
+                    AsyncSession(
+                        interaction.client.engine
+                    ) as database_session,
+                    # Prevent race conditions in cooldown checks
+                    cooldown_lock,
                 ):
-                    cd_user = await session.get(
+                    # Check existing cooldown for this user/guild/command
+                    existing_cooldown = await database_session.get(
                         Cooldown,
-                        (interaction.user.id, interaction.guild_id, cmd),
+                        (
+                            interaction.user.id,
+                            interaction.guild_id,
+                            command_name,
+                        ),
                     )
-                    cd_cmd = interaction.client.config.commands[cmd].cooldown
-                    now = time()
-                    if cd_user is None or now > cd_cmd + cd_user.timestamp:
-                        await session.merge(
+                    command_cooldown_duration = (
+                        interaction.client.config.commands[
+                            command_name
+                        ].cooldown
+                    )
+                    current_timestamp = time()
+
+                    # Update or create cooldown record if expired
+                    if (
+                        existing_cooldown is None
+                        or current_timestamp
+                        > command_cooldown_duration
+                        + existing_cooldown.timestamp
+                    ):
+                        await database_session.merge(
                             Cooldown(
                                 user_id=interaction.user.id,
                                 guild_id=interaction.guild_id,
-                                command=cmd,
-                                timestamp=now,
+                                command=command_name,
+                                timestamp=current_timestamp,
                             )
                         )
-                        await session.commit()
+                        await database_session.commit()
                     else:
-                        available_at = cd_cmd + cd_user.timestamp
-                if available_at:
-                    logger.warning("%s failed for cooldown", event_repr)
+                        # Calculate when cooldown expires
+                        cooldown_expires_at = command_cooldown_duration
+                        cooldown_expires_at += existing_cooldown.timestamp
+
+                # Reject command if still on cooldown
+                if cooldown_expires_at:
+                    logger.warning(
+                        "%s failed due to active cooldown", event_identifier
+                    )
                     await interaction.response.send_message(
                         "Vous devez encore attendre "
-                        f"<t:{available_at + 1:.0f}:R>",
+                        f"<t:{cooldown_expires_at + 1:.0f}:R>",
                         ephemeral=True,
                     )
                     return
-            logger.info("%s", event_repr)
+
+            # Execute the command with proper error handling
+            logger.info("%s", event_identifier)
             try:
-                await f(cast(Context, interaction), *args, **kwargs)
+                await command_function(
+                    cast("Context", interaction), *args, **kwargs
+                )
             except InterruptedCommandError:
+                # Reset cooldown if command was interrupted
                 logger.warning(
-                    "InterruptedCommandError occur for %s",
-                    event_repr,
+                    "InterruptedCommandError occurred for %s",
+                    event_identifier,
                 )
                 async with (
-                    AsyncSession(interaction.client.engine) as session,
+                    AsyncSession(
+                        interaction.client.engine
+                    ) as database_session,
                     cooldown_lock,
                 ):
-                    # This is unsafe
-                    await session.execute(
+                    # Remove cooldown record to allow immediate retry
+                    await database_session.execute(
                         delete(Cooldown).where(
                             and_(
                                 Cooldown.guild_id == interaction.guild_id,
                                 Cooldown.user_id == interaction.user.id,
-                                Cooldown.command == cmd,
+                                Cooldown.command == command_name,
                             )
                         )
                     )
-                    await session.commit()
+                    await database_session.commit()
 
-        return decorated
+        return decorated_command
 
     return decorator

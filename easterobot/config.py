@@ -1,4 +1,10 @@
-"""Main program."""
+"""Core configuration and serialization utilities for Easterobot.
+
+This module contains configuration structures, serialization logic,
+utility functions, and text conjugation helpers used by the Easterobot
+Discord bot. It includes message formats, randomization helpers, and
+YAML-based configuration loading/saving.
+"""
 
 import logging
 import logging.config
@@ -14,22 +20,22 @@ from typing import (
     Any,
     Generic,
     Literal,
-    Optional,
+    TypeGuard,
     TypeVar,
-    Union,
     cast,
+    get_args,
+    get_origin,
 )
 
 import discord
 import msgspec
 from alembic.config import Config
-from typing_extensions import TypeGuard, get_args, get_origin, override
 
 RAND = random.SystemRandom()
 
 T = TypeVar("T")
 V = TypeVar("V")
-Members = Union[discord.Member, list[discord.Member]]
+Members = discord.Member | list[discord.Member]
 
 HERE = pathlib.Path(__file__).parent.resolve()
 RESOURCES = HERE / "resources"
@@ -38,49 +44,64 @@ EXAMPLE_CONFIG_PATH = RESOURCES / "config.example.yml"
 
 
 class Serializable(ABC, Generic[V]):
+    """Abstract base class for serializable objects."""
+
     _decodable_flag = True
 
     @abstractmethod
     def encode(self) -> V:
-        """Encode current object of msgspec."""
+        """Convert the object to its serializable form."""
 
     @classmethod
     @abstractmethod
     def decode(cls: type[T], args: tuple[Any, ...], obj: V) -> T:
-        """Encode current object of msgspec."""
+        """Reconstruct an object from its serialized form."""
 
     @staticmethod
     def decodable(typ: type[Any]) -> TypeGuard["type[Serializable[T]]"]:
-        """Check if a class is decodable."""
+        """Check whether a class is a Serializable subclass."""
         return hasattr(typ, "_decodable_flag")
 
 
 class ConjugableText(Serializable[str]):
+    """Text that supports gender-based conjugation."""
+
     __slots__ = ("_conjugation", "_text")
 
-    def __init__(self, text: str):
-        """Create a conjugable text."""
+    def __init__(self, text: str) -> None:
+        """Initialize a ConjugableText instance.
+
+        Args:
+            text: Base text containing placeholders for conjugation.
+        """
         self._text = text
         self._conjugation: Conjugation = {}
 
     def __str__(self) -> str:
-        """Get the string representation."""
+        """Return a readable string representation."""
         return f"<{self.__class__.__name__} {self._text!r}>"
 
     __repr__ = __str__
 
-    @override
     def encode(self) -> str:
+        """Serialize as a plain string."""
         return self._text
 
-    @override
     @classmethod
-    def decode(cls, typ: tuple[Any, ...], obj: str) -> "ConjugableText":
+    def decode(cls, typ: tuple[Any, ...], obj: str) -> "ConjugableText":  # noqa: ARG003
+        """Deserialize from a plain string."""
         return cls(obj)
 
     @staticmethod
     def gender(member: discord.Member) -> Literal["man", "woman"]:
-        """Get the gender of a people."""
+        """Infer gender based on member's role names.
+
+        Args:
+            member: Discord member to check.
+
+        Returns:
+            Either "man" or "woman".
+        """
         if any(
             marker in tokenize(role.name)
             for role in member.roles
@@ -99,11 +120,18 @@ class ConjugableText(Serializable[str]):
         return "man"
 
     def attach(self, conjugation: "Conjugation") -> None:
-        """Attach conjugation to the text."""
+        """Attach a conjugation mapping to the text."""
         self._conjugation = conjugation
 
     def __call__(self, members: Members) -> str:
-        """Conjugate the text."""
+        """Apply gender-based conjugation for given members.
+
+        Args:
+            members: A member or list of members to conjugate for.
+
+        Returns:
+            The conjugated text.
+        """
         if isinstance(members, discord.Member):
             members = [members]
         if not members:
@@ -115,6 +143,7 @@ class ConjugableText(Serializable[str]):
                     break
             else:
                 gender = "woman"
+
         text = self._text
         for term, versions in self._conjugation.items():
             word = versions[gender]
@@ -125,63 +154,77 @@ class ConjugableText(Serializable[str]):
 
 
 class CasinoEvent(msgspec.Struct):
+    """Represents an event in the casino."""
+
     duration: float
 
 
 class MCasino(msgspec.Struct):
+    """Casino configuration."""
+
     probability: float
     roulette: CasinoEvent
 
-    def sample_event(self) -> Optional[CasinoEvent]:
-        """Get a random event."""
+    def sample_event(self) -> CasinoEvent | None:
+        """Randomly return a casino event based on probability."""
         if self.probability < RAND.random():
             return None
         return self.roulette
 
 
-class RandomItem(
-    Serializable[list[T]],  # Stored form
-):
+class RandomItem(Serializable[list[T]]):
+    """Container for randomly selecting from a list of items."""
+
     __slots__ = ("choices",)
 
+    def __init__(self, choices: Iterable[T] | None = None):
+        """Initialize RandomItem.
+
+        Args:
+            choices: Optional iterable of initial choices.
+        """
+        self.choices = list(choices) if choices is not None else []
+
     def __str__(self) -> str:
-        """Get the string representation."""
+        """Return a readable string representation."""
         return f"<{self.__class__.__name__} {self.choices!r}>"
 
     __repr__ = __str__
 
-    def __init__(self, choices: Optional[Iterable[T]] = None):
-        """Create RandomItem."""
-        self.choices = list(choices) if choices is not None else []
-
-    @override
     def encode(self) -> list[T]:
+        """Serialize as a list of items."""
         return self.choices
 
-    @override
     @classmethod
     def decode(cls, args: tuple[Any, ...], obj: list[T]) -> "RandomItem[T]":
-        return cls(convert(obj, typ=list[args[0]]))  # type: ignore[valid-type]
+        """Deserialize from a list of items."""
+        return cls(convert(obj, target_type=list[args[0]]))  # type: ignore[valid-type]
 
     def rand(self) -> T:
-        """Get a random choice."""
+        """Select and return a random item."""
         return RAND.choice(self.choices)
 
 
 class RandomConjugableText(RandomItem[ConjugableText]):
+    """Randomly select and conjugate text."""
+
     def __call__(self, members: Members) -> str:
-        """Conjugate a random item."""
+        """Select and conjugate a random ConjugableText."""
         return self.rand()(members)
 
-    @override
     @classmethod
     def decode(
-        cls, args: tuple[Any, ...], obj: list[ConjugableText]
+        cls,
+        args: tuple[Any, ...],  # noqa: ARG003
+        obj: list[ConjugableText],
     ) -> "RandomConjugableText":
-        return cls(convert(obj, typ=list[ConjugableText]))
+        """Deserialize into RandomConjugableText."""
+        return cls(convert(obj, target_type=list[ConjugableText]))
 
 
 class MSleep(msgspec.Struct):
+    """Configuration for bot's sleep schedule."""
+
     start: time
     end: time
     divide_hunt: float
@@ -190,21 +233,27 @@ class MSleep(msgspec.Struct):
 
 
 class MCooldown(msgspec.Struct):
+    """Cooldown range configuration."""
+
     min: float
     max: float
 
     def rand(self) -> float:
-        """Randomize a min to max."""
+        """Return a random value between min and max."""
         return self.min + RAND.random() * (self.max - self.min)
 
 
 class MWeights(msgspec.Struct):
+    """Weight configuration for egg, speed, and base."""
+
     egg: float
     speed: float
     base: float
 
 
 class MHunt(msgspec.Struct):
+    """Hunt configuration."""
+
     timeout: float
     cooldown: MCooldown
     weights: MWeights
@@ -212,49 +261,63 @@ class MHunt(msgspec.Struct):
 
 
 class MCommand(msgspec.Struct):
+    """Command cooldown configuration."""
+
     cooldown: float
 
 
 class MDiscovered(msgspec.Struct):
+    """Discovered state configuration."""
+
     shield: int
     min: float
     max: float
 
     def probability(self, luck: float) -> float:
-        """Get discover probability."""
+        """Return discovery probability based on luck."""
         return (self.max - self.min) * luck + self.min
 
 
 class MSpotted(msgspec.Struct):
+    """Spotted state configuration."""
+
     shield: int
     min: float
     max: float
 
     def probability(self, luck: float) -> float:
-        """Get discover probability."""
+        """Return spotted probability based on lack of luck."""
         return (self.max - self.min) * (1 - luck) + self.min
 
 
 class SearchCommand(MCommand):
+    """Search command configuration."""
+
     discovered: MDiscovered
     spotted: MSpotted
 
 
 class MGender(msgspec.Struct):
+    """Mapping of gender to text forms."""
+
     woman: str = ""
     man: str = ""
 
     def __getitem__(self, key: str) -> str:
-        """Get text."""
+        """Return the text form for the given gender."""
         return getattr(self, key, "")
 
 
 class MEmbed(msgspec.Struct):
+    """Embed content with text and GIF."""
+
     text: ConjugableText
     gif: str
 
 
 class MText(msgspec.Struct):
+    """Command text with success and failure embeds."""
+
     text: str
     success: MEmbed
     fail: MEmbed
@@ -264,6 +327,8 @@ Conjugation = dict[str, MGender]
 
 
 class MCommands(msgspec.Struct, forbid_unknown_fields=True):
+    """Container for all configured bot commands."""
+
     search: SearchCommand
     top: MCommand
     basket: MCommand
@@ -276,10 +341,20 @@ class MCommands(msgspec.Struct, forbid_unknown_fields=True):
     skyjo: MCommand
     info: MCommand
     tictactoe: MCommand
-    rockpaperscissor: MCommand
+    rockpaperscissors: MCommand
 
     def __getitem__(self, key: str, /) -> MCommand:
-        """Get a command."""
+        """Return the MCommand object for the given command name.
+
+        Args:
+            key: Name of the command to retrieve.
+
+        Returns:
+            The corresponding MCommand instance.
+
+        Raises:
+            KeyError: If the key is a invalid command.
+        """
         if key not in self.__struct_fields__:
             raise KeyError(key)
         try:
@@ -292,6 +367,8 @@ class MCommands(msgspec.Struct, forbid_unknown_fields=True):
 
 
 class MConfig(msgspec.Struct, dict=True):
+    """Main configuration structure for the bot."""
+
     owner_is_admin: bool
     use_logging_file: bool
     admins: list[int]
@@ -316,23 +393,29 @@ class MConfig(msgspec.Struct, dict=True):
         )
     )
     message_content: bool = True
-    token: Optional[Union[str, msgspec.UnsetType]] = msgspec.UNSET
-    _resources: Optional[Union[pathlib.Path, msgspec.UnsetType]] = (
-        msgspec.field(name="resources", default=msgspec.UNSET)
+    token: str | msgspec.UnsetType | None = msgspec.UNSET
+    _resources: pathlib.Path | msgspec.UnsetType | None = msgspec.field(
+        name="resources", default=msgspec.UNSET
     )
-    _working_directory: Optional[Union[pathlib.Path, msgspec.UnsetType]] = (
+    _working_directory: pathlib.Path | msgspec.UnsetType | None = (
         msgspec.field(name="working_directory", default=msgspec.UNSET)
     )
 
     @property
     def database_uri(self) -> str:
-        """Get async string for database."""
+        """Return the database URI with placeholders resolved."""
         return self.database.replace(
             "%(data)s", "/" + self.working_directory.as_posix()
         )
 
     def is_sleep_hours(self, hour: time) -> bool:
-        """Get if bot is currently in sleep mode.
+        """Check whether the given time falls within configured sleep hours.
+
+        Args:
+            hour: Time to check.
+
+        Returns:
+            True if the given time is within the sleep window, False otherwise.
 
         Examples:
             >>> config.is_sleep_hours(time(hour=0, minute=59))
@@ -349,30 +432,34 @@ class MConfig(msgspec.Struct, dict=True):
         return False
 
     def in_sleep_hours(self) -> bool:
-        """Get if bot is currently in sleep mode."""
+        """Return True if the current UTC time is within sleep hours."""
         hour = datetime.now(tz=timezone.utc).time()
         return self.is_sleep_hours(hour)
 
     def verified_token(self) -> str:
-        """Get the safe token."""
+        """Return the bot token after validating it.
+
+        Raises:
+            TypeError: If no token is set.
+            ValueError: If the token format is invalid.
+        """
         if self.token is None or self.token is msgspec.UNSET:
-            error_message = "Token was not provided"
-            raise TypeError(error_message)
+            msg = "Token was not provided"
+            raise TypeError(msg)
         if "." not in self.token:
-            error_message = "Wrong token format"
-            raise ValueError(error_message)
+            msg = "Wrong token format"
+            raise ValueError(msg)
         return self.token
 
     def attach_default_working_directory(
-        self,
-        path: Union[pathlib.Path, str],
+        self, path: pathlib.Path | str
     ) -> None:
-        """Attach working directory."""
+        """Attach a fallback working directory path for this config."""
         self._cwd = pathlib.Path(path)
 
     @property
     def working_directory(self) -> pathlib.Path:
-        """Get the safe token."""
+        """Return the working directory, falling back to the current path."""
         if (
             self._working_directory is None
             or self._working_directory is msgspec.UNSET
@@ -384,7 +471,7 @@ class MConfig(msgspec.Struct, dict=True):
 
     @property
     def resources(self) -> pathlib.Path:
-        """Get path to resources or the embed resources if not configured."""
+        """Return the resources path, defaulting to embedded resources."""
         if self._resources is None or self._resources is msgspec.UNSET:
             return RESOURCES
         if self._resources.is_absolute():
@@ -392,7 +479,7 @@ class MConfig(msgspec.Struct, dict=True):
         return self.working_directory / self._resources
 
     def __post_init__(self) -> None:
-        """Add conjugation to item and check some value."""
+        """Attach conjugation mappings to all conjugable texts."""
         for conjugable in self.failed.choices:
             conjugable.attach(self.conjugation)
         for conjugable in self.hidden.choices:
@@ -404,34 +491,32 @@ class MConfig(msgspec.Struct, dict=True):
             choice.fail.text.attach(self.conjugation)
 
     def conjugate(self, text: str, member: discord.Member) -> str:
-        """Conjugate the text."""
-        conj = ConjugableText(text)
-        conj.attach(self.conjugation)
-        return conj(member)
+        """Return gender-conjugated text for a given member."""
+        conj_text = ConjugableText(text)
+        conj_text.attach(self.conjugation)
+        return conj_text(member)
 
-    def alembic_config(self, namespace: Optional[Namespace] = None) -> Config:
-        """Get alembic config."""
+    def alembic_config(self, namespace: Namespace | None = None) -> Config:
+        """Return an Alembic configuration object for migrations."""
         config_alembic = str(self.resources / "alembic.ini")
         cfg = Config(
             file_=config_alembic,
             ini_section="alembic" if namespace is None else namespace.name,
             cmd_opts=namespace,
-            attributes={
-                "easterobot_config": self,
-            },
+            attributes={"easterobot_config": self},
         )
         cfg.set_main_option("sqlalchemy.url", self.database_uri)
         cfg.set_main_option("script_location", str(HERE / "alembic"))
         return cfg
 
     def configure_logging(self) -> None:
-        """Configure logging."""
+        """Configure logging from file if enabled."""
         if self.use_logging_file and not hasattr(self, "__logging_flag"):
             logging_file = self.resources / "logging.conf"
             defaults = {"data": self.working_directory.as_posix()}
             if not logging_file.is_file():
-                error_message = f"Cannot find message: {str(logging_file)!r}"
-                raise FileNotFoundError(error_message)
+                msg = f"Cannot find logging file: {logging_file!r}"
+                raise FileNotFoundError(msg)
             logging.config.fileConfig(
                 logging_file,
                 disable_existing_loggers=False,
@@ -439,71 +524,123 @@ class MConfig(msgspec.Struct, dict=True):
             )
 
     def __str__(self) -> str:
-        """Represent the Configuration."""
+        """Return a human-readable representation of the config."""
         return f"<Config {str(self.working_directory)!r}>"
 
     def __repr__(self) -> str:
-        """Represent the Configuration."""
+        """Return a human-readable representation of the config."""
         return f"<Config {str(self.working_directory)!r}>"
 
 
-def _dec_hook(typ: type[T], obj: Any) -> T:
-    # Get the base type
-    origin: Optional[type[T]] = get_origin(typ)
-    if origin is None:
-        origin = typ
-    args = get_args(typ)
+def _dec_hook(target_type: type[T], value: Any) -> T:
+    """Decode YAML or msgspec values into appropriate Python types.
+
+    Args:
+        target_type: The type into which the value should be decoded.
+        value: The raw value to decode.
+
+    Returns:
+        The decoded Python object.
+
+    Raises:
+        TypeError: If the type is unsupported for decoding.
+    """
+    origin = get_origin(target_type) or target_type
+    args = get_args(target_type)
     if issubclass(origin, discord.PartialEmoji):
-        return discord.PartialEmoji(  # type: ignore[return-value]
-            name="_", animated=False, id=obj
-        )
+        return discord.PartialEmoji(name="_", animated=False, id=value)  # type: ignore[return-value]
     if issubclass(origin, pathlib.Path):
-        return cast(T, pathlib.Path(obj))
+        return cast("T", pathlib.Path(value))
     if Serializable.decodable(origin):
-        return cast(T, origin.decode(args, obj))
-    error_message = f"Invalid type {typ!r} for {obj!r}"
-    raise TypeError(error_message)
+        return cast("T", origin.decode(args, value))
+    msg = f"Invalid type {target_type!r} for {value!r}"
+    raise TypeError(msg)
 
 
-def _enc_hook(obj: Any) -> Any:
-    if isinstance(obj, discord.PartialEmoji):
-        return obj.id
-    if isinstance(obj, pathlib.Path):
-        return str(obj)
-    if isinstance(obj, Serializable):
-        return obj.encode()
-    error_message = f"Invalid object {obj!r}"
-    raise TypeError(error_message)
+def _enc_hook(value: Any) -> Any:
+    """Encode Python objects into YAML/msgspec-friendly representations.
+
+    Args:
+        value: The object to encode.
+
+    Returns:
+        The encoded value.
+
+    Raises:
+        TypeError: If the object cannot be encoded.
+    """
+    if isinstance(value, discord.PartialEmoji):
+        return value.id
+    if isinstance(value, pathlib.Path):
+        return str(value)
+    if isinstance(value, Serializable):
+        return value.encode()
+    msg = f"Invalid object {value!r}"
+    raise TypeError(msg)
 
 
-def load_yaml(data: Union[bytes, str], typ: type[T]) -> T:
-    """Load YAML."""
+def load_yaml(data: bytes | str, target_type: type[T]) -> T:
+    """Load an object from YAML data.
+
+    Args:
+        data: YAML-formatted bytes or string.
+        target_type: The type into which the data should be decoded.
+
+    Returns:
+        An instance of target_type loaded from YAML.
+    """
     return msgspec.yaml.decode(  # type: ignore[no-any-return,unused-ignore]
-        data, type=typ, dec_hook=_dec_hook
+        data,
+        type=target_type,
+        dec_hook=_dec_hook,
     )
 
 
-def dump_yaml(obj: Any) -> bytes:
-    """Load YAML."""
-    return msgspec.yaml.encode(  # type: ignore[no-any-return,unused-ignore]
-        obj, enc_hook=_enc_hook
-    )
+def dump_yaml(value: Any) -> bytes:
+    """Serialize an object into YAML bytes.
+
+    Args:
+        value: Object to serialize.
+
+    Returns:
+        YAML-encoded bytes.
+    """
+    return msgspec.yaml.encode(value, enc_hook=_enc_hook)
 
 
-def convert(obj: Any, typ: type[T]) -> T:
-    """Convert object."""
+def convert(value: Any, target_type: type[T]) -> T:
+    """Convert a value into a specific type using msgspec.
+
+    Args:
+        value: The object to convert.
+        target_type: Desired output type.
+
+    Returns:
+        The converted object.
+    """
     return msgspec.convert(  # type: ignore[no-any-return,unused-ignore]
-        obj, type=typ, dec_hook=_dec_hook
+        value,
+        type=target_type,
+        dec_hook=_dec_hook,
     )
 
 
 def load_config_from_buffer(
-    data: Union[bytes, str],
-    token: Optional[str] = None,
+    data: bytes | str,
+    token: str | None = None,
     *,
     env: bool = False,
 ) -> MConfig:
-    """Load config."""
+    """Load configuration from YAML data in memory.
+
+    Args:
+        data: YAML bytes or string containing the configuration.
+        token: Optional bot token override.
+        env: If True, load token from DISCORD_TOKEN environment variable.
+
+    Returns:
+        Loaded MConfig instance.
+    """
     config = load_yaml(data, MConfig)
     if env:
         potential_token = os.environ.get("DISCORD_TOKEN")
@@ -515,12 +652,21 @@ def load_config_from_buffer(
 
 
 def load_config_from_path(
-    path: Union[str, pathlib.Path],
-    token: Optional[str] = None,
+    path: str | pathlib.Path,
+    token: str | None = None,
     *,
     env: bool = False,
 ) -> MConfig:
-    """Load config."""
+    """Load configuration from a YAML file path.
+
+    Args:
+        path: Path to the YAML configuration file.
+        token: Optional bot token override.
+        env: If True, load token from DISCORD_TOKEN environment variable.
+
+    Returns:
+        Loaded MConfig instance.
+    """
     path = pathlib.Path(path)
     data = path.read_bytes()
     config = load_config_from_buffer(data, token=token, env=env)
@@ -529,13 +675,19 @@ def load_config_from_path(
 
 
 def agree(
-    singular: str,
-    plural: str,
-    /,
-    amount: Optional[int],
-    *args: Any,
+    singular: str, plural: str, /, amount: int | None, *args: Any
 ) -> str:
-    """Agree the text to the text."""
+    """Return singular or plural form based on the amount.
+
+    Args:
+        singular: Singular text format string.
+        plural: Plural text format string.
+        amount: Number to determine singular/plural form.
+        *args: Additional formatting arguments.
+
+    Returns:
+        Formatted string in correct grammatical number.
+    """
     if amount is None or amount in (-1, 0, 1):
         return singular.format(amount, *args)
     return plural.format(amount, *args)
@@ -545,7 +697,13 @@ RE_VALID = re.compile(r"[^a-zA-Z0-9éàèê]")
 
 
 def tokenize(text: str) -> list[str]:
-    """Get token from text.
+    """Split text into lowercase tokens, removing special characters.
+
+    Args:
+        text: The string to tokenize.
+
+    Returns:
+        List of tokens in lowercase.
 
     Examples:
         >>> tokenize("Activités manuelles")

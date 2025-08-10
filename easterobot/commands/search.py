@@ -1,4 +1,10 @@
-"""Module for search command."""
+"""Search command module for Easter egg hunt bot.
+
+This module implements the search command that allows users to search
+for Easter eggs in channels where egg hunts are active. The command handles
+luck calculation, egg discovery, and hunt mechanics including cooldowns
+and permissions.
+"""
 
 import logging
 from typing import Any
@@ -27,78 +33,112 @@ logger = logging.getLogger("easterobot")
 )
 @controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def search_command(ctx: Context) -> None:
-    """Search command."""
-    async with AsyncSession(ctx.client.engine) as session:
-        hunt = await session.scalar(
+    """Execute the Easter egg search command.
+
+    Allows users to search for Easter eggs in the current channel. The command
+    checks if a hunt is active, calculates user's luck based on various
+    factors, and either rewards an egg, starts a hunt sequence,
+    or returns empty-handed.
+
+    Args:
+        ctx: Interaction context containing user, channel, and guild info.
+
+    Raises:
+        InterruptedCommandError: If no hunt is active in the channel or if the
+            Discord response fails.
+    """
+    # Check if hunt is active in the current channel
+    async with AsyncSession(ctx.client.engine) as database_session:
+        active_hunt = await database_session.scalar(
             select(Hunt).where(Hunt.channel_id == ctx.channel.id)
         )
-        if hunt is None:
+        if active_hunt is None:
             await ctx.response.send_message(
                 "La chasse aux œufs n'est pas activée dans ce salon",
                 ephemeral=True,
             )
             raise InterruptedCommandError
+
+    # Defer response to allow for longer processing time
     try:
         await ctx.response.defer(ephemeral=False)
-    except discord.errors.NotFound as err:
-        raise InterruptedCommandError from err
-    name = ctx.user.display_name
+    except discord.errors.NotFound as error:
+        raise InterruptedCommandError from error
 
-    async with AsyncSession(ctx.client.engine) as session:
-        luck = await ctx.client.hunt.get_luck(
+    user_display_name = ctx.user.display_name
+
+    # Calculate user's luck for finding eggs
+    async with AsyncSession(ctx.client.engine) as database_session:
+        user_luck = await ctx.client.hunt.get_luck(
             guild_id=ctx.guild_id,
             user_id=ctx.user.id,
-            session=session,
+            session=database_session,
             sleep_hours=ctx.client.config.in_sleep_hours(),
         )
 
-    if luck.sample_discovered():
-        if luck.sample_spotted():
+    # Process luck results and determine outcome
+    if user_luck.sample_discovered():
+        if user_luck.sample_spotted():
+            # User spotted something - start interactive hunt sequence
 
-            async def send_method(
+            async def followup_send_method(
                 *args: Any, **kwargs: Any
             ) -> discord.Message:
+                """Send follow-up message through Discord interaction.
+
+                Args:
+                    *args: Positional arguments for followup.send.
+                    **kwargs: Keyword arguments for followup.send.
+
+                Returns:
+                    The sent Discord message.
+                """
                 return await ctx.followup.send(*args, **kwargs)  # type: ignore[no-any-return]
 
             await ctx.client.hunt.start_hunt(
                 ctx.channel_id,
                 ctx.client.config.spotted(ctx.user),
                 member_id=ctx.user.id,
-                send_method=send_method,
+                send_method=followup_send_method,
             )
         else:
-            emoji = ctx.client.egg_emotes.rand()
-            async with AsyncSession(ctx.client.engine) as session:
-                session.add(
+            # User found a hidden egg - add it to database
+            random_egg_emoji = ctx.client.egg_emotes.rand()
+            async with AsyncSession(ctx.client.engine) as database_session:
+                database_session.add(
                     Egg(
                         channel_id=ctx.channel_id,
                         guild_id=ctx.guild_id,
                         user_id=ctx.user.id,
-                        emoji_id=emoji.id,
+                        emoji_id=random_egg_emoji.id,
                     )
                 )
-                await session.commit()
+                await database_session.commit()
 
+            # Log successful egg discovery
             logger.info(
                 "%s (%s) got an egg for a total %s in %s",
                 ctx.user,
                 ctx.user.id,
-                agree("{0} egg", "{0} eggs", luck.egg_count),
+                agree("{0} egg", "{0} eggs", user_luck.egg_count),
                 ctx.channel.jump_url,
             )
+
+            # Send success message with egg embed
             await ctx.followup.send(
                 embed=embed(
-                    title=f"{name} récupère un œuf",
+                    title=f"{user_display_name} récupère un œuf",
                     description=ctx.client.config.hidden(ctx.user),
-                    thumbnail=emoji.url,
-                    egg_count=luck.egg_count + 1,
+                    thumbnail=random_egg_emoji.url,
+                    egg_count=user_luck.egg_count + 1,
                 )
             )
     else:
+        # User found nothing - send failure message
         await ctx.followup.send(
             embed=embed(
-                title=f"{name} repart bredouille",
+                title=f"{user_display_name} repart bredouille",
                 description=ctx.client.config.failed(ctx.user),
-                egg_count=luck.egg_count,
+                egg_count=user_luck.egg_count,
             )
         )

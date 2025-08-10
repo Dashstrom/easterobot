@@ -1,4 +1,8 @@
-"""Module for models."""
+"""Database models for the Easterobot application.
+
+Defines ORM mappings for eggs, hunts, and cooldowns, including
+helper properties and methods for convenience.
+"""
 
 from sqlalchemy import BigInteger, Boolean, Integer
 from sqlalchemy.orm import (
@@ -11,11 +15,14 @@ DISCORD_URL = "https://discord.com/channels"
 
 
 class Base(DeclarativeBase):
-    pass
+    """Base class for all ORM models."""
 
 
 class Egg(Base):
+    """Represents an Easter egg stored in the database."""
+
     __tablename__ = "egg"
+
     id: Mapped[int] = mapped_column(
         BigInteger().with_variant(Integer, "sqlite"),
         primary_key=True,
@@ -33,12 +40,12 @@ class Egg(Base):
 
     @property
     def jump_url(self) -> str:
-        """Url to jump to the egg."""
+        """Return a Discord URL that jumps to the egg's message."""
         guild_id = self.guild_id or "@me"
         return f"{DISCORD_URL}/{guild_id}/{self.channel_id}/{self.id}"
 
     def duplicate(self) -> "Egg":
-        """Duplicate the egg."""
+        """Create a new Egg with the same attributes (excluding ID)."""
         return Egg(
             guild_id=self.guild_id,
             channel_id=self.channel_id,
@@ -48,20 +55,26 @@ class Egg(Base):
 
 
 class Hunt(Base):
+    """Represents a hunt session/channel tracking the next egg spawn time."""
+
     __tablename__ = "hunt"
+
     channel_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     guild_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     next_egg: Mapped[float] = mapped_column(default=0.0)
 
     @property
     def jump_url(self) -> str:
-        """Url to jump to an hunt."""
+        """Return a Discord URL that jumps to the hunt's channel."""
         guild_id = self.guild_id or "@me"
         return f"{DISCORD_URL}/{guild_id}/{self.channel_id}"
 
 
 class Cooldown(Base):
+    """Tracks cooldown timestamps per user, guild, and command."""
+
     __tablename__ = "cooldown"
+
     user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     guild_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     command: Mapped[str] = mapped_column(primary_key=True)

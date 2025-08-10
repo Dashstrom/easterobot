@@ -1,7 +1,11 @@
-"""Command basket."""
+"""Player information command module for Easter egg hunt bot.
+
+This module implements the info command that displays detailed statistics about
+a player's Easter egg hunting performance, including their ranking, egg count,
+and various luck probabilities within the current guild.
+"""
 
 import asyncio
-from typing import Optional
 
 import discord
 from discord import app_commands
@@ -25,36 +29,52 @@ from easterobot.hunts.rank import Ranking
 )
 @controlled_command(cooldown=True)
 async def info_command(
-    ctx: Context, user: Optional[discord.Member] = None
+    ctx: Context, user: discord.Member | None = None
 ) -> None:
-    """Show current user basket."""
-    # Delay the response
+    """Display detailed Easter egg hunting statistics for a player.
+
+    Shows comprehensive information about a player's hunt performance including
+    their guild ranking, total egg count, base luck percentage, discovery chance,
+    and theft probability. If no user is specified, shows info for the command user.
+
+    Args:
+        ctx: Discord interaction context containing guild and user info.
+        user: Optional Discord member to inspect. Defaults to command invoker.
+
+    Returns:
+        None. Sends player statistics embed through Discord interaction.
+    """
+    # Defer response to allow time for database queries
     await ctx.response.defer(ephemeral=True)
 
-    # Set the user of the basket
-    hunter = user or ctx.user
+    # Use specified user or default to command invoker
+    target_hunter = user or ctx.user
 
-    async with AsyncSession(ctx.client.engine) as session:
-        ranking, member_luck = await asyncio.gather(
-            Ranking.from_guild(session, ctx.guild_id),
+    # Fetch ranking data and luck statistics concurrently
+    async with AsyncSession(ctx.client.engine) as database_session:
+        guild_ranking, hunter_luck_stats = await asyncio.gather(
+            Ranking.from_guild(database_session, ctx.guild_id),
             ctx.client.hunt.get_luck(
-                session=session,
-                guild_id=hunter.guild.id,
-                user_id=hunter.id,
+                session=database_session,
+                guild_id=target_hunter.guild.id,
+                user_id=target_hunter.id,
                 sleep_hours=False,
             ),
         )
-        hunter_rank = ranking.get(hunter.id)
 
+        # Get the hunter's position and stats from guild ranking
+        hunter_ranking_info = guild_ranking.get(target_hunter.id)
+
+        # Send comprehensive player information embed
         await ctx.followup.send(
             embed=embed(
-                title=f"Informations sur {hunter.display_name}",
+                title=f"Informations sur {target_hunter.display_name}",
                 description=(
-                    f"Classement : {hunter_rank.badge}\n"
-                    f"Nombre d'œufs : `{hunter_rank.eggs}`\n"
-                    f"Chance brute : `{member_luck.luck:.0%}`\n"
-                    f"Chance de trouver un œuf : `{member_luck.discovered:.0%}`\n"
-                    f"Chance de se faire voler : `{member_luck.spotted:.0%}`"
+                    f"Classement : {hunter_ranking_info.badge}\n"
+                    f"Nombre d'œufs : `{hunter_ranking_info.eggs}`\n"
+                    f"Chance brute : `{hunter_luck_stats.luck:.0%}`\n"
+                    f"Chance de trouver un œuf : `{hunter_luck_stats.discovered:.0%}`\n"
+                    f"Chance de se faire voler : `{hunter_luck_stats.spotted:.0%}`"
                 ),
             ),
             ephemeral=True,

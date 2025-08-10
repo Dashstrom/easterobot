@@ -45,7 +45,7 @@ commands:
     cooldown: 30.0
   connect4:
     cooldown: 120.0
-  rockpaperscissor:
+  rockpaperscissors:
     cooldown: 120.0
   tictactoe:
     cooldown: 120.0

@@ -1,4 +1,8 @@
-"""Init package."""
+"""Easterobot commands package initializer.
+
+This module imports all available command handlers for Easterobot and
+registers the root command group when the bot is set up.
+"""
 
 from easterobot.bot import Easterobot
 from easterobot.commands.base import egg_command_group
@@ -8,7 +12,7 @@ from easterobot.commands.edit import edit_command
 from easterobot.commands.enable import enable_command
 from easterobot.commands.game import (
     connect4_command,
-    rockpaperscissor_command,
+    rockpaperscissors_command,
     tictactoe_command,
 )
 from easterobot.commands.help import help_command
@@ -28,7 +32,7 @@ __all__ = [
     "help_command",
     "info_command",
     "reset_command",
-    "rockpaperscissor_command",
+    "rockpaperscissors_command",
     "roulette_command",
     "search_command",
     "tictactoe_command",
@@ -37,5 +41,10 @@ __all__ = [
 
 
 async def setup(bot: Easterobot) -> None:
+    """Register the Easterobot root command group.
+
+    Args:
+        bot: The Easterobot instance to register commands to.
+    """
     egg_command_group.name = bot.config.group
     bot.tree.add_command(egg_command_group)

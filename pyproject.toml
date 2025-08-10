@@ -1,106 +1,125 @@
+# ----------------------------------------------------------------------
+# Packaging
+# https://packaging.python.org/en/latest/tutorials/packaging-projects
+# ----------------------------------------------------------------------
+
+[build-system]
+requires = ["hatchling >= 1.27"]
+build-backend = "hatchling.build"
+
+# ----------------------------------------------------------------------
+[tool.hatch.build.targets.wheel]
+packages = ["easterobot"]
+
+
+# ----------------------------------------------------------------------
+# uv
+# https://github.com/astral-sh/uv
+# ----------------------------------------------------------------------
+
 [project]
 name = "easterobot"
 version = "1.5.2"
-description = "Discord bot for Easter."
+description = "Discord bot for easter."
 authors = [
-    { name = "Dashstrom", email = "dashstrom.pro@gmail.com" }
+  { name = "Dashstrom", email = "dashstrom.pro@gmail.com" }
 ]
-readme = "README.rst"
+maintainers = [
+  { name = "Dashstrom", email = "dashstrom.pro@gmail.com" }
+]
+license = "MIT"
+dependencies = [
+  "discord.py>=2.5.2",
+  "sqlalchemy[asyncio]>=2.0.40",
+  "PyYAML>=6.0.2",
+  "asyncpg>=0.30.0",
+  "aiosqlite>=0.21.0",
+  "msgspec>=0.19.0",
+  "alembic>=1.15.2",
+]
+readme = "README.md"
+requires-python = ">=3.10,<4.0"
 keywords = ["discord", "bot", "easter", "eggs", "hunt"]
-requires-python = ">=3.9,<4.0"
 
 # See https://pypi.org/classifiers/
 classifiers = [
 
-    #"Development Status :: 1 - Planning",
-    #"Development Status :: 2 - Pre-Alpha",
-    #"Development Status :: 3 - Alpha",
-    "Development Status :: 4 - Beta",
-    #"Development Status :: 5 - Production/Stable",
-    #"Development Status :: 6 - Mature",
-    #"Development Status :: 7 - Inactive",
+  #"Development Status :: 1 - Planning",
+  #"Development Status :: 2 - Pre-Alpha",
+  #"Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
+  #"Development Status :: 5 - Production/Stable",
+  #"Development Status :: 6 - Mature",
+  #"Development Status :: 7 - Inactive",
 
-    # Default usage
-    "Environment :: Console",
+  # Default usage
+  "Environment :: Console",
 
-    # Framework used
-    "Framework :: Pytest",
-    "Framework :: Sphinx",
+  # Indicate who your project is intended for
+  "Intended Audience :: Developers",
+  "Intended Audience :: System Administrators",
 
-    # Indicate who your project is intended for
-    "Intended Audience :: Developers",
-    "Intended Audience :: System Administrators",
+  # Target OS
+  "Operating System :: OS Independent",
 
-    # Target OS
-    "Operating System :: OS Independent",
+  # Version available for this project
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3 :: Only",
 
-    # What is the language used in this project
-    "Natural Language :: English",
+  # What is the language used in the project
+  "Natural Language :: English",
 
-    # Version available for this project
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3 :: Only",
-
-    # What is the language used in the project
-    "Natural Language :: English",
-
-    # License used in this project
-    "License :: OSI Approved :: MIT License",
-
-    # The project is typed
-    "Typing :: Typed"
-]
-dependencies = [
-    "discord.py>=2.5.2",
-    "sqlalchemy[asyncio]>=2.0.40",
-    "PyYAML>=6.0.2",
-    "typing-extensions>=4.8.0",
-    "asyncpg>=0.30.0",
-    "aiosqlite>=0.21.0",
-    "msgspec>=0.19.0",
-    "alembic>=1.15.2",
+  # The project is typed
+  "Typing :: Typed"
 ]
 
 [project.urls]
 Homepage = "https://github.com/Dashstrom/easterobot"
-Repository = "https://github.com/Dashstrom/easterobot"
+Issues = "https://github.com/Dashstrom/easterobot/issues"
 Documentation = "https://dashstrom.github.io/easterobot"
+Source = "https://github.com/Dashstrom/easterobot"
 
 [project.scripts]
 easterobot = "easterobot.cli:entrypoint"
 
 [dependency-groups]
 dev = [
-    "opencv-python",
-    "numpy",
-    "types-PyYAML==6.0.12.20250326",
-    "types-requests==2.32.0.20250328",
-    "pytest==8.3.5",
-    "pytest-mock==3.14.0",
-    "coverage[toml]==7.6.12",
-    "pytest-cov==6.0.0",
-    "mypy==1.15.0",
-    "ruff==0.9.10",
-    "pre-commit==4.1.0",
-    "pre-commit-hooks==5.0.0",
-    "sphinx==7.4.7",
-    "sphinx-rtd-theme==3.0.2",
-    "sphinxcontrib-mermaid==1.0.0",
-    "poethepoet==0.33.0",
-    "commitizen==4.4.1",
-    "python-dotenv>=1.1.0",
-    "pytest-asyncio>=0.26.0",
-    "pillow>=11.2.1",
-]
+  # Task runner
+  "poethepoet==0.36.0",
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+  # Pre-commit
+  "pre-commit==4.2.0",
+  "pre-commit-hooks==5.0.0",
+
+  # Documentation
+  "mkdocs==1.6.1",
+  "mkdocstrings[python]==0.30.0",
+  "pymdown-extensions==10.16.1",
+
+  # Typer
+  "mypy==1.17.1",
+  "types-PyYAML==6.0.12.20250326",
+  "types-requests==2.32.0.20250328",
+
+  # Linter
+  "ruff==0.12.8",
+
+  # Tests
+  "coverage[toml]==7.10.2",
+  "pytest-cov==6.2.1",
+  "pytest==8.4.1",
+  "pytest-mock==3.14.1",
+  "pytest-asyncio==1.1.0",
+
+  # Scripts
+  "pillow==11.3.0",
+  "opencv-python==4.12.0.88",
+  "numpy==2.2.6",
+]
 
 [tool.setuptools]
 py-modules = ["easterobot"]
@@ -137,7 +156,7 @@ help = "Run all checks: lint, test and docs."
 sequence = [
   { ref = "lint" },
   { ref = "test" },
-  { ref = "docs" },
+  { ref = "doc" },
 ]
 
 [tool.poe.tasks.check-tag]
@@ -155,6 +174,7 @@ sys.exit(
 """
 imports = ["easterobot", "subprocess", "os"]
 
+
 [tool.poe.tasks.cov]
 help = "Run coverage for generate report and html."
 sequence = [
@@ -169,15 +189,13 @@ deps = ["cov"]
 expr = "webbrowser.open('file:'+urllib.request.pathname2url(os.path.abspath('htmlcov/index.html')),new=2)"
 imports = ["os", "webbrowser", "sys", "urllib.request"]
 
-[tool.poe.tasks.docs]
+[tool.poe.tasks.doc]
 help = "Build documentation."
-cmd = "sphinx-build -W -b html docs public"
+cmd = "mkdocs build"
 
-[tool.poe.tasks.open-docs]
+[tool.poe.tasks.open-doc]
 help = "Open documentation in webbrowser."
-deps = ["docs"]
-expr = "webbrowser.open('file:'+urllib.request.pathname2url(os.path.abspath('public/index.html')),new=2)"
-imports = ["os", "webbrowser", "sys", "urllib.request"]
+cmd = "mkdocs serve"
 
 [tool.poe.tasks.setup]
 help = "Setup pre-commit."
@@ -185,16 +203,7 @@ cmd = "pre-commit install"
 
 [tool.poe.tasks.pre-commit]
 help = "Run pre-commit."
-cmd = "pre-commit run --all-files"
-
-[tool.poe.tasks.commit]
-help = "Test, commit and push."
-sequence = [
-  { ref = "check" },
-  { cmd = "git add ." },
-  { cmd = "cz c" },
-  { cmd = "git push" },
-]
+cmd = "pre-commit run --all-files --show-diff-on-failure"
 
 [tool.poe.tasks.clean]
 help = "Clean cache files."
@@ -206,6 +215,7 @@ expr = """[
     'build/',
     'dist/',
     'public/',
+    'site/',
     '.eggs/',
     '.tox/',
     '.coverage',
@@ -253,10 +263,11 @@ source = ["easterobot"]
 # ----------------------------------------------------------------------
 
 [tool.mypy]
-python_version = 3.9
+python_version = "3.10"
 exclude = [
   ".bzr",
   ".direnv",
+  "site",
   ".eggs",
   ".git",
   ".hg",
@@ -320,23 +331,24 @@ ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 79
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["ALL"]
 # D203 and D211 are incompatible
 # D212 and D213 are incompatible
 # D400 [*] First line should end with a period
-# D101 Missing docstring in public class
 # We dont use ANN : flake8-annotations because we already have mypy
 # TD003 Missing issue link for this TODO
 # FIX002 Line contains TODO, consider resolving the issue
-ignore = ["D203", "D213", "D400", "D101", "ANN", "COM812", "ISC001", "TD003", "FIX002"]
+# warning: The following rule may cause conflicts when used with the formatter: `COM812`.
+ignore = ["D203", "D213", "D400", "ANN", "TD003", "FIX002", "COM812"]
 fixable = ["ALL"]
 unfixable = []
 exclude = [
   ".bzr",
   ".direnv",
+  "site",
   ".eggs",
   ".git",
   ".hg",
@@ -359,13 +371,17 @@ exclude = [
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
+# E402 Module level import not at top of file
 # INP001 File `docs\conf.py` is part of an implicit namespace package. Add an `__init__.py`.
 # A001 Variable `copyright` is shadowing a python builtin
 # PTH100 `os.path.abspath()` should be replaced by `Path.resolve()`
-"docs/conf.py" = ["INP001", "A001", "PTH100"]
+"docs/conf.py" = ["E402", "INP001", "A001", "PTH100"]
 # S101 Use of `assert` detected
 # S603 `subprocess` call: check for execution of untrusted input
-"tests/*.py" = ["S101", "S603"]
+# D102 undocumented-public-method
+# D103 undocumented-public-function
+"tests/*.py" = ["S101", "S603", "D102", "D103"]
+"conftest.py" = ["S101", "S603", "D102", "D103"]
 # Q003 [*] Change outer quotes to avoid escaping inner quotes
 # E501 Line too long
 "*/info.py" = ["Q003", "E501"]
@@ -373,9 +389,9 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "*/__main__.py" = ["E501"]
 # INP001 File `benchmarks/*.py` is part of an implicit namespace package. Add an `__init__.py`.
 "benchmarks/*.py" = ["INP001"]
-"scripts/*.py" = ["INP001"]
-"easterobot/*.py" = ["INP001"]
-"easterobot/versions/*.py" = ["INP001"]
+# INP001 File `scripts/*.py` is part of an implicit namespace package. Add an `__init__.py`.
+# T201 `print` found
+"scripts/*.py" = ["INP001", "T201"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["easterobot"]
@@ -391,13 +407,16 @@ keep-runtime-typing = true
 # Unlike Flake8, default to a complexity level of 12.
 max-complexity = 12
 
+[tool.ruff.lint.pylint]
+max-args = 10
+
 
 # ----------------------------------------------------------------------
 # Pylint
 # https://pylint.pycqa.org/en/latest/index.html
 # ----------------------------------------------------------------------
 
-# We dont use pylint, so we disabled it
+# Ruff replaces Pylint
 [tool.pylint.main]
 ignore-patterns = ["*"]
 
@@ -407,5 +426,6 @@ ignore-patterns = ["*"]
 # https://black.readthedocs.io/en/stable/
 # ----------------------------------------------------------------------
 
+# Ruff replaces Black
 [tool.black]
 exclude="*"

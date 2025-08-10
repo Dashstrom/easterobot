@@ -1,4 +1,10 @@
-"""Module for reset command."""
+"""Reset command module for Easter egg hunt bot.
+
+This module implements the reset command that allows administrators
+to completely reset all Easter egg hunt data for their guild. The command
+provides a confirmation interface with a 30-second timeout
+to prevent accidental data loss.
+"""
 
 import asyncio
 
@@ -19,23 +25,41 @@ from .base import Context, Interaction, controlled_command, egg_command_group
 )
 @controlled_command(cooldown=True, administrator=True)
 async def reset_command(ctx: Context) -> None:
-    """Reset command."""
+    """Reset all Easter egg hunt data for the current guild.
+
+    Completely removes all hunts, eggs, and cooldowns (except reset cooldown)
+    for the guild. Requires administrator permission and provides
+    a confirmation interface with cancel/confirm buttons
+    and a 30-second timeout.
+
+    Args:
+        ctx: Discord interaction context containing guild and client info.
+
+    Returns:
+        None. Sends response messages through Discord interaction system.
+    """
     await ctx.response.defer(ephemeral=True)
-    view = discord.ui.View(timeout=None)
-    cancel: discord.ui.Button[discord.ui.View] = discord.ui.Button(
+
+    # Create confirmation UI with cancel and confirm buttons
+    confirmation_view = discord.ui.View(timeout=None)
+    cancel_button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
         label="Annuler", style=discord.ButtonStyle.danger
     )
-    view.add_item(cancel)
-    confirm: discord.ui.Button[discord.ui.View] = discord.ui.Button(
+    confirmation_view.add_item(cancel_button)
+    confirm_button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
         label="Confirmer", style=discord.ButtonStyle.success
     )
-    view.add_item(confirm)
-    done = False
-    cancel_embed = embed(
+    confirmation_view.add_item(confirm_button)
+
+    # Track if user has already responded to prevent timeout conflicts
+    user_has_responded = False
+
+    # Pre-define embed messages for different outcomes
+    cancellation_embed = embed(
         title="Réinitialisation annulée",
         description="Vous avez annulé la demande de réinitialisation.",
     )
-    confirm_embed = embed(
+    confirmation_success_embed = embed(
         title="Réinitialisation",
         description=(
             "L'ensemble des salons, œufs "
@@ -43,43 +67,68 @@ async def reset_command(ctx: Context) -> None:
         ),
     )
 
-    async def cancel_callback(
+    async def handle_cancel_action(
         interaction: Interaction,
     ) -> None:
-        nonlocal done
-        done = True
-        cancel.disabled = True
-        confirm.disabled = True
-        view.stop()
+        """Handle cancel button click.
+
+        Disables both buttons, stops the view, and sends cancellation message.
+
+        Args:
+            interaction: Discord button interaction from cancel button click.
+
+        Returns:
+            None. Updates UI and sends cancellation response.
+        """
+        nonlocal user_has_responded
+        user_has_responded = True
+        cancel_button.disabled = True
+        confirm_button.disabled = True
+        confirmation_view.stop()
         await asyncio.gather(
-            message.edit(view=view),
+            confirmation_message.edit(view=confirmation_view),
             interaction.response.send_message(
-                embed=cancel_embed,
+                embed=cancellation_embed,
                 ephemeral=True,
             ),
         )
 
-    async def confirm_callback(
+    async def handle_confirm_action(
         interaction: Interaction,
     ) -> None:
-        nonlocal done
-        done = True
-        cancel.disabled = True
-        confirm.disabled = True
-        view.stop()
+        """Handle confirm button click and execute database reset.
+
+        Disables buttons, performs database cleanup removing all hunts, eggs,
+        and non-reset cooldowns for the guild, then sends success message.
+
+        Args:
+            interaction: Discord button interaction from confirm button click.
+
+        Returns:
+            None. Executes reset and sends confirmation response.
+        """
+        nonlocal user_has_responded
+        user_has_responded = True
+        cancel_button.disabled = True
+        confirm_button.disabled = True
+        confirmation_view.stop()
         await asyncio.gather(
-            message.edit(view=view),
+            confirmation_message.edit(view=confirmation_view),
             interaction.response.defer(ephemeral=True),
         )
 
-        async with AsyncSession(ctx.client.engine) as session:
-            await session.execute(
+        # Execute database cleanup operations
+        async with AsyncSession(ctx.client.engine) as database_session:
+            # Remove all hunts for this guild
+            await database_session.execute(
                 delete(Hunt).where(Hunt.guild_id == ctx.guild_id)
             )
-            await session.execute(
+            # Remove all eggs for this guild
+            await database_session.execute(
                 delete(Egg).where(Egg.guild_id == ctx.guild_id)
             )
-            await session.execute(
+            # Remove all cooldowns except reset command cooldown
+            await database_session.execute(
                 delete(Cooldown).where(
                     and_(
                         Cooldown.guild_id == ctx.guild_id,
@@ -87,15 +136,20 @@ async def reset_command(ctx: Context) -> None:
                     )
                 )
             )
-            await session.commit()
+            await database_session.commit()
+
+        # Send success confirmation
         await interaction.followup.send(
-            embed=confirm_embed,
+            embed=confirmation_success_embed,
             ephemeral=True,
         )
 
-    cancel.callback = cancel_callback  # type: ignore[assignment]
-    confirm.callback = confirm_callback  # type: ignore[assignment]
-    message = await ctx.followup.send(
+    # Assign callback functions to button interactions
+    cancel_button.callback = handle_cancel_action  # type: ignore[assignment]
+    confirm_button.callback = handle_confirm_action  # type: ignore[assignment]
+
+    # Send initial confirmation message with buttons
+    confirmation_message = await ctx.followup.send(
         embed=embed(
             title="Demande de réinitialisation",
             description=(
@@ -105,15 +159,17 @@ async def reset_command(ctx: Context) -> None:
             ),
         ),
         ephemeral=True,
-        view=view,
+        view=confirmation_view,
         wait=True,
     )
+
+    # Wait 30 seconds for user response, then handle timeout if no response
     await asyncio.sleep(30.0)
-    if not done:
-        cancel.disabled = True
-        confirm.disabled = True
-        view.stop()
+    if not user_has_responded:
+        cancel_button.disabled = True
+        confirm_button.disabled = True
+        confirmation_view.stop()
         await asyncio.gather(
-            message.edit(view=view),
-            ctx.followup.send(embed=cancel_embed, ephemeral=True),
+            confirmation_message.edit(view=confirmation_view),
+            ctx.followup.send(embed=cancellation_embed, ephemeral=True),
         )

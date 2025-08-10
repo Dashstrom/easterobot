@@ -23,10 +23,10 @@ jobs:
         uses: ./.github/actions/setup-project
 
       - name: Check the tag
-        run: uv run poe check-tag
+        run: uv run --no-sync poe check-tag
 
-      - name: Runn all tests
-        run: uv run poe check
+      - name: Run all tests
+        run: uv run --no-sync poe check
 
       - name: Build package
         run: uv build
