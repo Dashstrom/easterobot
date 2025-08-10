@@ -6,6 +6,7 @@ and various luck probabilities within the current guild.
 """
 
 import asyncio
+from typing import Optional
 
 import discord
 from discord import app_commands
@@ -29,7 +30,7 @@ from easterobot.hunts.rank import Ranking
 )
 @controlled_command(cooldown=True)
 async def info_command(
-    ctx: Context, user: discord.Member | None = None
+    ctx: Context, user: Optional[discord.Member] = None
 ) -> None:
     """Display detailed Easter egg hunting statistics for a player.
 

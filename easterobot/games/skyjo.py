@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from functools import partial
 from string import ascii_uppercase
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 import discord
 
@@ -574,7 +574,7 @@ class Grid:
         removed_combo_card = self._remove_combo()
         return removed_combo_card if removed_combo_card else previous_card
 
-    def _remove_combo(self) -> Card | None:
+    def _remove_combo(self) -> Optional[Card]:
         """Check for and remove any column combos (3 matching visible cards).
 
         Scans each column from right to left, removing complete columns where
@@ -773,7 +773,7 @@ class Skyjo(Game):
         self.turn = 0
         self.card_deck: list[int] = []
         self.starting = True
-        self.finish_turn: int | None = None
+        self.finish_turn: Optional[int] = None
         self.turn_state = TurnState.START
         self.timeout_penalty: dict[Player, float] = {}
         super().__init__(bot, message, *members)
@@ -815,7 +815,7 @@ class Skyjo(Game):
         return self.grids[self.current_player]
 
     @property
-    def finish_player(self) -> Player | None:
+    def finish_player(self) -> Optional[Player]:
         """Get the player who triggered the final round.
 
         Returns:

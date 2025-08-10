@@ -7,12 +7,15 @@ a row (horizontally, vertically, or diagonally) to win the game.
 """
 
 import asyncio
+from typing import TYPE_CHECKING, Optional
 
 import discord
 
-from easterobot.bot import Easterobot
 from easterobot.games.game import Game, Player
 from easterobot.utils import in_seconds
+
+if TYPE_CHECKING:
+    from easterobot.bot import Easterobot
 
 # Mapping of numbered emoji reactions to column indices (0-9)
 COLUMN_EMOJIS_MAPPER = {
@@ -40,7 +43,7 @@ class Connect4(Game):
 
     def __init__(
         self,
-        bot: Easterobot,
+        bot: "Easterobot",
         message: discord.Message,
         *members: discord.Member,
         rows: int = DEFAULT_ROWS,
@@ -59,7 +62,7 @@ class Connect4(Game):
         """
         # Initialize grid as list of columns, each column is a list of rows
         # Grid[col][row] represents the piece at that position
-        self.grid: list[list[Player | None]] = [
+        self.grid: list[list[Optional[Player]]] = [
             [None] * rows for _ in range(cols)
         ]
         self.has_timed_out = False  # Track if current turn timed out
@@ -102,7 +105,7 @@ class Connect4(Game):
                 current_piece_emoji
                 + f" Joueur actuel : {self.current_player.member.mention}\n\n"
             )
-            embed_player: Player | None = self.current_player
+            embed_player: Optional[Player] = self.current_player
         elif self.winner:
             # Game ended with a winner
             forfeit_text = "par forfait " if self.has_timed_out else ""
@@ -194,7 +197,7 @@ class Connect4(Game):
         """
         return self.players[self.current_turn % 2]
 
-    def get_piece_emoji(self, player: Player | None) -> str:
+    def get_piece_emoji(self, player: Optional[Player]) -> str:
         """Get the emoji representation for a player's piece or empty space.
 
         Args:
@@ -217,7 +220,10 @@ class Connect4(Game):
         error_message = f"Invalid member: {player!r}"
         raise ValueError(error_message)
 
-    def get_player_color(self, player: Player | None) -> discord.Colour | None:
+    def get_player_color(
+        self,
+        player: Optional[Player],
+    ) -> Optional[discord.Colour]:
         """Get the Discord embed color associated with a specific player.
 
         Args:

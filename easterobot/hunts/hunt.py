@@ -12,7 +12,9 @@ import time
 from collections.abc import Awaitable, Callable, Iterable, Sequence
 from datetime import datetime, timezone
 from typing import (
+    TYPE_CHECKING,
     Any,
+    Optional,
 )
 
 import discord
@@ -20,7 +22,6 @@ from discord.ext import commands
 from sqlalchemy import and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from easterobot.bot import Easterobot
 from easterobot.casino.roulette import RouletteManager
 from easterobot.config import (
     RAND,
@@ -33,6 +34,9 @@ from easterobot.utils import in_seconds
 
 logger = logging.getLogger(__name__)
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+if TYPE_CHECKING:
+    from easterobot.bot import Easterobot
 
 
 class HuntQuery(QueryManager):
@@ -79,7 +83,7 @@ class HuntQuery(QueryManager):
         session: AsyncSession,
         guild_id: int,
         channel_id: int,
-    ) -> Hunt | None:
+    ) -> Optional[Hunt]:
         """Retrieve hunt configuration for a specific channel.
 
         Args:
@@ -206,7 +210,7 @@ class HuntQuery(QueryManager):
 class HuntCog(commands.Cog, HuntQuery):
     """Discord cog managing egg hunt events and interactions."""
 
-    def __init__(self, bot: Easterobot) -> None:
+    def __init__(self, bot: "Easterobot") -> None:
         """Initialize the hunt cog with bot reference.
 
         Args:
@@ -251,9 +255,11 @@ class HuntCog(commands.Cog, HuntQuery):
         hunt_channel_id: int,
         hunt_description: str,
         *,
-        member_id: int | None = None,
+        member_id: Optional[int] = None,
         casino: bool = False,
-        send_method: Callable[..., Awaitable[discord.Message]] | None = None,
+        send_method: Optional[
+            Callable[..., Awaitable[discord.Message]]
+        ] = None,
     ) -> None:
         """Start an egg hunt event in the specified channel.
 
@@ -586,7 +592,7 @@ class HuntCog(commands.Cog, HuntQuery):
         # Normalize final probabilities
         weight_sum = sum(hunter_weights)
         normalized_weights = [weight / weight_sum for weight in hunter_weights]
-        for hunter, weight in zip(hunters, normalized_weights, strict=False):
+        for hunter, weight in zip(hunters, normalized_weights):
             logger.info("%.2f%% - %s (%s)", weight * 100, hunter, hunter.id)
 
         # Generate rankings using weighted random selection
@@ -661,11 +667,11 @@ class HuntCog(commands.Cog, HuntQuery):
 def embed(
     *,
     title: str,
-    description: str | None = None,
-    image: str | None = None,
-    thumbnail: str | None = None,
-    egg_count: int | None = None,
-    footer: str | None = None,
+    description: Optional[str] = None,
+    image: Optional[str] = None,
+    thumbnail: Optional[str] = None,
+    egg_count: Optional[int] = None,
+    footer: Optional[str] = None,
 ) -> discord.Embed:
     """Create a formatted Discord embed for hunt-related messages.
 

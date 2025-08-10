@@ -5,15 +5,17 @@ attaching it to the bot instance, and registering it so that the bot
 can handle hunt-related features.
 """
 
-from easterobot.bot import Easterobot
-from easterobot.hunts.hunt import HuntCog
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from easterobot.bot import Easterobot
 
 __all__ = [
     "HuntCog",
 ]
 
 
-async def setup(bot: Easterobot) -> None:
+async def setup(bot: "Easterobot") -> None:
     """Load and register the HuntCog with the bot.
 
     This function creates a new HuntCog instance, attaches it as an
@@ -23,6 +25,8 @@ async def setup(bot: Easterobot) -> None:
     Args:
         bot: The Easterobot instance to which the HuntCog will be added.
     """
+    from easterobot.hunts.hunt import HuntCog  # noqa: PLC0415
+
     hunt_cog = HuntCog(bot)
     bot.hunt = hunt_cog
     await bot.add_cog(hunt_cog)

@@ -8,6 +8,7 @@ comprehensive match history.
 
 import asyncio
 from functools import partial
+from typing import Optional
 
 import discord
 
@@ -51,12 +52,10 @@ class RockPaperScissors(Game):
         self.has_timed_out = False  # Track if current round timed out
         self.max_turn = max_turn  # Maximum allowed rounds
         self.win_count = win_count  # Rounds needed to win the match
-        self.player1_choice: str | None = (
-            None  # Current round choice for player 1
-        )
-        self.player2_choice: str | None = (
-            None  # Current round choice for player 2
-        )
+        # Current round choice for player 1
+        self.player1_choice: Optional[str] = None
+        # Current round choice for player 2
+        self.player2_choice: Optional[str] = None
         self.match_history: list[
             tuple[str, str]
         ] = []  # History of all played rounds
@@ -305,7 +304,7 @@ class RockPaperScissors(Game):
 
     def determine_round_winner(
         self, player1_choice: str, player2_choice: str
-    ) -> discord.Member | None:
+    ) -> Optional[discord.Member]:
         """Determine the winner of a single round.
 
         Args:
@@ -327,8 +326,8 @@ class RockPaperScissors(Game):
         return None  # Round is a tie
 
     def get_player_color(
-        self, member: discord.Member | None
-    ) -> discord.Colour | None:
+        self, member: Optional[discord.Member]
+    ) -> Optional[discord.Colour]:
         """Get the Discord embed color associated with a specific player.
 
         Args:

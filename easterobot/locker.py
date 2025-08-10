@@ -11,7 +11,7 @@ import logging
 from collections.abc import AsyncIterator, Iterable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from types import TracebackType
-from typing import ClassVar, final
+from typing import ClassVar, Optional, final
 
 import discord
 from sqlalchemy import and_, func, not_, select
@@ -224,10 +224,10 @@ class EggLocker(AbstractAsyncContextManager["EggLocker"]):
 
     async def __aexit__(
         self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> bool | None:
+        exc_type: Optional[type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> Optional[bool]:
         """Release all locks and rollback any changes on exit."""
         async with self.transaction():
             await self._session.rollback()

@@ -7,6 +7,7 @@ betting with eggs and can be played against specific members or random players.
 
 import asyncio
 from contextlib import suppress
+from typing import Optional
 
 import discord
 from discord import app_commands
@@ -189,7 +190,7 @@ async def start_game_duel(
 @controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def connect4_command(
     ctx: Context,
-    member: discord.Member | None = None,
+    member: Optional[discord.Member] = None,
     bet: app_commands.Range[int, 0] = 0,
 ) -> None:
     """Start a Connect4 game against a specified or random opponent.
@@ -214,7 +215,7 @@ async def connect4_command(
 @controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def tictactoe_command(
     ctx: Context,
-    member: discord.Member | None = None,
+    member: Optional[discord.Member] = None,
     bet: app_commands.Range[int, 0] = 0,
 ) -> None:
     """Start a Tic-Tac-Toe game against a specified or random opponent.
@@ -239,7 +240,7 @@ async def tictactoe_command(
 @controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def rockpaperscissors_command(
     ctx: Context,
-    member: discord.Member | None = None,
+    member: Optional[discord.Member] = None,
     bet: app_commands.Range[int, 0] = 0,
 ) -> None:
     """Start a Rock Paper Scissors game against a specified or random opponent.
@@ -264,13 +265,13 @@ async def rockpaperscissors_command(
 @controlled_command(cooldown=True, channel_permissions={"send_messages": True})
 async def skyjo_command(
     ctx: Context,
-    member1: discord.Member | None = None,
-    member2: discord.Member | None = None,
-    member3: discord.Member | None = None,
-    member4: discord.Member | None = None,
-    member5: discord.Member | None = None,
-    member6: discord.Member | None = None,
-    member7: discord.Member | None = None,
+    member1: Optional[discord.Member] = None,
+    member2: Optional[discord.Member] = None,
+    member3: Optional[discord.Member] = None,
+    member4: Optional[discord.Member] = None,
+    member5: Optional[discord.Member] = None,
+    member6: Optional[discord.Member] = None,
+    member7: Optional[discord.Member] = None,
     bet: app_commands.Range[int, 0] = 0,
 ) -> None:
     """Start a Skyjo game with specified members or random players.

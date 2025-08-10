@@ -4,7 +4,7 @@ import argparse
 import pathlib
 from collections import deque
 from collections.abc import Iterator, Sequence
-from typing import cast
+from typing import Optional, cast
 
 import cv2
 import numpy as np
@@ -55,7 +55,7 @@ def extract(
 
 
 def cropping(
-    source: str, destination: str, skip: list[str] | None = None
+    source: str, destination: str, skip: Optional[list[str]] = None
 ) -> None:
     """Extract and crop all sub images in a transparent image."""
     if not skip:
@@ -80,7 +80,7 @@ def cropping(
         counter += 1
 
 
-def entrypoint(argv: Sequence[str] | None = None) -> None:
+def entrypoint(argv: Optional[Sequence[str]] = None) -> None:
     """Entrypoint for command line interface."""
     parser = argparse.ArgumentParser(
         description="Extract and crop all sub images in a transparent image",

@@ -6,15 +6,17 @@ including turn-based games, duels, reaction handling, and game lifecycle
 management.
 """
 
-from easterobot.bot import Easterobot
-from easterobot.games.game import GameCog
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from easterobot.bot import Easterobot
 
 __all__ = [
     "GameCog",
 ]
 
 
-async def setup(bot: Easterobot) -> None:
+async def setup(bot: "Easterobot") -> None:
     """Set up and register the game management system with the Discord bot.
 
     Args:
@@ -24,6 +26,8 @@ async def setup(bot: Easterobot) -> None:
     easy access, and registers it as a Discord.py cog to handle events and
     commands related to game functionality.
     """
+    from easterobot.games.game import GameCog  # noqa: PLC0415
+
     # Create the game management cog
     game_manager = GameCog(bot)
 

@@ -8,7 +8,7 @@ due to missing directories.
 import pathlib
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 
 class AutoDirRotatingFileHandler(RotatingFileHandler):
@@ -16,7 +16,7 @@ class AutoDirRotatingFileHandler(RotatingFileHandler):
 
     def __init__(
         self,
-        filename: str | pathlib.Path,
+        filename: Union[str, pathlib.Path],
         *args: Any,
         **kwargs: Any,
     ) -> None:

@@ -9,17 +9,25 @@ and base types for interactions.
 import asyncio
 import functools
 import logging
+import sys
 from collections.abc import Callable, Coroutine
 from time import time
-from typing import Any, Concatenate, ParamSpec, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Optional, TypeVar, Union, cast
 
 import discord
 from discord import Permissions, app_commands
 from sqlalchemy import and_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from easterobot.bot import Easterobot
 from easterobot.models import Cooldown
+
+if sys.version_info >= (3, 10):
+    from typing import Concatenate, ParamSpec
+else:
+    from typing_extensions import Concatenate, ParamSpec
+
+if TYPE_CHECKING:
+    from easterobot.bot import Easterobot  # noqa: F401
 
 # Main command group for all easter egg related commands
 egg_command_group = app_commands.Group(
@@ -39,17 +47,17 @@ class InterruptedCommandError(Exception):
 
 
 # Type alias for all possible Discord interaction channels
-InteractionChannel = (
-    discord.VoiceChannel
-    | discord.StageChannel
-    | discord.TextChannel
-    | discord.Thread
-    | discord.DMChannel
-    | discord.GroupChannel
-)
+InteractionChannel = Union[
+    discord.VoiceChannel,
+    discord.StageChannel,
+    discord.TextChannel,
+    discord.Thread,
+    discord.DMChannel,
+    discord.GroupChannel,
+]
 
 
-class Context(discord.Interaction[Easterobot]):
+class Context(discord.Interaction["Easterobot"]):
     """Enhanced Discord interaction context with guaranteed attributes.
 
     This context ensures that user, command, channel, and guild information
@@ -67,14 +75,14 @@ class Context(discord.Interaction[Easterobot]):
 # Type variables and aliases for generic function signatures
 P = ParamSpec("P")
 T = TypeVar("T")
-Interaction = discord.Interaction[Easterobot]
+Interaction = discord.Interaction["Easterobot"]
 Coro = Coroutine[Any, Any, T]
 
 
 def controlled_command(  # noqa: C901, PLR0915
     *,
     cooldown: bool = True,
-    channel_permissions: dict[str, bool] | None = None,
+    channel_permissions: Optional[dict[str, bool]] = None,
     **user_permissions: bool,
 ) -> Callable[
     [Callable[Concatenate[Context, P], Coro[None]]],

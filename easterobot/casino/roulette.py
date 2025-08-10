@@ -15,17 +15,17 @@ Classes:
 import asyncio
 from asyncio import sleep
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 import discord
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from easterobot.bot import Easterobot
 from easterobot.config import RAND, agree
 from easterobot.locker import EggLocker, EggLockerError
 from easterobot.utils import in_seconds
 
 if TYPE_CHECKING:
+    from easterobot.bot import Easterobot
     from easterobot.models import Egg
 
 
@@ -178,7 +178,7 @@ class Roulette:
         self.eggs[member] = eggs
         self.bets[member] = play
 
-    async def sample(self) -> "RouletteResult":
+    async def sample(self) -> RouletteResult:
         """Spin the roulette wheel and determine winners/losers.
 
         Returns:
@@ -283,7 +283,7 @@ class BetView(discord.ui.View):
 class RouletteManager:
     """Manages the flow of a roulette game session."""
 
-    def __init__(self, bot: Easterobot) -> None:
+    def __init__(self, bot: "Easterobot") -> None:
         """Initialize the roulette manager.
 
         Args:
@@ -293,7 +293,7 @@ class RouletteManager:
 
     async def run(
         self,
-        source: discord.Message | discord.TextChannel,
+        source: Union[discord.Message, discord.TextChannel],
     ) -> None:
         """Execute a complete roulette session.
 

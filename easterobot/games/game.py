@@ -10,17 +10,23 @@ import asyncio
 import logging
 from collections.abc import Callable, Coroutine, Iterable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 from uuid import uuid4
 
 import discord
 from discord.ext import commands
 from discord.message import convert_emoji_reaction
 
-from easterobot.bot import Easterobot
-from easterobot.commands.base import Context, Interaction, InteractionChannel
 from easterobot.config import RAND, agree
 from easterobot.utils import in_seconds
+
+if TYPE_CHECKING:
+    from easterobot.bot import Easterobot
+    from easterobot.commands.base import (
+        Context,
+        Interaction,
+        InteractionChannel,
+    )
 
 logger = logging.getLogger(__name__)
 AsyncCallback = Callable[[], Coroutine[Any, Any, None]]
@@ -77,7 +83,7 @@ class Game:
 
     def __init__(
         self,
-        bot: Easterobot,
+        bot: "Easterobot",
         message: discord.Message,
         *members: discord.Member,
     ) -> None:
@@ -105,21 +111,21 @@ class Game:
         self.players = [Player(member, i) for i, member in enumerate(members)]
         self.message = message
         self.is_terminated = False  # True when game has ended
-        self.winner: Player | None = None  # Winner of the game (None for tie)
+        self.winner: Optional[Player] = None  # Winner of the game
         self.lock = asyncio.Lock()  # Prevents race conditions in game logic
 
         # Game lifecycle management callbacks
-        self._cleanup_callback: AsyncCallback | None = None
-        self._completion_callback: AsyncCallback | None = None
+        self._cleanup_callback: Optional[AsyncCallback] = None
+        self._completion_callback: Optional[AsyncCallback] = None
         self._game_end_event = asyncio.Event()  # Signals when game ends
 
         # Turn timeout management system
         self._reset_timer_event = asyncio.Event()  # Signals timer reset
         # Current timeout task
-        self._timeout_task: asyncio.Task[None] | None = None
+        self._timeout_task: Optional[asyncio.Task[None]] = None
         # Protects timeout operations
         self._timeout_lock: asyncio.Lock = asyncio.Lock()
-        self.timer_display: str | None = None  # Human-readable timer text
+        self.timer_display: Optional[str] = None  # Human-readable timer text
 
     async def set_completion_callback(self, callback: AsyncCallback) -> None:
         """Set a callback to be executed when the game completes.
@@ -147,7 +153,7 @@ class Game:
         """
         return 2
 
-    async def wait_for_completion(self) -> Player | None:
+    async def wait_for_completion(self) -> Optional[Player]:
         """Wait for the game to complete and return the winner.
 
         Returns:
@@ -185,7 +191,7 @@ class Game:
         typically by advancing the turn or ending the game.
         """
 
-    async def set_winner(self, winner: Player | None) -> None:
+    async def set_winner(self, winner: Optional[Player]) -> None:
         """End the game and set the winner, triggering cleanup processes.
 
         Args:
@@ -316,7 +322,7 @@ class GameCog(commands.Cog):
     game instances, handling reaction events, and cleaning up completed games.
     """
 
-    def __init__(self, bot: Easterobot) -> None:
+    def __init__(self, bot: "Easterobot") -> None:
         """Initialize the game manager with an empty games registry.
 
         Args:
@@ -329,11 +335,11 @@ class GameCog(commands.Cog):
 
     async def start_duel(
         self,
-        channel: InteractionChannel,
+        channel: "InteractionChannel",
         reference_message: discord.Message,
         player1: discord.Member,
         player2: discord.Member,
-    ) -> Player | None:
+    ) -> Optional[Player]:
         """Start a random game duel between two players.
 
         Args:
@@ -420,10 +426,10 @@ class GameCog(commands.Cog):
 
     async def request_duel(  # noqa: C901, PLR0915
         self,
-        ctx: Context,
+        ctx: "Context",
         target_members: Iterable[discord.Member],
         bet_amount: int,
-    ) -> discord.Message | None:
+    ) -> Optional[discord.Message]:
         """Send a duel request with accept/decline buttons.
 
         Args:
@@ -441,7 +447,7 @@ class GameCog(commands.Cog):
         pending_players = list(target_members)
         response_received = asyncio.Event()
         accepted_players: list[discord.Member] = [ctx.user]
-        cancelled_by: discord.Member | None = None
+        cancelled_by: Optional[discord.Member] = None
 
         # Create interactive view with accept/decline buttons
         button_view = discord.ui.View()
@@ -452,7 +458,7 @@ class GameCog(commands.Cog):
             label="Refuser", style=discord.ButtonStyle.red, emoji="🛡️"
         )
 
-        async def handle_accept(interaction: Interaction) -> Any:
+        async def handle_accept(interaction: "Interaction") -> Any:
             """Handle accept button clicks from challenged players."""
             nonlocal cancelled_by
             if TYPE_CHECKING:
@@ -478,7 +484,7 @@ class GameCog(commands.Cog):
             else:
                 await interaction.response.defer()
 
-        async def handle_decline(interaction: Interaction) -> Any:
+        async def handle_decline(interaction: "Interaction") -> Any:
             """Handle decline button clicks from any involved player."""
             nonlocal cancelled_by
             if TYPE_CHECKING:

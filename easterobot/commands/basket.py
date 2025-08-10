@@ -4,6 +4,8 @@ This module provides the command to display a user's easter egg collection.
 It shows detailed egg counts by type, missing eggs, and the user's ranking.
 """
 
+from typing import Optional
+
 import discord
 from discord import app_commands
 from sqlalchemy import and_, func, select
@@ -28,9 +30,7 @@ from easterobot.models import Egg
     user="Membre possèdant le panier à inspecter",
 )
 @controlled_command(cooldown=True)
-async def basket_command(
-    ctx: Context, user: discord.Member | None = None
-) -> None:
+async def basket_command(ctx: Context, user: Optional[discord.Member]) -> None:
     """Display the easter egg basket contents for a user.
 
     Shows a detailed breakdown of the user's egg collection including counts

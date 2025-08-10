@@ -4,7 +4,8 @@ This module imports all available command handlers for Easterobot and
 registers the root command group when the bot is set up.
 """
 
-from easterobot.bot import Easterobot
+from typing import TYPE_CHECKING
+
 from easterobot.commands.base import egg_command_group
 from easterobot.commands.basket import basket_command
 from easterobot.commands.disable import disable_command
@@ -39,8 +40,11 @@ __all__ = [
     "top_command",
 ]
 
+if TYPE_CHECKING:
+    from easterobot.bot import Easterobot
 
-async def setup(bot: Easterobot) -> None:
+
+async def setup(bot: "Easterobot") -> None:
     """Register the Easterobot root command group.
 
     Args:

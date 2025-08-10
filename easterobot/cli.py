@@ -6,7 +6,7 @@ import sys
 import warnings
 from collections.abc import Sequence
 from pathlib import Path
-from typing import NoReturn, TextIO
+from typing import NoReturn, Optional, TextIO, Union
 
 from alembic.config import CommandLine
 
@@ -20,12 +20,12 @@ cmd_alembic = CommandLine(prog="easterobot alembic")
 
 
 def showwarning(  # pragma: no cover
-    message: Warning | str,
+    message: Union[Warning, str],
     category: type[Warning],
     filename: str,
     lineno: int,
-    file: TextIO | None = None,  # noqa: ARG001
-    line: str | None = None,  # noqa: ARG001
+    file: Optional[TextIO] = None,  # noqa: ARG001
+    line: Optional[str] = None,  # noqa: ARG001
 ) -> None:
     """Show warning within the logger."""
     for module_name, module in sys.modules.items():  # noqa: B007
@@ -155,7 +155,7 @@ def get_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def setup_logging(*, verbose: bool | None = None) -> None:
+def setup_logging(*, verbose: Optional[bool] = None) -> None:
     """Do setup logging."""
     # Setup logging
     logging.basicConfig(
@@ -165,7 +165,7 @@ def setup_logging(*, verbose: bool | None = None) -> None:
     warnings.showwarning = showwarning
 
 
-def entrypoint(argv: Sequence[str] | None = None) -> None:
+def entrypoint(argv: Optional[Sequence[str]] = None) -> None:
     """Entrypoint for command line interface."""
     args = list(sys.argv[1:] if argv is None else argv)
     try:

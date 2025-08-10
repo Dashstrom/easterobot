@@ -6,6 +6,7 @@ two players and includes timeout handling and winner detection.
 """
 
 import asyncio
+from typing import Optional
 
 import discord
 
@@ -45,7 +46,7 @@ class TicTacToe(Game):
             *members: Variable number of members participating in the game.
         """
         # 3x3 grid represented as flat list
-        self.grid: list[Player | None] = [None] * 9
+        self.grid: list[Optional[Player]] = [None] * 9
         self.has_timed_out = False  # Track if current turn timed out
         # Current turn counter (even=player1, odd=player2)
         self.current_turn = 0
@@ -79,7 +80,7 @@ class TicTacToe(Game):
             mention = self.current_player.member.mention
             label = "⭕" if self.current_turn % 2 else "❌"
             label += f" Joueur actuel : {mention}\n\n"
-            embed_user: Player | None = self.current_player
+            embed_user: Optional[Player] = self.current_player
         elif self.winner:
             # Game ended with a winner
             forfeit_text = "par forfait " if self.has_timed_out else ""
@@ -177,7 +178,9 @@ class TicTacToe(Game):
         """
         return [self.players[0], self.players[1]][self.current_turn % 2]
 
-    def get_player_color(self, player: Player | None) -> discord.Colour | None:
+    def get_player_color(
+        self, player: Optional[Player]
+    ) -> Optional[discord.Colour]:
         """Get the Discord embed color associated with a specific player.
 
         Args:

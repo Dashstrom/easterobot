@@ -12,7 +12,7 @@ import pathlib
 import shutil
 from getpass import getpass
 from pathlib import Path
-from typing import TYPE_CHECKING, TypeVar
+from typing import Optional, TypeVar, Union
 
 import discord
 import discord.app_commands
@@ -20,9 +20,8 @@ import discord.ext.commands
 from alembic.command import upgrade
 from sqlalchemy.ext.asyncio import create_async_engine
 
-if TYPE_CHECKING:
-    from easterobot.games.game import GameCog
-    from easterobot.hunts.hunt import HuntCog
+from easterobot.games.game import GameCog
+from easterobot.hunts.hunt import HuntCog
 
 from .config import (
     DEFAULT_CONFIG_PATH,
@@ -46,8 +45,8 @@ class Easterobot(discord.ext.commands.Bot):
     """Main Easterobot Discord bot class."""
 
     owner: discord.User
-    game: "GameCog"
-    hunt: "HuntCog"
+    game: GameCog
+    hunt: HuntCog
     init_finished: asyncio.Event
 
     def __init__(self, config: MConfig) -> None:
@@ -87,9 +86,9 @@ class Easterobot(discord.ext.commands.Bot):
     @classmethod
     def from_config(
         cls,
-        path: str | Path = DEFAULT_CONFIG_PATH,
+        path: Union[str, Path] = DEFAULT_CONFIG_PATH,
         *,
-        token: str | None = None,
+        token: Optional[str] = None,
         env: bool = False,
     ) -> "Easterobot":
         """Create an instance from a configuration file.
@@ -108,9 +107,9 @@ class Easterobot(discord.ext.commands.Bot):
     @classmethod
     def generate(
         cls,
-        destination: Path | str,
+        destination: Union[Path, str],
         *,
-        token: str | None = None,
+        token: Optional[str] = None,
         env: bool = False,
         interactive: bool = False,
     ) -> "Easterobot":
@@ -153,7 +152,7 @@ class Easterobot(discord.ext.commands.Bot):
 
     def is_super_admin(
         self,
-        user: discord.User | discord.Member,
+        user: Union[discord.User, discord.Member],
     ) -> bool:
         """Check whether a user is a super admin.
 
@@ -172,7 +171,7 @@ class Easterobot(discord.ext.commands.Bot):
     async def resolve_channel(
         self,
         channel_id: int,
-    ) -> discord.TextChannel | None:
+    ) -> Optional[discord.TextChannel]:
         """Get a text channel by its ID.
 
         Args:

@@ -12,6 +12,7 @@ import os
 import pathlib
 import random
 import re
+import sys
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from collections.abc import Iterable
@@ -20,8 +21,9 @@ from typing import (
     Any,
     Generic,
     Literal,
-    TypeGuard,
+    Optional,
     TypeVar,
+    Union,
     cast,
     get_args,
     get_origin,
@@ -31,11 +33,16 @@ import discord
 import msgspec
 from alembic.config import Config
 
+if sys.version_info >= (3, 10):
+    from typing import TypeGuard
+else:
+    from typing_extensions import TypeGuard
+
 RAND = random.SystemRandom()
 
 T = TypeVar("T")
 V = TypeVar("V")
-Members = discord.Member | list[discord.Member]
+Members = Union[discord.Member, list[discord.Member]]
 
 HERE = pathlib.Path(__file__).parent.resolve()
 RESOURCES = HERE / "resources"
@@ -58,7 +65,7 @@ class Serializable(ABC, Generic[V]):
         """Reconstruct an object from its serialized form."""
 
     @staticmethod
-    def decodable(typ: type[Any]) -> TypeGuard["type[Serializable[T]]"]:
+    def decodable(typ: type[Any]) -> TypeGuard[type["Serializable[T]"]]:
         """Check whether a class is a Serializable subclass."""
         return hasattr(typ, "_decodable_flag")
 
@@ -165,7 +172,7 @@ class MCasino(msgspec.Struct):
     probability: float
     roulette: CasinoEvent
 
-    def sample_event(self) -> CasinoEvent | None:
+    def sample_event(self) -> Optional[CasinoEvent]:
         """Randomly return a casino event based on probability."""
         if self.probability < RAND.random():
             return None
@@ -177,7 +184,7 @@ class RandomItem(Serializable[list[T]]):
 
     __slots__ = ("choices",)
 
-    def __init__(self, choices: Iterable[T] | None = None):
+    def __init__(self, choices: Optional[Iterable[T]] = None):
         """Initialize RandomItem.
 
         Args:
@@ -393,11 +400,11 @@ class MConfig(msgspec.Struct, dict=True):
         )
     )
     message_content: bool = True
-    token: str | msgspec.UnsetType | None = msgspec.UNSET
-    _resources: pathlib.Path | msgspec.UnsetType | None = msgspec.field(
-        name="resources", default=msgspec.UNSET
+    token: Optional[Union[str, msgspec.UnsetType]] = msgspec.UNSET
+    _resources: Optional[Union[pathlib.Path, msgspec.UnsetType]] = (
+        msgspec.field(name="resources", default=msgspec.UNSET)
     )
-    _working_directory: pathlib.Path | msgspec.UnsetType | None = (
+    _working_directory: Optional[Union[pathlib.Path, msgspec.UnsetType]] = (
         msgspec.field(name="working_directory", default=msgspec.UNSET)
     )
 
@@ -452,7 +459,7 @@ class MConfig(msgspec.Struct, dict=True):
         return self.token
 
     def attach_default_working_directory(
-        self, path: pathlib.Path | str
+        self, path: Union[pathlib.Path, str]
     ) -> None:
         """Attach a fallback working directory path for this config."""
         self._cwd = pathlib.Path(path)
@@ -496,7 +503,7 @@ class MConfig(msgspec.Struct, dict=True):
         conj_text.attach(self.conjugation)
         return conj_text(member)
 
-    def alembic_config(self, namespace: Namespace | None = None) -> Config:
+    def alembic_config(self, namespace: Optional[Namespace] = None) -> Config:
         """Return an Alembic configuration object for migrations."""
         config_alembic = str(self.resources / "alembic.ini")
         cfg = Config(
@@ -579,7 +586,7 @@ def _enc_hook(value: Any) -> Any:
     raise TypeError(msg)
 
 
-def load_yaml(data: bytes | str, target_type: type[T]) -> T:
+def load_yaml(data: Union[bytes, str], target_type: type[T]) -> T:
     """Load an object from YAML data.
 
     Args:
@@ -626,8 +633,8 @@ def convert(value: Any, target_type: type[T]) -> T:
 
 
 def load_config_from_buffer(
-    data: bytes | str,
-    token: str | None = None,
+    data: Union[bytes, str],
+    token: Optional[str] = None,
     *,
     env: bool = False,
 ) -> MConfig:
@@ -652,8 +659,8 @@ def load_config_from_buffer(
 
 
 def load_config_from_path(
-    path: str | pathlib.Path,
-    token: str | None = None,
+    path: Union[str, pathlib.Path],
+    token: Optional[str] = None,
     *,
     env: bool = False,
 ) -> MConfig:
@@ -675,7 +682,7 @@ def load_config_from_path(
 
 
 def agree(
-    singular: str, plural: str, /, amount: int | None, *args: Any
+    singular: str, plural: str, /, amount: Optional[int], *args: Any
 ) -> str:
     """Return singular or plural form based on the amount.
 
