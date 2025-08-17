@@ -136,7 +136,7 @@ class RockPaperScissors(Game):
             ):
                 # Invalid interaction (already chosen)
                 await interaction.response.send_message(
-                    "Vous avez déjà joué à cette manche partie !",
+                    "Vous avez déjà joué à cette manche !",
                     ephemeral=True,
                     delete_after=5,
                 )

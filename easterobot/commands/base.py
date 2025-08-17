@@ -203,11 +203,14 @@ def controlled_command(  # noqa: C901, PLR0915
                             command_name,
                         ),
                     )
-                    command_cooldown_duration = (
-                        interaction.client.config.commands[
-                            command_name
-                        ].cooldown
-                    )
+                    try:
+                        command_cooldown_duration = (
+                            interaction.client.config.commands[
+                                command_name
+                            ].cooldown
+                        )
+                    except KeyError:
+                        command_cooldown_duration = 10.0
                     current_timestamp = time()
 
                     # Update or create cooldown record if expired

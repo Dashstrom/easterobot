@@ -43,6 +43,8 @@ commands:
       max: 0.666
   top:
     cooldown: 30.0
+  roulette:
+    cooldown: 30.0
   connect4:
     cooldown: 120.0
   rockpaperscissors:

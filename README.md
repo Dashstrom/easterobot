@@ -150,6 +150,58 @@ To ignore illegitimate warnings you can add :
 - **# pragma: no cover** on the same line to ignore line for coverage.
 - **# doctest: +SKIP** on the same line for doctest.
 
+### Install as service
+
+```bash
+E_NOTROOT=87 # Non-root exit error.
+E_INSTALLED=1
+
+if ! $(sudo -l &> /dev/null); then
+  >&2 echo 'Error: root privileges are needed to run this script'
+  exit $E_NOTROOT
+fi
+
+if ! id easterobot >/dev/null 2>&1; then
+  useradd --system --create-home --home-dir /home/easterobot easterobot
+fi
+
+if [ ! -d /home/easterobot/easterobot ]; then
+  sudo -u easterobot -g easterobot -- git clone https://github.com/Dashstrom/easterobot /home/easterobot/easterobot
+fi
+
+cd /home/easterobot/easterobot
+systemctl disable easterobot || true
+systemctl stop easterobot || true
+sudo -u easterobot -g easterobot -- git pull
+sudo -u easterobot -g easterobot -- python3 -m venv /home/easterobot/easterobot/.venv
+sudo -u easterobot -g easterobot -- /home/easterobot/easterobot/.venv/bin/python3 -m pip install .
+sudo -u easterobot -g easterobot -- /home/easterobot/easterobot/.venv/bin/easterobot generate -i /home/easterobot/easterobot/data
+if [ ! -f /lib/systemd/system/easterobot.service ]; then
+  mkdir -p /lib/systemd/system
+  cat > /lib/systemd/system/easterobot.service << EOF
+[Unit]
+Description=Easterobot
+After=network-online.target
+
+[Service]
+Type=exec
+ExecStart=/home/easterobot/easterobot/.venv/bin/easterobot run -c /home/easterobot/easterobot/data/config.yml
+WorkingDirectory=/home/easterobot/easterobot
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=easterobot
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+fi
+systemctl enable easterobot
+systemctl start easterobot
+systemctl status easterobot
+```
+
 ## License
 
 This work is licensed under [MIT](https://github.com/Dashstrom/easterobot/blob/main/LICENSE).

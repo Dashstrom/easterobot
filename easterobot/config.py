@@ -250,6 +250,12 @@ class MCooldown(msgspec.Struct):
         return self.min + RAND.random() * (self.max - self.min)
 
 
+class MRoulette(msgspec.Struct):
+    """Roulette range configuration."""
+
+    cooldown: float
+
+
 class MWeights(msgspec.Struct):
     """Weight configuration for egg, speed, and base."""
 
@@ -345,6 +351,7 @@ class MCommands(msgspec.Struct, forbid_unknown_fields=True):
     help: MCommand
     edit: MCommand
     connect4: MCommand
+    roulette: MRoulette
     skyjo: MCommand
     info: MCommand
     tictactoe: MCommand
