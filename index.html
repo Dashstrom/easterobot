@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="None" /><meta name="author" content="Dashstrom <dashstrom.pro@gmail.com>" />
+      <link rel="shortcut icon" href="img/favicon.ico" />
+    <title>easterobot</title>
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Home";
+        var mkdocs_page_input_path = "index.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="." class="icon icon-home"> easterobot
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Home</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#documentation">Documentation</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#usage-as-cli">Usage as CLI</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#usage-with-docker">Usage with Docker</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#configuration-directory">Configuration directory</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#development">Development</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#contributing">Contributing</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#prerequisite">Prerequisite</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#poe">Poe</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#how-to-add-dependency">How to add dependency</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#ignore-illegitimate-warnings">Ignore illegitimate warnings</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#install-as-service">Install as service</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#license">License</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="developer_interface/">Developer Interface</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href=".">easterobot</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Home</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/Dashstrom/easterobot/edit/master/docs/index.md">Edit on easterobot</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="easterobot">easterobot</h1>
+<p><a href="https://github.com/Dashstrom/easterobot/actions/workflows/docs.yml"><img alt="CI : Docs" src="https://github.com/Dashstrom/easterobot/actions/workflows/docs.yml/badge.svg" /></a> <a href="https://github.com/Dashstrom/easterobot/actions/workflows/lint.yml"><img alt="CI : Lint" src="https://github.com/Dashstrom/easterobot/actions/workflows/lint.yml/badge.svg" /></a> <a href="https://github.com/Dashstrom/easterobot/actions/workflows/tests.yml"><img alt="CI : Tests" src="https://github.com/Dashstrom/easterobot/actions/workflows/tests.yml/badge.svg" /></a> <a href="https://pypi.org/project/easterobot"><img alt="PyPI : easterobot" src="https://img.shields.io/pypi/v/easterobot.svg" /></a> <a href="https://pypi.org/project/easterobot"><img alt="Python : versions" src="https://img.shields.io/pypi/pyversions/easterobot.svg" /></a> <a href="https://github.com/Dashstrom/easterobot/blob/main/LICENSE"><img alt="License : MIT" src="https://img.shields.io/badge/license-MIT-green.svg" /></a></p>
+<p>Discord bot for easter.</p>
+<h2 id="documentation">Documentation</h2>
+<p>Documentation is available on <a href="https://dashstrom.github.io/easterobot">https://dashstrom.github.io/easterobot</a>.</p>
+<h2 id="installation">Installation</h2>
+<pre><code class="language-bash"># Using pip
+pip install easterobot
+# Using uv (install in your project dependencies)
+uv add easterobot
+# Using pipx (install as a tool in a venv)
+pipx install easterobot
+# Using uv (install as a tool in a venv)
+uv tool install easterobot
+</code></pre>
+<h2 id="usage-as-cli">Usage as CLI</h2>
+<p>Once installed, you can use it directly.</p>
+<pre><code class="language-bash">easterobot run -t YOU_MUST_PUT_YOUR_TOKEN_HERE
+</code></pre>
+<p>Or you can generate a custom configuration for your own needs !</p>
+<pre><code class="language-bash">easterobot generate -i data
+easterobot run -c data/config.yml
+</code></pre>
+<h2 id="usage-with-docker">Usage with Docker</h2>
+<p>You can install <code>easterobot</code> using <a href="https://docs.astral.sh/uv/getting-started/installation">uv</a> from <a href="https://pypi.org/project">PyPI</a>.</p>
+<pre><code class="language-bash">git clone https://github.com/Dashstrom/easterobot
+cd easterobot
+echo &quot;DISCORD_TOKEN=YOU_MUST_PUT_YOUR_TOKEN_HERE&quot; &gt; .env
+
+# Can be unsafe (and for each update)
+chmod -R 700 . &amp;&amp; mkdir data -p &amp;&amp; chmod 777 data
+
+# Run the docker container
+docker compose up -d
+
+# Stop it
+docker compose stop
+
+# Remove the container (not the data)
+docker compose down --rmi all
+
+# Update
+git reset --hard HEAD &amp;&amp; git pull
+
+# One-line update
+docker compose down --rmi all &amp;&amp; git reset --hard HEAD &amp;&amp; git pull &amp;&amp; chmod -R 700 . &amp;&amp; mkdir data -p &amp;&amp; chmod 777 data &amp;&amp; docker compose up -d
+</code></pre>
+<h2 id="configuration-directory">Configuration directory</h2>
+<pre><code class="language-text">data                          Root directory
+├── .gitignore                Avoid pushing sensitive data
+├── config.yml                Configuration file
+├── easterobot.db             Database
+├── logs                      Logging directory
+│   ├── easterobot.log        Latest log file
+│   └── easterobot.log.1      Rotating log file
+└── resources                 Resource directory
+    ├── config.example.yml    An example of config
+    ├── credits.txt           Credits of emotes
+    ├── emotes                Directory loaded as application emotes
+    │   ├── eggs              Directory for eggs
+    │   |   └── egg_01.png    Emoji to use for egg
+    │   ├── icons             Misc emotes to load
+    │   │   └── arrow.png     Emoji used in messages
+    │   ├── placements        Directory for emoji used in grid
+    │   │   └── s1.png        Single blue emoji with one on it
+    │   └── skyjo             Skyjo cards
+    │       └── skyjo_m1.png  Card with minus -1 with deep blue
+    ├── logging.conf          Logging configuration
+    ├── alembic.ini           Configure for alembic
+    └── logo.png              Logo used by the bot
+</code></pre>
+<h2 id="development">Development</h2>
+<h3 id="contributing">Contributing</h3>
+<p>Contributions are very welcome. Tests can be run with <code>poe check</code>, please ensure the coverage at least stays the same before you submit a pull request.</p>
+<h3 id="prerequisite">Prerequisite</h3>
+<p>First, You need to install <a href="https://git-scm.com">git</a> following <a href="https://git-scm.com/book/en/v2/Getting-Started-Installing-Git">the official guide</a> and configure it.</p>
+<p>Then, you need to install <a href="https://docs.astral.sh/uv/getting-started/installation">uv</a> and update shell path with this command:</p>
+<pre><code class="language-bash">uv tool update-shell
+</code></pre>
+<p>Finally, run these commands for setup the project with dev dependencies.</p>
+<pre><code class="language-bash">git clone https://github.com/Dashstrom/easterobot
+cd easterobot
+uv sync --all-extras --python 3.10
+uv run poe setup
+</code></pre>
+<h3 id="poe">Poe</h3>
+<p>Poe is available for help you to run tasks: <code>uv run poe {task}</code> or <code>poe task</code> within the venv.</p>
+<pre><code class="language-text">test                  Run test suite.
+lint                  Run linters: ruff checker and ruff formatter and mypy.
+format                Run linters in fix mode.
+check                 Run all checks: lint, test and docs.
+check-tag             Check if the current tag match the version.
+cov                   Run coverage for generate report and html.
+open-cov              Open html coverage report in webbrowser.
+doc                   Build documentation.
+open-doc              Open documentation in webbrowser.
+setup                 Setup pre-commit.
+pre-commit            Run pre-commit.
+clean                 Clean cache files.
+</code></pre>
+<h3 id="how-to-add-dependency">How to add dependency</h3>
+<pre><code class="language-bash">uv add 'PACKAGE'
+</code></pre>
+<h3 id="ignore-illegitimate-warnings">Ignore illegitimate warnings</h3>
+<p>To ignore illegitimate warnings you can add :</p>
+<ul>
+<li><strong># noqa: ERROR_CODE</strong> on the same line for ruff.</li>
+<li><strong># type: ignore[ERROR_CODE]</strong> on the same line for mypy.</li>
+<li><strong># pragma: no cover</strong> on the same line to ignore line for coverage.</li>
+<li><strong># doctest: +SKIP</strong> on the same line for doctest.</li>
+</ul>
+<h3 id="install-as-service">Install as service</h3>
+<pre><code class="language-bash">E_NOTROOT=87 # Non-root exit error.
+E_INSTALLED=1
+
+if ! $(sudo -l &amp;&gt; /dev/null); then
+  &gt;&amp;2 echo 'Error: root privileges are needed to run this script'
+  exit $E_NOTROOT
+fi
+
+if ! id easterobot &gt;/dev/null 2&gt;&amp;1; then
+  useradd --system --create-home --home-dir /home/easterobot easterobot
+fi
+
+if [ ! -d /home/easterobot/easterobot ]; then
+  sudo -u easterobot -g easterobot -- git clone https://github.com/Dashstrom/easterobot /home/easterobot/easterobot
+fi
+
+cd /home/easterobot/easterobot
+systemctl disable easterobot || true
+systemctl stop easterobot || true
+sudo -u easterobot -g easterobot -- git pull
+sudo -u easterobot -g easterobot -- python3 -m venv /home/easterobot/easterobot/.venv
+sudo -u easterobot -g easterobot -- /home/easterobot/easterobot/.venv/bin/python3 -m pip install .
+sudo -u easterobot -g easterobot -- /home/easterobot/easterobot/.venv/bin/easterobot generate -i /home/easterobot/easterobot/data
+if [ ! -f /lib/systemd/system/easterobot.service ]; then
+  mkdir -p /lib/systemd/system
+  cat &gt; /lib/systemd/system/easterobot.service &lt;&lt; EOF
+[Unit]
+Description=Easterobot
+After=network-online.target
+
+[Service]
+Type=exec
+ExecStart=/home/easterobot/easterobot/.venv/bin/easterobot run -c /home/easterobot/easterobot/data/config.yml
+WorkingDirectory=/home/easterobot/easterobot
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=easterobot
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+fi
+systemctl enable easterobot
+systemctl start easterobot
+systemctl status easterobot
+</code></pre>
+<h2 id="license">License</h2>
+<p>This work is licensed under <a href="https://github.com/Dashstrom/easterobot/blob/main/LICENSE">MIT</a>.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="developer_interface/" class="btn btn-neutral float-right" title="Developer Interface">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+      <p>Copyright (c) 2024, Dashstrom <dashstrom.pro@gmail.com></p>
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/Dashstrom/easterobot" class="fa fa-code-fork" style="color: #fcfcfc"> easterobot</a>
+        </span>
+    
+    
+    
+      <span><a href="developer_interface/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = ".";</script>
+    <script src="js/theme_extra.js"></script>
+    <script src="js/theme.js"></script>
+      <script src="search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
+
+<!--
+MkDocs version : 1.6.1
+Build Date UTC : 2025-08-17 10:19:33.484292+00:00
+-->
